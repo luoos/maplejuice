@@ -14,3 +14,6 @@
 # Editor
 *.swp
 .vscode
+
+# Unwanted folder
+sample_logs/
