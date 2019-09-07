@@ -17,3 +17,7 @@
 
 # Unwanted folder
 sample_logs/
+
+# Binary file
+client
+server
