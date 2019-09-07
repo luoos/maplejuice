@@ -15,12 +15,21 @@ import (
 type GrepService struct{}
 
 func (p *GrepService) Grep(reg string, machineResult *MachineResult) error {
-	// grep default one file for now
-	filename := "sample_logs/sample.log"
-	fileResult := FileResult{Name: "Sample.log"}
+	filename := "sample_logs/sample.log" // TODO: this is a test file
+	fileResult := FileResult{Name: filename}
+	matchFile(&fileResult, reg)
+
+	*machineResult = MachineResult{Name: "MachineName", Files: []FileResult{fileResult}}
+	return nil
+}
+
+func matchFile(fileResult *FileResult, reg string) {
+	filename := fileResult.Name
 	file, err := os.Open(filename)
 	if err != nil {
 		log.Fatal(err)
+		fileResult.Err = err.Error()
+		return
 	}
 	defer file.Close()
 
@@ -36,9 +45,6 @@ func (p *GrepService) Grep(reg string, machineResult *MachineResult) error {
 		i++
 	}
 	fileResult.Lines = lines
-
-	*machineResult = MachineResult{Name: "MachineName", Files: []FileResult{fileResult}}
-	return nil
 }
 
 var port = flag.Int("port", 8000, "The port to receive connect; defaults to 8000.")
@@ -61,5 +67,4 @@ func main() {
 
 		go rpc.ServeConn(conn)
 	}
-
 }
