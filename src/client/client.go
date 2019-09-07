@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -31,17 +30,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	var reply []byte
-	err = conn.Call("GrepService.Grep", reg, &reply)
+	var machineResult MachineResult
+	err = conn.Call("GrepService.Grep", reg, &machineResult)
 	if err != nil {
 		log.Fatal(err)
 	} else {
-		var machineResult MachineResult
-		err := json.Unmarshal(reply, &machineResult)
-		if err != nil {
-			log.Fatal(err)
-		} else {
-			PrintResult(machineResult)
-		}
+		PrintResult(machineResult)
 	}
 }

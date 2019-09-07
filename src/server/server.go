@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"flag"
 	"log"
 	"net"
@@ -15,7 +14,7 @@ import (
 
 type GrepService struct{}
 
-func (p *GrepService) Grep(reg string, reply *[]byte) error {
+func (p *GrepService) Grep(reg string, machineResult *MachineResult) error {
 	// grep default one file for now
 	filename := "sample_logs/sample.log"
 	fileResult := FileResult{Name: "Sample.log"}
@@ -38,9 +37,7 @@ func (p *GrepService) Grep(reg string, reply *[]byte) error {
 	}
 	fileResult.Lines = lines
 
-	machineResult := MachineResult{Name: "MachineName", Files: []FileResult{fileResult}}
-	jsonData, _ := json.Marshal(machineResult) // TODO: handle err
-	*reply = jsonData
+	*machineResult = MachineResult{Name: "MachineName", Files: []FileResult{fileResult}}
 	return nil
 }
 
