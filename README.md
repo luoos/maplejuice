@@ -9,7 +9,7 @@ Group members:
 1. cd to project root folder
 2. run `./scripts/build.sh`. You will get two bin `server` and `client` under project root folder
 3. run `./server`
-4. run `./client <regexp>` such as `./client Safari`
+4. run `./client "<command>"` such as `./client "grep -rnI "Safari" ./sample_logs"`
 
 ### Scripts
 
