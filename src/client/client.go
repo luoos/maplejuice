@@ -34,7 +34,7 @@ func main() {
 		request_cmd(host, *port, cmd)
 	}
 
-	// For debug
+	// For quick test on local host
 	// host := "localhost"
 	// request_cmd(host, *port, cmd)
 
@@ -58,9 +58,9 @@ func request_cmd(host string, port int, cmd string) {
 	if err != nil {
 		log.Fatal(err)
 	} else {
-		output_lines := strings.Split(output, "\n")
+		lines := strings.Split(strings.TrimRight(output, "\n"), "\n")
 		colorCyan := color.New(color.FgCyan)
-		for _, l := range output_lines {
+		for _, l := range lines {
 			colorCyan.Print(host + ":")
 			fmt.Println(l)
 		}
