@@ -10,12 +10,13 @@ import (
 	"os"
 	"strconv"
 	"strings"
-
+	"sync"
 	"github.com/fatih/color"
 )
 
 var port = flag.Int("port", 8000, "The port to connect to; defaults to 8000.")
 var servers_file = "./scripts/servers"
+var wg sync.WaitGroup
 
 func main() {
 	flag.Parse()
@@ -31,8 +32,10 @@ func main() {
 	scanner.Split(bufio.ScanLines)
 	for scanner.Scan() {
 		host := scanner.Text()
-		request_cmd(host, *port, cmd)
+		wg.Add(1)
+		go request_cmd(host, *port, cmd)
 	}
+	wg.Wait()
 
 	// For quick test on local host
 	// host := "localhost"
@@ -65,4 +68,5 @@ func request_cmd(host string, port int, cmd string) {
 			fmt.Println(l)
 		}
 	}
+	wg.Done()
 }
