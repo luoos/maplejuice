@@ -7,21 +7,16 @@ import (
 	"net/rpc"
 	"os/exec"
 	"strconv"
-	"strings"
 )
 
 type CmdService struct{}
 
 func (p *CmdService) Exec(cmd_str string, output *string) error {
 	log.Println("Exec: " + cmd_str)
-	parts := strings.Fields(cmd_str)
-	head := parts[0]
-	args := parts[1:]
-	out, err := exec.Command(head, args...).Output()
+	out, err := exec.Command("bash", "-c", cmd_str).Output()
 	*output = string(out)
 	if err != nil {
-		log.Panic(err)
-		return err
+		*output = err.Error()
 	}
 	return nil
 }

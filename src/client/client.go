@@ -15,7 +15,7 @@ import (
 )
 
 var port = flag.Int("port", 8000, "The port to connect to; defaults to 8000.")
-var servers_file = "./scripts/servers"
+var servers_file = "./grep_servers"
 var wg sync.WaitGroup
 
 func main() {
