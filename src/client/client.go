@@ -20,7 +20,7 @@ var wg sync.WaitGroup
 
 func main() {
 	flag.Parse()
-	cmd := os.Args[1]
+	cmd := os.Args[len(os.Args)-1]
 	file, err := os.Open(servers_file)
 	if err != nil {
 		fmt.Println(err)
