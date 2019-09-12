@@ -47,13 +47,14 @@ func request_cmd(host string, port int, cmd string) {
 	dest := host + ":" + strconv.Itoa(port)
 	conn, err := rpc.Dial("tcp", dest)
 
+	defer wg.Done()
 	if err != nil {
 		if _, t := err.(*net.OpError); t {
-			fmt.Println("Some problem connecting.", err)
+			fmt.Println("Failed to connect " + host, err)
 		} else {
 			fmt.Println("Unknown error: " + err.Error())
 		}
-		os.Exit(1)
+		return
 	}
 
 	var output string
@@ -68,5 +69,4 @@ func request_cmd(host string, port int, cmd string) {
 			fmt.Println(l)
 		}
 	}
-	wg.Done()
 }
