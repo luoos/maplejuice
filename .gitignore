@@ -18,6 +18,9 @@ pkg/
 *.swp
 .vscode
 
+# Dependency
+github.com/
+
 # Unwanted folder
 sample_logs/
 
