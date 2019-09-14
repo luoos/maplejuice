@@ -4,7 +4,7 @@ After=network.target
 [Service]
 Type=simple
 User=root
-ExecStart=/usr/bin/server
+ExecStart=/usr/app/log_querier/server
 
 [Install]
 WantedBy=multi-user.target
