@@ -65,4 +65,6 @@ Build server and client and download sample log file if necessary
 [distributed_log_querier]$ go test -v ./.../test
 ```
 
-> the test function included 6 tests:  grep Rare/Frequent/SomewhatFrequent word is efficient, grep pattern that appears in only one file, some files, or all files, determine if result is expeted
+the test function included 6 tests:  
+- grep Rare/Frequent/SomewhatFrequent word is efficient
+- grep pattern that appears in only one file, some files, or all files, determine if result is expeted
