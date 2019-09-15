@@ -14,18 +14,21 @@ Group members:
 
 #### distributed demo
 1. cd to project root folder
-2. run `./scripts/kill_all_servers.sh` error output means servers are already dead, success means killed successfully
-3. run `./scripts/start_all_servers.sh` sends server binary file to 10 servers and running them in background
-4. run `./client "find . -regex './vm[1-10].log' -exec grep hello {} \;"` to grep hello in all these log files.
+2. set user to be root for all host in ~/.ssh/config
+3. run `./scripts/deploy_servers.sh` if server.go is modified and need to be rebuilt, it will restart log_querier as a service
+4. run `log_client "grep <pattern> -c /usr/logs/<your log pattern>"`
 
 ### Scripts
 
 Scripts under `scripts` folder
 
-#### Download Sample Log
-
-`./scripts/download_sample_logs.sh`: Download a sample http server log into `sample_logs` folder
-
 #### Build
 
 `./scripts/build.sh`: Build server and client and download sample log file if necessary
+
+#### Test
+
+1. run `sh scripts/deploy_test_log.sh` to send logs to 10 vms.
+2. to run test, `go test -v ./.../test`
+
+> the test function included 6 tests:  grep Rare/Frequent/SomewhatFrequent word is efficient, grep pattern that appears in only one file, some files, or all files, determine if result is expeted

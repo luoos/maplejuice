@@ -6,4 +6,4 @@ do
     scp ./client $h:/usr/app/log_querier;
     scp ./scripts/servers $h:/usr/app/log_querier;
 done
-#pssh -h ./scripts/servers -i "systemctl restart log_querier"
+pssh -h ./scripts/servers -i "systemctl restart log_querier"
