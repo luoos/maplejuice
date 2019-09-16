@@ -15,7 +15,7 @@ func runtime_local(cmd string) time.Duration {
 }
 
 func TestRareWordsEfficient(t *testing.T) {
-	cmd := exec.Command("bash", "-c", "log_client 'grep Imrare /usr/logs/random*'")
+	cmd := exec.Command("bash", "-c", "log_client 'grep Imrare ~/random*'")
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -28,7 +28,7 @@ func TestRareWordsEfficient(t *testing.T) {
 	}
     elapsed := time.Since(start)
     start2 := time.Now()
-    runtime_local("log_client 'grep Imrare /usr/logs/random*'")
+    runtime_local("log_client 'grep Imrare ~/random*'")
     elapsed2 := time.Since(start2)
     if 2 * elapsed2 < elapsed {
         t.Errorf("Too slow")
@@ -36,7 +36,7 @@ func TestRareWordsEfficient(t *testing.T) {
     t.Logf("remote time:%v local time:%v", elapsed, elapsed2)
 }
 func TestFrequentWordsEfficient(t *testing.T) {
-	cmd := exec.Command("bash", "-c", "log_client 'grep ImFreqent /usr/logs/random*'")
+	cmd := exec.Command("bash", "-c", "log_client 'grep ImFreqent ~/random*'")
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -49,7 +49,7 @@ func TestFrequentWordsEfficient(t *testing.T) {
 	}
     elapsed := time.Since(start)
     start2 := time.Now()
-    runtime_local("log_client 'grep Imrare /usr/logs/random*'")
+    runtime_local("log_client 'grep Imrare ~/random*'")
     elapsed2 := time.Since(start2)
     if 2 * elapsed2 < elapsed {
         t.Errorf("Too slow")
@@ -57,7 +57,7 @@ func TestFrequentWordsEfficient(t *testing.T) {
     t.Logf("remote time:%v local time:%v", elapsed, elapsed2)
 }
 func TestSomewhatFrequentWordsEfficient(t *testing.T) {
-	cmd := exec.Command("bash", "-c", "log_client 'grep ImsomewhatFrequent /usr/logs/random*'")
+	cmd := exec.Command("bash", "-c", "log_client 'grep ImsomewhatFrequent ~/random*'")
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -70,7 +70,7 @@ func TestSomewhatFrequentWordsEfficient(t *testing.T) {
 	}
     elapsed := time.Since(start)
     start2 := time.Now()
-    runtime_local("log_client 'grep Imrare /usr/logs/random*'")
+    runtime_local("log_client 'grep Imrare ~/random*'")
     elapsed2 := time.Since(start2)
     if 2 * elapsed2 < elapsed {
         t.Errorf("Too slow")
@@ -78,7 +78,7 @@ func TestSomewhatFrequentWordsEfficient(t *testing.T) {
     t.Logf("remote time:%v local time:%v", elapsed, elapsed2)
 }
 func TestOneFileExist(t *testing.T) {
-	cmd := exec.Command("bash", "-c", "log_client 'grep -c ImtheOnlyOne /usr/logs/random*'")
+	cmd := exec.Command("bash", "-c", "log_client 'grep -c ImtheOnlyOne ~/random*'")
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -102,7 +102,7 @@ func TestOneFileExist(t *testing.T) {
     }
 }
 func TestSomeFileExist(t *testing.T) {
-	cmd := exec.Command("bash", "-c", "log_client 'grep IminSomeFiles /usr/logs/random*'")
+	cmd := exec.Command("bash", "-c", "log_client 'grep IminSomeFiles ~/random*'")
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -122,7 +122,7 @@ func TestSomeFileExist(t *testing.T) {
     }
 }
 func TestAllFileExist(t *testing.T) {
-	cmd := exec.Command("bash", "-c", "log_client 'grep -c IminAllFiles /usr/logs/random*'")
+	cmd := exec.Command("bash", "-c", "log_client 'grep -c IminAllFiles ~/random*'")
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
