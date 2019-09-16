@@ -1,18 +1,22 @@
 # Distributed Log Querier
 
 Group members:
-1. Ruochen Shen
-2. Jun Luo
+1. Ruochen Shen   rs20
+2. Jun Luo        junluo2
 
-
-## Demo
-
-Log files are under `/usr/logs` and we should use the **absolute** path when `grep` log files.
+## Setup
+**This section is already done. Safely skip it.**
 
 If servers need to be updated: we will use the following method to deploy new servers
 1. `cd` to project root folder
 2. set user to be root for all host in ~/.ssh/config
 3. run `./scripts/deploy_servers.sh` if server.go is modified and need to be rebuilt, it will restart log_querier as a service
+> to start a service, we must have root privilege, so it is requires you to type root password every time,
+> We put our own pubkey in the root directory to make it possible, so the deploy_servers script can not be used by others.
+
+## Demo
+
+Log files are under `/usr/logs` and we should use the **absolute** path when `grep` log files.
 
 Usage:
 ```bash
@@ -46,7 +50,7 @@ alternatively, we can find out the PID by `sudo systemctl status log_querier` or
 then `sudo kill <PID>`
 
 
-### Scripts
+## Scripts
 
 Scripts under `scripts` folder
 
@@ -59,7 +63,7 @@ Scripts under `scripts` folder
 Build server and client, you will get two bin, `server` and `client`, under project root folder
 
 
-### Test
+## Test
 
 1. To send logs to 10 vms, `/usr/logs/`, run 
 ```bash
