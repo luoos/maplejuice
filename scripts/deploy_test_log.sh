@@ -1,2 +1,3 @@
 python ./scripts/generate_random_lines.py
-for i in {1..10}; do scp scripts/logs/random$i\.log vm$i\_425:/usr/logs/; done
+for i in {1..9}; do scp scripts/logs/random$i\.log fa19-cs425-g17-0$i\.cs.illinois.edu:/usr/logs/; done
+scp scripts/logs/random10.log fa19-cs425-g17-10.cs.illinois.edu
