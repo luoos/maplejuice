@@ -32,15 +32,10 @@ func main() {
 	scanner.Split(bufio.ScanLines)
 	for scanner.Scan() {
 		host := scanner.Text()
-		wg.Add(1)
+		wg.Add(1)  // add wait logic for goroutine
 		go request_cmd(host, *port, cmd)
 	}
-	wg.Wait()
-
-	// For quick test on local host
-	// host := "localhost"
-	// request_cmd(host, *port, cmd)
-
+	wg.Wait()  // wait until all goroutine finished
 }
 
 func request_cmd(host string, port int, cmd string) {
@@ -65,7 +60,7 @@ func request_cmd(host string, port int, cmd string) {
 		lines := strings.Split(strings.TrimRight(output, "\n"), "\n")
 		colorCyan := color.New(color.FgCyan)
 		for _, l := range lines {
-			colorCyan.Print(host + ":")
+			colorCyan.Print(host + ":")  // print with color for vm name
 			fmt.Println(l)
 		}
 	}

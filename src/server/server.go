@@ -16,7 +16,7 @@ func (p *CmdService) Exec(cmd_str string, output *string) error {
 	log.Println("Exec: " + cmd_str)
 	out, err := exec.Command("bash", "-c", cmd_str).CombinedOutput()
 	*output = string(out)
-	if err != nil && err.Error() != "exit status 1" {
+	if err != nil && err.Error() != "exit status 1" {  // ignore exit status 1 (a warning exit code for pattern not found)
 		*output = fmt.Sprint(err) + ": " + string(out)
 	}
 	return nil
