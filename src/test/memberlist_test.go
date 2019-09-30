@@ -7,30 +7,30 @@ import (
 
 func TestCreateMemberList(t *testing.T) {
 	mblist := memberlist.CreateMemberList(10)
-	if mblist.Size != 10 {
-		t.Fatalf("expected size to be %d, but got %d", 10, mblist.Size)
+	if mblist.GetCapacity() != 10 {
+		t.Fatalf("expected size to be %d, but got %d", 10, mblist.GetCapacity())
 	}
-	if len(mblist.Member_map) != 0 {
-		t.Fatalf("expect length of Member_map to be %d", 0)
+	if mblist.GetSize() != 0 {
+		t.Fatalf("expect length of member_map to be %d", 0)
 	}
 }
 
 func TestInsertAndDeleteNodesIntoMemberList(t *testing.T) {
 	mbList := memberlist.CreateMemberList(10)
 	mbList.InsertNode(0, "0.0.0.0", "90", 1)
-	if len(mbList.Member_map) != 1 {
+	if mbList.GetSize() != 1 {
 		t.Fatalf("length not match")
 	}
 	mbList.InsertNode(1, "0.0.0.0", "90", 1)
-	if len(mbList.Member_map) != 2 {
+	if mbList.GetSize() != 2 {
 		t.Fatalf("length not match")
 	}
 	mbList.DeleteNode(1)
-	if len(mbList.Member_map) != 1 {
+	if mbList.GetSize() != 1 {
 		t.Fatalf("length not match")
 	}
 	mbList.DeleteNode(0)
-	if len(mbList.Member_map) != 0 {
+	if mbList.GetSize() != 0 {
 		t.Fatalf("length not match")
 	}
 }
@@ -107,7 +107,7 @@ func TestNodePointer(t *testing.T) {
 	mbList := memberlist.CreateMemberList(size)
 	mbList.InsertNode(0, "0.0.0.0", "90", 1)
 	mbList.InsertNode(2, "0.0.0.0", "90", 1)
-	node0 := mbList.Member_map[0]
+	node0 := mbList.GetNode(0)
 	if node0.Next.Id != 2 {
 		t.Fatal("wrong next node")
 	}
@@ -116,12 +116,12 @@ func TestNodePointer(t *testing.T) {
 func TestUpdateNodeHeartbeat(t *testing.T) {
 	mbList := memberlist.CreateMemberList(10)
 	mbList.InsertNode(0, "0.0.0.0", "90", 1)
-	node := mbList.Member_map[0]
+	node := mbList.GetNode(0)
 	if node.Heartbeat_t != 1 {
 		t.Fatal("wrong heartbeat")
 	}
 	mbList.UpdateNodeHeartbeat(0, 20)
-	node = mbList.Member_map[0]
+	node = mbList.GetNode(0)
 	if node.Heartbeat_t != 20 {
 		t.Fatal("wrong hearbeat")
 	}
