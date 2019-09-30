@@ -112,3 +112,17 @@ func TestNodePointer(t *testing.T) {
 		t.Fatal("wrong next node")
 	}
 }
+
+func TestUpdateNodeHeartbeat(t *testing.T) {
+	mbList := memberlist.CreateMemberList(10)
+	mbList.InsertNode(0, "0.0.0.0", "90", 1)
+	node := mbList.Member_map[0]
+	if node.Heartbeat_t != 1 {
+		t.Fatal("wrong heartbeat")
+	}
+	mbList.UpdateNodeHeartbeat(0, 20)
+	node = mbList.Member_map[0]
+	if node.Heartbeat_t != 20 {
+		t.Fatal("wrong hearbeat")
+	}
+}

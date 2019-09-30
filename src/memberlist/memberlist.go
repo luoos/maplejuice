@@ -80,6 +80,14 @@ func (mbList *MemberList) DeleteNode(id int) {
 	delete(mbList.Member_map, id)
 }
 
+func (mbList *MemberList) UpdateNodeHeartbeat(id, heartbeat_t int) {
+	if _, exist := mbList.Member_map[id]; !exist {
+		return
+	}
+	node := mbList.Member_map[id]
+	node.Heartbeat_t = heartbeat_t
+}
+
 func (mbList MemberList) GetNextKNodes(id, k int) []MemberNode {
 	if _, exist := mbList.Member_map[id]; !exist {
 		log.Panic("start id doesn't exit in memberlist")
