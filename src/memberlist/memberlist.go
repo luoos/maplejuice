@@ -43,8 +43,8 @@ func (mbList *MemberList) InsertNode(id int, ip, port string, heartbeat_t int) {
 	cur := (id + 1) % mbList.capacity
 	var next_node *MemberNode
 	for cur != id {
-		if _, ok := mbList.member_map[cur]; ok {
-			next_node = mbList.GetNode(cur)
+		next_node = mbList.GetNode(cur)
+		if next_node != nil {
 			break
 		}
 		cur = (cur + 1) % mbList.capacity
@@ -69,11 +69,11 @@ func (mbList *MemberList) FindLeastFreeId() int {
 }
 
 func (mbList *MemberList) DeleteNode(id int) {
-	if _, exist := mbList.member_map[id]; !exist {
+	cur_node := mbList.GetNode(id)
+	if cur_node == nil {
 		log.Panic("trying to delete non-exist id")
 		return
 	}
-	cur_node := mbList.GetNode(id)
 	prev := cur_node.Prev
 	next := cur_node.Next
 	prev.Next = next
@@ -83,9 +83,6 @@ func (mbList *MemberList) DeleteNode(id int) {
 }
 
 func (mbList *MemberList) UpdateNodeHeartbeat(id, heartbeat_t int) {
-	if _, exist := mbList.member_map[id]; !exist {
-		return
-	}
 	node := mbList.GetNode(id)
 	if node == nil {
 		return
@@ -98,12 +95,13 @@ func (mbList MemberList) GetNode(id int) *MemberNode {
 }
 
 func (mbList MemberList) GetNextKNodes(id, k int) []MemberNode {
-	if _, exist := mbList.member_map[id]; !exist {
+	node := mbList.GetNode(id)
+	if node == nil {
 		log.Panic("start id doesn't exit in memberlist")
 		return nil
 	}
 	arr := make([]MemberNode, 0)
-	next := mbList.GetNode(id).Next
+	next := node.Next
 	for i := 0; i < k && next.Id != id; i++ {
 		arr = append(arr, *next)
 		next = next.Next
