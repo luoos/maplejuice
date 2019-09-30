@@ -102,6 +102,42 @@ func TestGetNextKNodes(t *testing.T) {
 	}
 }
 
+func TestGetPrevKNodes(t *testing.T) {
+	size := 10
+	mbList := memberlist.CreateMemberList(size)
+	mbList.InsertNode(0, "0.0.0.0", "90", 1)
+	mbList.InsertNode(2, "0.0.0.0", "90", 1)
+	mbList.InsertNode(4, "0.0.0.0", "90", 1)
+	mbList.InsertNode(5, "0.0.0.0", "90", 1)
+	arr := mbList.GetPrevKNodes(5, 3)
+	if len(arr) != 3 {
+		t.Fatalf("length not match, expect %d, got %d", 3, len(arr))
+	}
+	if arr[0].Id != 4 {
+		t.Fatalf("incorrect next node, got: %d", arr[0].Id)
+	}
+	if arr[1].Id != 2 {
+		t.Fatal("incorrect next node")
+	}
+	if arr[2].Id != 0 {
+		t.Fatal("incorrect next node")
+	}
+	mbList.DeleteNode(4)
+	arr = mbList.GetPrevKNodes(5, 3)
+	if len(arr) != 2 {
+		t.Fatal("length not match")
+	}
+	if arr[0].Id != 2 {
+		t.Fatal("incorrect next node")
+	}
+	if arr[1].Id != 0 {
+		t.Fatal("incorrect next node")
+	}
+	if arr[1].Prev.Id != 5 {
+		t.Fatal("incorrect next node")
+	}
+}
+
 func TestNodePointer(t *testing.T) {
 	size := 10
 	mbList := memberlist.CreateMemberList(size)
@@ -133,11 +169,12 @@ func TestGetTimeOutNodes(t *testing.T) {
 	mbList.InsertNode(1, "0.0.0.0", "90", 100)
 	mbList.InsertNode(2, "0.0.0.0", "90", 100)
 	mbList.InsertNode(3, "0.0.0.0", "90", 1)
-	timeOutNodes := mbList.GetTimeOutNodes(50)
-	if len(timeOutNodes) != 2 {
+	mbList.InsertNode(4, "0.0.0.0", "90", 100)
+	timeOutNodes := mbList.GetTimeOutNodes(50, 4, 3)
+	if len(timeOutNodes) != 1 && timeOutNodes[0].Id == 3 {
 		t.Fatal("length not match")
 	}
-	timeOutNodes = mbList.GetTimeOutNodes(0)
+	timeOutNodes = mbList.GetTimeOutNodes(0, 0, 3)
 	if timeOutNodes != nil {
 		t.Fatal("not nil")
 	}

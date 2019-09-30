@@ -94,6 +94,21 @@ func (mbList MemberList) GetNode(id int) *MemberNode {
 	return mbList.member_map[id]
 }
 
+func (mbList MemberList) GetPrevKNodes(id, k int) []MemberNode {
+	node := mbList.GetNode(id)
+	if node == nil {
+		log.Panic("start id doesn't exit in memberlist")
+		return nil
+	}
+	arr := make([]MemberNode, 0)
+	prev := node.Prev
+	for i := 0; i < k && prev.Id != id; i++ {
+		arr = append(arr, *prev)
+		prev = prev.Prev
+	}
+	return arr
+}
+
 func (mbList MemberList) GetNextKNodes(id, k int) []MemberNode {
 	node := mbList.GetNode(id)
 	if node == nil {
@@ -109,11 +124,13 @@ func (mbList MemberList) GetNextKNodes(id, k int) []MemberNode {
 	return arr
 }
 
-func (mbList MemberList) GetTimeOutNodes(deadline int) []MemberNode {
+func (mbList MemberList) GetTimeOutNodes(deadline, id, k int) []MemberNode {
+	// Check if previous k nodes (start from id) are timeout
+	previousNodes := mbList.GetPrevKNodes(id, k)
 	timeOutNodes := make([]MemberNode, 0)
-	for _, node := range mbList.member_map {
+	for _, node := range previousNodes {
 		if node.Heartbeat_t < deadline {
-			timeOutNodes = append(timeOutNodes, *node)
+			timeOutNodes = append(timeOutNodes, node)
 		}
 	}
 	if len(timeOutNodes) > 0 {
