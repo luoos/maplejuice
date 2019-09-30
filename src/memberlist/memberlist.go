@@ -109,6 +109,19 @@ func (mbList MemberList) GetNextKNodes(id, k int) []MemberNode {
 	return arr
 }
 
+func (mbList MemberList) GetTimeOutNodes(deadline int) []MemberNode {
+	timeOutNodes := make([]MemberNode, 0)
+	for _, node := range mbList.member_map {
+		if node.Heartbeat_t < deadline {
+			timeOutNodes = append(timeOutNodes, *node)
+		}
+	}
+	if len(timeOutNodes) > 0 {
+		return timeOutNodes
+	}
+	return nil
+}
+
 func (mbList MemberList) GetSize() int {
 	return mbList.size
 }

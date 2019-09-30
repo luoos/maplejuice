@@ -126,3 +126,19 @@ func TestUpdateNodeHeartbeat(t *testing.T) {
 		t.Fatal("wrong hearbeat")
 	}
 }
+
+func TestGetTimeOutNodes(t *testing.T) {
+	mbList := memberlist.CreateMemberList(10)
+	mbList.InsertNode(0, "0.0.0.0", "90", 1)
+	mbList.InsertNode(1, "0.0.0.0", "90", 100)
+	mbList.InsertNode(2, "0.0.0.0", "90", 100)
+	mbList.InsertNode(3, "0.0.0.0", "90", 1)
+	timeOutNodes := mbList.GetTimeOutNodes(50)
+	if len(timeOutNodes) != 2 {
+		t.Fatal("length not match")
+	}
+	timeOutNodes = mbList.GetTimeOutNodes(0)
+	if timeOutNodes != nil {
+		t.Fatal("not nil")
+	}
+}
