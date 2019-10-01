@@ -7,7 +7,7 @@ import (
 )
 
 func TestLogToFile(t *testing.T) {
-	slogger.LOG_INFO("123")
+	slogger.Log_Info("123")
 
 	// check existence
 	_, err := os.Stat(slogger.LOG_FILE)

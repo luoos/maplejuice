@@ -1,6 +1,9 @@
 package memberlist
 
-import "log"
+import (
+	"log"
+	"sync"
+)
 
 type MemberNode struct {
 	Id          int
@@ -21,17 +24,21 @@ func CreateNode(id int, ip, port string, heartbeat_t int) *MemberNode {
 type MemberList struct {
 	member_map     map[int]*MemberNode
 	capacity, size int
+	lock           *sync.Mutex
 }
 
 func CreateMemberList(capacity int) *MemberList {
 	member_map := make(map[int]*MemberNode)
-	memberList := &MemberList{member_map: member_map, capacity: capacity}
+	memberList := &MemberList{member_map: member_map, capacity: capacity,
+		lock: &sync.Mutex{}}
 	return memberList
 }
 
 func (mbList *MemberList) InsertNode(id int, ip, port string, heartbeat_t int) {
+	mbList.lock.Lock()
+	defer mbList.lock.Unlock()
 	if _, exist := mbList.member_map[id]; exist {
-		log.Fatal("id exists")
+		log.Panic("trying to insert an existed id")
 	}
 	new_node := CreateNode(id, ip, port, heartbeat_t)
 	mbList.member_map[id] = new_node
@@ -57,6 +64,8 @@ func (mbList *MemberList) InsertNode(id int, ip, port string, heartbeat_t int) {
 }
 
 func (mbList *MemberList) FindLeastFreeId() int {
+	mbList.lock.Lock()
+	defer mbList.lock.Unlock()
 	if mbList.GetSize() == mbList.capacity {
 		return -1
 	}
@@ -69,6 +78,8 @@ func (mbList *MemberList) FindLeastFreeId() int {
 }
 
 func (mbList *MemberList) DeleteNode(id int) {
+	mbList.lock.Lock()
+	defer mbList.lock.Unlock()
 	cur_node := mbList.GetNode(id)
 	if cur_node == nil {
 		log.Panic("trying to delete non-exist id")
@@ -95,6 +106,8 @@ func (mbList MemberList) GetNode(id int) *MemberNode {
 }
 
 func (mbList MemberList) GetPrevKNodes(id, k int) []MemberNode {
+	mbList.lock.Lock()
+	defer mbList.lock.Unlock()
 	node := mbList.GetNode(id)
 	if node == nil {
 		log.Panic("start id doesn't exit in memberlist")
@@ -110,6 +123,8 @@ func (mbList MemberList) GetPrevKNodes(id, k int) []MemberNode {
 }
 
 func (mbList MemberList) GetNextKNodes(id, k int) []MemberNode {
+	mbList.lock.Lock()
+	defer mbList.lock.Unlock()
 	node := mbList.GetNode(id)
 	if node == nil {
 		log.Panic("start id doesn't exit in memberlist")
