@@ -7,6 +7,7 @@ import (
 	"net"
 	"time"
     "os"
+    "strings"
 )
 
 const MAX_NODES = 10
@@ -27,36 +28,44 @@ var INTRODUCER_LIST = []string{
 }
 
 type MemberInfo struct {
-	method string
-	id     int
-	ip     string
-	mbList m.MemberList
+	Method string
+	Id     int
+	Ip     string
+	MbList *m.MemberList
 }
 type Node struct {
-	id     int
-	mbList m.MemberList
+	Id     int
+	MbList *m.MemberList
 }
 
-func (n *Node) Introduce(clientIp string) []byte {
-    // create mblist for first node
+func (n *Node) Introduce(conn net.PacketConn, clientAddr net.Addr) {
+    clientIp := strings.Split(clientAddr.String(), ":")[0]
+    // create mblist if it's the first node in the ring
     log.Println("start introducing " + clientIp)
-    if &(n.mbList) == nil {
-        n.mbList = *(m.CreateMemberList(MAX_NODES))
+    if n.MbList == nil {
+        n.MbList = m.CreateMemberList(n.Id, MAX_NODES)
     }
-	clientId := n.mbList.FindLeastFreeId()
-	n.mbList.InsertNode(clientId, clientIp, PORT, n.GetTime())
-	n.Broadcast("add", clientId, clientIp)
-	mbListBuf, err := json.Marshal(n.mbList)
+	clientId := n.MbList.FindLeastFreeId()
+	n.MbList.InsertNode(clientId, clientIp, PORT, n.GetTime())
+    joinNodeMBList := n.MbList
+    joinNodeMBList.SelfId = clientId
+	mbListBuf, err := json.Marshal(joinNodeMBList)
 	if err != nil {
 		log.Fatal(err)
 	}
-	return mbListBuf
+    _, err = conn.WriteTo(mbListBuf, clientAddr)
+    if err != nil {
+        log.Fatal(err)
+    }
+    log.Printf("written to address: ", clientAddr.String())
+	n.Broadcast("add", clientId, clientIp)
 }
 
 func (n *Node) Join() {
+    log.Println("trying to join the ring")
 	go n.Recv()
 	joinRequest := &MemberInfo{
-		method: "join",
+		Method: "join",
 	}
 	request, err := json.Marshal(joinRequest)
 	if err != nil {
@@ -76,22 +85,28 @@ func (n *Node) Join() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	conn.Write(request)
+	_, err = conn.Write(request)
+    if err != nil {
+        log.Fatal(err)
+    }
 	buf := make([]byte, 4096)
 	i, err := conn.Read(buf)
 	var mbList m.MemberList
 	json.Unmarshal(buf[:i], &mbList)
-    n.mbList = *(m.CreateMemberList(MAX_NODES))
+    n.MbList = m.CreateMemberList(mbList.SelfId, MAX_NODES)
+    n.Id = n.MbList.SelfId
     for _, node := range mbList.Member_map {
-        n.mbList.InsertNode(node.Id, node.Ip, node.Port, n.GetTime())
+        n.MbList.InsertNode(node.Id, node.Ip, node.Port, n.GetTime())
+        log.Printf("got id: %d, ip: %s, in mbList\n", node.Id, node.Ip)
     }
 	go n.MonitorHeartbeat()
 	go n.SendHeartbeat()
+    log.Println("joined!")
 }
 
 func (n *Node) Leave() {
     log.Println("leaving the system")
-	n.Broadcast("remove", n.id, "")
+	n.Broadcast("remove", n.Id, "")
     os.Exit(0)
 }
 
@@ -100,12 +115,16 @@ func (n *Node) UDPSend(host_ip string, msg []byte) {
 	if err != nil {
 		log.Println(err)
 	}
-	conn.Write(msg)
+	_, err = conn.Write(msg)
+    if err != nil {
+        log.Fatal(err)
+    }
 	conn.Close()
 }
+
 func (n *Node) SendHeartbeat() {
 	hbInfo := &MemberInfo{
-		method: "heartbeat",
+		Method: "heartbeat",
 	}
 	hb, err := json.Marshal(hbInfo)
 	if err != nil {
@@ -113,7 +132,7 @@ func (n *Node) SendHeartbeat() {
 	}
     log.Println("Start sending heartbeat")
 	for {
-		for _, monitorNode := range n.mbList.GetNextKNodes(n.id, 3) {
+		for _, monitorNode := range n.MbList.GetNextKNodes(n.Id, 3) {
 			go n.UDPSend(monitorNode.Ip, hb)
 		}
 		time.Sleep(HEARTBEAT_INTERVAL)
@@ -123,16 +142,16 @@ func (n *Node) SendHeartbeat() {
 func (n *Node) Broadcast(op string, target_id int, target_ip string) {
     log.Println("Broadcasting " + op + " " + target_ip)
 	memberInfo := &MemberInfo{
-		method: op,
-		id:     target_id,
-		ip:     target_ip,
-		// mbList: nil
+		Method: op,
+		Id:     target_id,
+		Ip:     target_ip,
+		// MbList: nil
 	}
 	data, err := json.Marshal(memberInfo)
 	if err != nil {
 		log.Fatal(err)
 	}
-	for _, member := range n.mbList.GetNextKNodes(n.id, n.mbList.Size-1) {
+	for _, member := range n.MbList.GetNextKNodes(n.Id, n.MbList.Size-1) {
 		go n.UDPSend(member.Ip, data)
 	}
 }
@@ -152,19 +171,18 @@ func (n *Node) Recv() {
 		}
 		var memberInfo MemberInfo
 		json.Unmarshal(buf[:i], &memberInfo)
-		if memberInfo.method == "join" {
+		if memberInfo.Method == "join" {
             log.Printf("received join request from " + addr.String())
-			mbListBuf := n.Introduce(memberInfo.ip)
-			conn.WriteTo(mbListBuf, addr)
-		} else if memberInfo.method == "add" {
+			n.Introduce(conn, addr)
+		} else if memberInfo.Method == "add" {
             log.Printf("received add request from " + addr.String())
-			go n.mbList.InsertNode(memberInfo.id, memberInfo.ip, "8080", n.GetTime())
-		} else if memberInfo.method == "remove" {
+			go n.MbList.InsertNode(memberInfo.Id, memberInfo.Ip, "8080", n.GetTime())
+		} else if memberInfo.Method == "remove" {
             log.Printf("received remove request " + addr.String())
-			go n.mbList.DeleteNode(memberInfo.id)
-		} else if memberInfo.method == "heartbeat" {
+			go n.MbList.DeleteNode(memberInfo.Id)
+		} else if memberInfo.Method == "heartbeat" {
             log.Printf("received heartbeat from " + addr.String())
-			go n.mbList.UpdateNodeHeartbeat(memberInfo.id, n.GetTime())
+			go n.MbList.UpdateNodeHeartbeat(memberInfo.Id, n.GetTime())
 		}
 	}
 }
@@ -172,10 +190,10 @@ func (n *Node) Recv() {
 func (n *Node) MonitorHeartbeat() {
 	for {
 		time.Sleep(MONITOR_INTERVAL)
-		lostIds := n.mbList.GetTimeOutNodes(n.GetTime()-2500, n.id, 3)
+		lostIds := n.MbList.GetTimeOutNodes(n.GetTime()-2500, n.Id, 3)
 		for _, lostNode := range lostIds {
 			lostId := lostNode.Id
-            log.Println("found failue node id: " + lostId)
+            log.Printf("found failue node id: %d\n", lostId)
 			go n.Broadcast("remove", lostId, "")
 		}
 	}
