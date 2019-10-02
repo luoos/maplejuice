@@ -8,7 +8,7 @@ import (
 )
 
 func TestLogToFile(t *testing.T) {
-	SLOG.Println("123")
+	SLOG.Print("123")
 
 	// check existence
 	_, err := os.Stat(LOG_FILE)

@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	. "slogger"
 	"sort"
 	"sync"
 	"text/tabwriter"
@@ -49,6 +50,7 @@ func CreateMemberList(selfId, capacity int) *MemberList {
 	Member_map := make(map[int]*MemberNode)
 	memberList := &MemberList{SelfId: selfId, Member_map: Member_map, Capacity: capacity,
 		lock: &sync.Mutex{}}
+	SLOG.Printf("[MembershipList] Created membership list id: %d, capacity: %d", selfId, capacity)
 	return memberList
 }
 
@@ -79,7 +81,7 @@ func (mbList *MemberList) InsertNode(id int, ip, port string, heartbeat_t int) {
 	new_node.prev = pre_node
 	new_node.next = next_node
 	next_node.prev = new_node
-
+	SLOG.Printf("[MembershipList] Inserted node (%d, %s:%s, %d)", id, ip, port, heartbeat_t)
 	mbList.DumpToTmpFile()
 }
 
@@ -111,7 +113,7 @@ func (mbList *MemberList) DeleteNode(id int) {
 	next.prev = prev
 	delete(mbList.Member_map, id)
 	mbList.Size--
-
+	SLOG.Printf("[MembershipList] Deleted node %d", id)
 	mbList.DumpToTmpFile()
 }
 
