@@ -12,6 +12,7 @@ import (
 )
 
 const MEMBER_LIST_FILE = "/tmp/member.list"
+const MAX_CAPACITY = 10
 
 type MemberNode struct {
 	Id          int
