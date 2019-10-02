@@ -2,21 +2,22 @@ package test
 
 import (
 	"os"
-	"slogger"
 	"testing"
+
+	. "slogger"
 )
 
 func TestLogToFile(t *testing.T) {
-	slogger.Log_Info("123")
+	SLOG.Println("123")
 
 	// check existence
-	_, err := os.Stat(slogger.LOG_FILE)
+	_, err := os.Stat(LOG_FILE)
 	if os.IsNotExist(err) {
 		t.Fatal(err)
 	}
 
 	// remove
-	err = os.Remove(slogger.LOG_FILE)
+	err = os.Remove(LOG_FILE)
 	if err != nil {
 		t.Fatal(err)
 	}
