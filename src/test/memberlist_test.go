@@ -3,6 +3,7 @@ package test1
 import (
 	"encoding/json"
 	"memberlist"
+	"os"
 	"testing"
 )
 
@@ -107,7 +108,7 @@ func TestGetNextKNodes(t *testing.T) {
 
 func TestGetPrevKNodes(t *testing.T) {
 	mbList := memberlist.CreateMemberList(0, 10)
-	mbList.InsertNode(0, "0.0.0.0", "90", 1)
+	mbList.InsertNode(0, "192.169.163.111", "90", 1)
 	mbList.InsertNode(2, "0.0.0.0", "90", 1)
 	mbList.InsertNode(4, "0.0.0.0", "90", 1)
 	mbList.InsertNode(5, "0.0.0.0", "90", 1)
@@ -204,4 +205,22 @@ func TestToJson(t *testing.T) {
 		mbList.Member_map[2].Heartbeat_t) {
 		t.Fatal("not match")
 	}
+}
+
+func TestDumpToTmpFile(t *testing.T) {
+	mbList := memberlist.CreateMemberList(0, 10)
+	mbList.InsertNode(0, "192.169.163.111", "91", 1)
+	mbList.InsertNode(1, "0.2.0.0", "92", 100)
+	mbList.InsertNode(2, "0.0.3.0", "93", 100)
+	mbList.InsertNode(3, "0.0.0.4", "94", 1)
+	mbList.InsertNode(4, "0.0.0.5", "95", 100)
+	mbList.DumpToTmpFile()
+	_, err := os.Stat(memberlist.MEMBER_LIST_FILE)
+	if os.IsNotExist(err) {
+		t.Fatal(err)
+	}
+	// err = os.Remove(memberlist.MEMBER_LIST_FILE)
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
 }

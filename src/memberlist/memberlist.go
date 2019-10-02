@@ -2,9 +2,16 @@ package memberlist
 
 import (
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"log"
+	"os"
+	"sort"
 	"sync"
+	"text/tabwriter"
 )
+
+const MEMBER_LIST_FILE = "/tmp/member.list"
 
 type MemberNode struct {
 	Id          int
@@ -167,4 +174,50 @@ func (mbList MemberList) GetTimeOutNodes(deadline, id, k int) []MemberNode {
 func (mbList *MemberList) ToJson() []byte {
 	bytes, _ := json.Marshal(mbList)
 	return bytes
+}
+
+func (mbList *MemberList) DumpToTmpFile() {
+	bytes := mbList.ToJson()
+	err := ioutil.WriteFile(MEMBER_LIST_FILE, bytes, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func ConstructFromTmpFile() MemberList {
+	_, e := os.Stat(MEMBER_LIST_FILE)
+	if os.IsNotExist(e) {
+		log.Fatal(e)
+	}
+	dat, err := ioutil.ReadFile(MEMBER_LIST_FILE)
+	checkErrorFatal(err)
+	var new_mbList MemberList
+	err = json.Unmarshal(dat, &new_mbList)
+	checkErrorFatal(err)
+	return new_mbList
+}
+
+func (mblist MemberList) NicePrint() {
+	w := tabwriter.NewWriter(os.Stdout, 10, 0, 4, ' ', 0)
+	var keys []int
+	for k, _ := range mblist.Member_map {
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+	fmt.Fprintln(w, "ID\tIP\tPORT\tHeartbeat")
+	for _, k := range keys {
+		node := mblist.Member_map[k]
+		fmt.Fprintf(w, "%d\t%s\t%s\t%d\n",
+			node.Id, node.Ip, node.Port, node.Heartbeat_t)
+	}
+	fmt.Fprintln(w)
+	fmt.Fprintf(w, "Self ID: %d\tSize: %d\tCapacity: %d\n",
+		mblist.SelfId, mblist.Size, mblist.Capacity)
+	w.Flush()
+}
+
+func checkErrorFatal(err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
 }
