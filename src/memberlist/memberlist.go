@@ -78,6 +78,8 @@ func (mbList *MemberList) InsertNode(id int, ip, port string, heartbeat_t int) {
 	new_node.prev = pre_node
 	new_node.next = next_node
 	next_node.prev = new_node
+
+	mbList.DumpToTmpFile()
 }
 
 func (mbList *MemberList) FindLeastFreeId() int {
@@ -108,6 +110,8 @@ func (mbList *MemberList) DeleteNode(id int) {
 	next.prev = prev
 	delete(mbList.Member_map, id)
 	mbList.Size--
+
+	mbList.DumpToTmpFile()
 }
 
 func (mbList *MemberList) UpdateNodeHeartbeat(id, heartbeat_t int) {
@@ -116,6 +120,8 @@ func (mbList *MemberList) UpdateNodeHeartbeat(id, heartbeat_t int) {
 		return
 	}
 	node.Heartbeat_t = heartbeat_t
+
+	mbList.DumpToTmpFile()
 }
 
 func (mbList MemberList) GetNode(id int) *MemberNode {
