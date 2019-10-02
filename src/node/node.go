@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net"
+	. "slogger"
 	"time"
 )
 
@@ -53,6 +54,14 @@ func (node *Node) Join(address string) {
 	}
 }
 
+func (node *Node) Leave() {
+	deleteNodePacket := &Packet{
+		Action: ACTION_DELETE_NODE,
+		Id:     node.Id,
+	}
+	node.Broadcast(deleteNodePacket)
+}
+
 func sendPacketUDP(address string, packet *Packet) error {
 	data, err := json.Marshal(packet)
 	if err != nil {
@@ -66,8 +75,8 @@ func sendPacketUDP(address string, packet *Packet) error {
 	return nil
 }
 
-func (n *Node) Broadcast(packet *Packet) {
-	for _, member := range n.MbList.Member_map {
+func (node *Node) Broadcast(packet *Packet) {
+	for _, member := range node.MbList.Member_map {
 		address := member.Ip + ":" + member.Port
 		sendPacketUDP(address, packet)
 	}
@@ -76,8 +85,11 @@ func (n *Node) Broadcast(packet *Packet) {
 func (node *Node) handlePacket(packet Packet) {
 	switch packet.Action {
 	case ACTION_NEW_NODE:
-		log.Println("reveived ACTION_NEW_NODE request")
+		SLOG.Printf("[Node] Received ACTION_NEW_NODE (%d, %s:%s)", packet.Id, packet.IP, packet.Port)
 		node.MbList.InsertNode(packet.Id, packet.IP, packet.Port, getMillisecond())
+	case ACTION_DELETE_NODE:
+		SLOG.Printf("[Node] Received ACTION_DELETE_NODE (%d)", packet.Id)
+		node.MbList.DeleteNode(packet.Id)
 	case ACTION_JOIN:
 		reply_address := packet.IP + ":" + packet.Port
 		freeId := node.MbList.FindLeastFreeId()
@@ -90,15 +102,16 @@ func (node *Node) handlePacket(packet Packet) {
 		if err != nil {
 			log.Println(err)
 		}
-		add_member := &Packet{
+		newNodePacket := &Packet{
 			Action: ACTION_NEW_NODE,
 			Id:     freeId,
 			IP:     packet.IP,
 			Port:   packet.Port,
 		}
-		node.Broadcast(add_member)
+		node.Broadcast(newNodePacket)
 	case ACTION_REPLY_JOIN:
 		node.MbList = CreateMemberList(packet.Id, MAX_CAPACITY)
+		node.Id = packet.Id
 		for _, item := range packet.Map.Member_map {
 			node.MbList.InsertNode(item.Id, item.Ip, item.Port, getMillisecond())
 		}
