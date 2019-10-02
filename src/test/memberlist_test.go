@@ -2,6 +2,7 @@ package test1
 
 import (
 	"encoding/json"
+	"math/rand"
 	"memberlist"
 	"os"
 	"testing"
@@ -210,7 +211,8 @@ func TestToJson(t *testing.T) {
 func TestDumpToTmpFile(t *testing.T) {
 	mbList := memberlist.CreateMemberList(0, 10)
 	mbList.InsertNode(0, "192.169.163.111", "91", 1)
-	mbList.InsertNode(1, "0.2.0.0", "92", 100)
+	// use rand to force to really run this case, otherwise maybe cached
+	mbList.InsertNode(1, "0.2.0.0", "92", rand.Intn(100))
 	mbList.InsertNode(2, "0.0.3.0", "93", 100)
 	mbList.InsertNode(3, "0.0.0.4", "94", 1)
 	mbList.InsertNode(4, "0.0.0.5", "95", 100)

@@ -187,7 +187,7 @@ func (mbList *MemberList) DumpToTmpFile() {
 func ConstructFromTmpFile() MemberList {
 	_, e := os.Stat(MEMBER_LIST_FILE)
 	if os.IsNotExist(e) {
-		log.Fatal(e)
+		log.Fatalf("Membership list file (%s) doesn't exist\n", MEMBER_LIST_FILE)
 	}
 	dat, err := ioutil.ReadFile(MEMBER_LIST_FILE)
 	checkErrorFatal(err)
