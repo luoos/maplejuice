@@ -7,17 +7,20 @@ import (
 )
 
 func TestCreateMemberList(t *testing.T) {
-	mblist := memberlist.CreateMemberList(10)
+	mblist := memberlist.CreateMemberList(3, 10)
 	if mblist.Capacity != 10 {
 		t.Fatalf("expected size to be %d, but got %d", 10, mblist.Capacity)
 	}
 	if mblist.Size != 0 {
 		t.Fatalf("expect length of member_map to be %d", 0)
 	}
+	if mblist.SelfId != 3 {
+		t.Fatalf("wrong SelfId expect %d, got %d", 3, mblist.SelfId)
+	}
 }
 
 func TestInsertAndDeleteNodesIntoMemberList(t *testing.T) {
-	mbList := memberlist.CreateMemberList(10)
+	mbList := memberlist.CreateMemberList(0, 10)
 	mbList.InsertNode(0, "0.0.0.0", "90", 1)
 	if mbList.Size != 1 {
 		t.Fatalf("length not match")
@@ -37,8 +40,8 @@ func TestInsertAndDeleteNodesIntoMemberList(t *testing.T) {
 }
 
 func TestFindFreeId(t *testing.T) {
-	size := 10
-	mbList := memberlist.CreateMemberList(size)
+	capacity := 10
+	mbList := memberlist.CreateMemberList(0, capacity)
 	id := mbList.FindLeastFreeId()
 	if id != 0 {
 		t.Fatalf("incorrect least free id: %d", id)
@@ -53,7 +56,7 @@ func TestFindFreeId(t *testing.T) {
 	if id != 0 {
 		t.Fatalf("incorrect least free id: %d", id)
 	}
-	for i := 0; i < size; i++ {
+	for i := 0; i < capacity; i++ {
 		mbList.InsertNode(i, "0.0.0.0", "90", 1)
 	}
 	id = mbList.FindLeastFreeId()
@@ -68,8 +71,7 @@ func TestFindFreeId(t *testing.T) {
 }
 
 func TestGetNextKNodes(t *testing.T) {
-	size := 10
-	mbList := memberlist.CreateMemberList(size)
+	mbList := memberlist.CreateMemberList(0, 10)
 	mbList.InsertNode(0, "0.0.0.0", "90", 1)
 	mbList.InsertNode(2, "0.0.0.0", "90", 1)
 	mbList.InsertNode(4, "0.0.0.0", "90", 1)
@@ -104,8 +106,7 @@ func TestGetNextKNodes(t *testing.T) {
 }
 
 func TestGetPrevKNodes(t *testing.T) {
-	size := 10
-	mbList := memberlist.CreateMemberList(size)
+	mbList := memberlist.CreateMemberList(0, 10)
 	mbList.InsertNode(0, "0.0.0.0", "90", 1)
 	mbList.InsertNode(2, "0.0.0.0", "90", 1)
 	mbList.InsertNode(4, "0.0.0.0", "90", 1)
@@ -140,8 +141,7 @@ func TestGetPrevKNodes(t *testing.T) {
 }
 
 func TestNodePointer(t *testing.T) {
-	size := 10
-	mbList := memberlist.CreateMemberList(size)
+	mbList := memberlist.CreateMemberList(4, 10)
 	mbList.InsertNode(0, "0.0.0.0", "90", 1)
 	mbList.InsertNode(2, "0.0.0.0", "90", 1)
 	node0 := mbList.GetNode(0)
@@ -151,7 +151,7 @@ func TestNodePointer(t *testing.T) {
 }
 
 func TestUpdateNodeHeartbeat(t *testing.T) {
-	mbList := memberlist.CreateMemberList(10)
+	mbList := memberlist.CreateMemberList(0, 10)
 	mbList.InsertNode(0, "0.0.0.0", "90", 1)
 	node := mbList.GetNode(0)
 	if node.Heartbeat_t != 1 {
@@ -165,7 +165,7 @@ func TestUpdateNodeHeartbeat(t *testing.T) {
 }
 
 func TestGetTimeOutNodes(t *testing.T) {
-	mbList := memberlist.CreateMemberList(10)
+	mbList := memberlist.CreateMemberList(0, 10)
 	mbList.InsertNode(0, "0.0.0.0", "90", 1)
 	mbList.InsertNode(1, "0.0.0.0", "90", 100)
 	mbList.InsertNode(2, "0.0.0.0", "90", 100)
@@ -182,7 +182,7 @@ func TestGetTimeOutNodes(t *testing.T) {
 }
 
 func TestToJson(t *testing.T) {
-	mbList := memberlist.CreateMemberList(10)
+	mbList := memberlist.CreateMemberList(0, 10)
 	mbList.InsertNode(0, "1.0.0.0", "91", 1)
 	mbList.InsertNode(1, "0.2.0.0", "92", 100)
 	mbList.InsertNode(2, "0.0.3.0", "93", 100)

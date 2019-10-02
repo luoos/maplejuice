@@ -33,12 +33,13 @@ func (mNode *MemberNode) GetNextNode() *MemberNode {
 type MemberList struct {
 	Member_map     map[int]*MemberNode
 	Capacity, Size int
+	SelfId         int
 	lock           *sync.Mutex
 }
 
-func CreateMemberList(capacity int) *MemberList {
+func CreateMemberList(selfId, capacity int) *MemberList {
 	Member_map := make(map[int]*MemberNode)
-	memberList := &MemberList{Member_map: Member_map, Capacity: capacity,
+	memberList := &MemberList{SelfId: selfId, Member_map: Member_map, Capacity: capacity,
 		lock: &sync.Mutex{}}
 	return memberList
 }
