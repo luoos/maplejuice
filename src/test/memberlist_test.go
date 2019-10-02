@@ -1,16 +1,17 @@
 package test1
 
 import (
+	"encoding/json"
 	"memberlist"
 	"testing"
 )
 
 func TestCreateMemberList(t *testing.T) {
 	mblist := memberlist.CreateMemberList(10)
-	if mblist.GetCapacity() != 10 {
-		t.Fatalf("expected size to be %d, but got %d", 10, mblist.GetCapacity())
+	if mblist.Capacity != 10 {
+		t.Fatalf("expected size to be %d, but got %d", 10, mblist.Capacity)
 	}
-	if mblist.GetSize() != 0 {
+	if mblist.Size != 0 {
 		t.Fatalf("expect length of member_map to be %d", 0)
 	}
 }
@@ -18,19 +19,19 @@ func TestCreateMemberList(t *testing.T) {
 func TestInsertAndDeleteNodesIntoMemberList(t *testing.T) {
 	mbList := memberlist.CreateMemberList(10)
 	mbList.InsertNode(0, "0.0.0.0", "90", 1)
-	if mbList.GetSize() != 1 {
+	if mbList.Size != 1 {
 		t.Fatalf("length not match")
 	}
 	mbList.InsertNode(1, "0.0.0.0", "90", 1)
-	if mbList.GetSize() != 2 {
+	if mbList.Size != 2 {
 		t.Fatalf("length not match")
 	}
 	mbList.DeleteNode(1)
-	if mbList.GetSize() != 1 {
+	if mbList.Size != 1 {
 		t.Fatalf("length not match")
 	}
 	mbList.DeleteNode(0)
-	if mbList.GetSize() != 0 {
+	if mbList.Size != 0 {
 		t.Fatalf("length not match")
 	}
 }
@@ -97,7 +98,7 @@ func TestGetNextKNodes(t *testing.T) {
 	if arr[1].Id != 5 {
 		t.Fatal("incorrect next node")
 	}
-	if arr[1].Next.Id != 0 {
+	if arr[1].GetNextNode().Id != 0 {
 		t.Fatal("incorrect next node")
 	}
 }
@@ -133,7 +134,7 @@ func TestGetPrevKNodes(t *testing.T) {
 	if arr[1].Id != 0 {
 		t.Fatal("incorrect next node")
 	}
-	if arr[1].Prev.Id != 5 {
+	if arr[1].GetPrevNode().Id != 5 {
 		t.Fatal("incorrect next node")
 	}
 }
@@ -144,7 +145,7 @@ func TestNodePointer(t *testing.T) {
 	mbList.InsertNode(0, "0.0.0.0", "90", 1)
 	mbList.InsertNode(2, "0.0.0.0", "90", 1)
 	node0 := mbList.GetNode(0)
-	if node0.Next.Id != 2 {
+	if node0.GetNextNode().Id != 2 {
 		t.Fatal("wrong next node")
 	}
 }
@@ -177,5 +178,30 @@ func TestGetTimeOutNodes(t *testing.T) {
 	timeOutNodes = mbList.GetTimeOutNodes(0, 0, 3)
 	if timeOutNodes != nil {
 		t.Fatal("not nil")
+	}
+}
+
+func TestToJson(t *testing.T) {
+	mbList := memberlist.CreateMemberList(10)
+	mbList.InsertNode(0, "1.0.0.0", "91", 1)
+	mbList.InsertNode(1, "0.2.0.0", "92", 100)
+	mbList.InsertNode(2, "0.0.3.0", "93", 100)
+	mbList.InsertNode(3, "0.0.0.4", "94", 1)
+	mbList.InsertNode(4, "0.0.0.5", "95", 100)
+	jsonData := mbList.ToJson()
+	var copy_mbList memberlist.MemberList
+	err := json.Unmarshal(jsonData, &copy_mbList)
+	if err != nil {
+		t.Fatal("unmarshal error")
+	}
+	if !(copy_mbList.Capacity == mbList.Capacity) {
+		t.Fatal("not match")
+	}
+	if !(copy_mbList.Size == mbList.Size) {
+		t.Fatal("not match")
+	}
+	if !(copy_mbList.Member_map[2].Heartbeat_t ==
+		mbList.Member_map[2].Heartbeat_t) {
+		t.Fatal("not match")
 	}
 }

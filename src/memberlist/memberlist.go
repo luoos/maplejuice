@@ -1,6 +1,7 @@
 package memberlist
 
 import (
+	"encoding/json"
 	"log"
 	"sync"
 )
@@ -10,26 +11,34 @@ type MemberNode struct {
 	Heartbeat_t int
 	Ip          string
 	Port        string
-	Prev        *MemberNode
-	Next        *MemberNode
+	prev        *MemberNode
+	next        *MemberNode
 }
 
 func CreateNode(id int, ip, port string, heartbeat_t int) *MemberNode {
 	new_node := &MemberNode{Id: id, Ip: ip, Port: port, Heartbeat_t: heartbeat_t}
-	new_node.Prev = new_node
-	new_node.Next = new_node
+	new_node.prev = new_node
+	new_node.next = new_node
 	return new_node
 }
 
+func (mNode *MemberNode) GetPrevNode() *MemberNode {
+	return mNode.prev
+}
+
+func (mNode *MemberNode) GetNextNode() *MemberNode {
+	return mNode.next
+}
+
 type MemberList struct {
-	member_map     map[int]*MemberNode
-	capacity, size int
+	Member_map     map[int]*MemberNode
+	Capacity, Size int
 	lock           *sync.Mutex
 }
 
 func CreateMemberList(capacity int) *MemberList {
-	member_map := make(map[int]*MemberNode)
-	memberList := &MemberList{member_map: member_map, capacity: capacity,
+	Member_map := make(map[int]*MemberNode)
+	memberList := &MemberList{Member_map: Member_map, Capacity: capacity,
 		lock: &sync.Mutex{}}
 	return memberList
 }
@@ -37,40 +46,40 @@ func CreateMemberList(capacity int) *MemberList {
 func (mbList *MemberList) InsertNode(id int, ip, port string, heartbeat_t int) {
 	mbList.lock.Lock()
 	defer mbList.lock.Unlock()
-	if _, exist := mbList.member_map[id]; exist {
+	if _, exist := mbList.Member_map[id]; exist {
 		log.Panic("trying to insert an existed id")
 	}
 	new_node := CreateNode(id, ip, port, heartbeat_t)
-	mbList.member_map[id] = new_node
-	mbList.size++
-	if mbList.GetSize() == 1 {
+	mbList.Member_map[id] = new_node
+	mbList.Size++
+	if mbList.Size == 1 {
 		// No other node exists
 		return
 	}
-	cur := (id + 1) % mbList.capacity
+	cur := (id + 1) % mbList.Capacity
 	var next_node *MemberNode
 	for cur != id {
 		next_node = mbList.GetNode(cur)
 		if next_node != nil {
 			break
 		}
-		cur = (cur + 1) % mbList.capacity
+		cur = (cur + 1) % mbList.Capacity
 	}
-	pre_node := next_node.Prev
-	pre_node.Next = new_node
-	new_node.Prev = pre_node
-	new_node.Next = next_node
-	next_node.Prev = new_node
+	pre_node := next_node.prev
+	pre_node.next = new_node
+	new_node.prev = pre_node
+	new_node.next = next_node
+	next_node.prev = new_node
 }
 
 func (mbList *MemberList) FindLeastFreeId() int {
 	mbList.lock.Lock()
 	defer mbList.lock.Unlock()
-	if mbList.GetSize() == mbList.capacity {
+	if mbList.Size == mbList.Capacity {
 		return -1
 	}
-	for i := 0; i < mbList.capacity; i++ {
-		if _, exist := mbList.member_map[i]; !exist {
+	for i := 0; i < mbList.Capacity; i++ {
+		if _, exist := mbList.Member_map[i]; !exist {
 			return i
 		}
 	}
@@ -85,12 +94,12 @@ func (mbList *MemberList) DeleteNode(id int) {
 		log.Panic("trying to delete non-exist id")
 		return
 	}
-	prev := cur_node.Prev
-	next := cur_node.Next
-	prev.Next = next
-	next.Prev = prev
-	delete(mbList.member_map, id)
-	mbList.size--
+	prev := cur_node.prev
+	next := cur_node.next
+	prev.next = next
+	next.prev = prev
+	delete(mbList.Member_map, id)
+	mbList.Size--
 }
 
 func (mbList *MemberList) UpdateNodeHeartbeat(id, heartbeat_t int) {
@@ -102,7 +111,7 @@ func (mbList *MemberList) UpdateNodeHeartbeat(id, heartbeat_t int) {
 }
 
 func (mbList MemberList) GetNode(id int) *MemberNode {
-	return mbList.member_map[id]
+	return mbList.Member_map[id]
 }
 
 func (mbList MemberList) GetPrevKNodes(id, k int) []MemberNode {
@@ -114,10 +123,10 @@ func (mbList MemberList) GetPrevKNodes(id, k int) []MemberNode {
 		return nil
 	}
 	arr := make([]MemberNode, 0)
-	prev := node.Prev
+	prev := node.prev
 	for i := 0; i < k && prev.Id != id; i++ {
 		arr = append(arr, *prev)
-		prev = prev.Prev
+		prev = prev.prev
 	}
 	return arr
 }
@@ -131,10 +140,10 @@ func (mbList MemberList) GetNextKNodes(id, k int) []MemberNode {
 		return nil
 	}
 	arr := make([]MemberNode, 0)
-	next := node.Next
+	next := node.next
 	for i := 0; i < k && next.Id != id; i++ {
 		arr = append(arr, *next)
-		next = next.Next
+		next = next.next
 	}
 	return arr
 }
@@ -154,10 +163,7 @@ func (mbList MemberList) GetTimeOutNodes(deadline, id, k int) []MemberNode {
 	return nil
 }
 
-func (mbList MemberList) GetSize() int {
-	return mbList.size
-}
-
-func (mbList MemberList) GetCapacity() int {
-	return mbList.capacity
+func (mbList *MemberList) ToJson() []byte {
+	bytes, _ := json.Marshal(mbList)
+	return bytes
 }
