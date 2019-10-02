@@ -3,13 +3,13 @@ package test
 import (
 	"encoding/json"
 	"math/rand"
-	"memberlist"
+	"node"
 	"os"
 	"testing"
 )
 
 func TestCreateMemberList(t *testing.T) {
-	mblist := memberlist.CreateMemberList(3, 10)
+	mblist := node.CreateMemberList(3, 10)
 	if mblist.Capacity != 10 {
 		t.Fatalf("expected size to be %d, but got %d", 10, mblist.Capacity)
 	}
@@ -22,7 +22,7 @@ func TestCreateMemberList(t *testing.T) {
 }
 
 func TestInsertAndDeleteNodesIntoMemberList(t *testing.T) {
-	mbList := memberlist.CreateMemberList(0, 10)
+	mbList := node.CreateMemberList(0, 10)
 	mbList.InsertNode(0, "0.0.0.0", "90", 1)
 	if mbList.Size != 1 {
 		t.Fatalf("length not match")
@@ -43,7 +43,7 @@ func TestInsertAndDeleteNodesIntoMemberList(t *testing.T) {
 
 func TestFindFreeId(t *testing.T) {
 	capacity := 10
-	mbList := memberlist.CreateMemberList(0, capacity)
+	mbList := node.CreateMemberList(0, capacity)
 	id := mbList.FindLeastFreeId()
 	if id != 0 {
 		t.Fatalf("incorrect least free id: %d", id)
@@ -73,7 +73,7 @@ func TestFindFreeId(t *testing.T) {
 }
 
 func TestGetNextKNodes(t *testing.T) {
-	mbList := memberlist.CreateMemberList(0, 10)
+	mbList := node.CreateMemberList(0, 10)
 	mbList.InsertNode(0, "0.0.0.0", "90", 1)
 	mbList.InsertNode(2, "0.0.0.0", "90", 1)
 	mbList.InsertNode(4, "0.0.0.0", "90", 1)
@@ -108,7 +108,7 @@ func TestGetNextKNodes(t *testing.T) {
 }
 
 func TestGetPrevKNodes(t *testing.T) {
-	mbList := memberlist.CreateMemberList(0, 10)
+	mbList := node.CreateMemberList(0, 10)
 	mbList.InsertNode(0, "192.169.163.111", "90", 1)
 	mbList.InsertNode(2, "0.0.0.0", "90", 1)
 	mbList.InsertNode(4, "0.0.0.0", "90", 1)
@@ -143,7 +143,7 @@ func TestGetPrevKNodes(t *testing.T) {
 }
 
 func TestNodePointer(t *testing.T) {
-	mbList := memberlist.CreateMemberList(4, 10)
+	mbList := node.CreateMemberList(4, 10)
 	mbList.InsertNode(0, "0.0.0.0", "90", 1)
 	mbList.InsertNode(2, "0.0.0.0", "90", 1)
 	node0 := mbList.GetNode(0)
@@ -153,7 +153,7 @@ func TestNodePointer(t *testing.T) {
 }
 
 func TestUpdateNodeHeartbeat(t *testing.T) {
-	mbList := memberlist.CreateMemberList(0, 10)
+	mbList := node.CreateMemberList(0, 10)
 	mbList.InsertNode(0, "0.0.0.0", "90", 1)
 	node := mbList.GetNode(0)
 	if node.Heartbeat_t != 1 {
@@ -167,7 +167,7 @@ func TestUpdateNodeHeartbeat(t *testing.T) {
 }
 
 func TestGetTimeOutNodes(t *testing.T) {
-	mbList := memberlist.CreateMemberList(0, 10)
+	mbList := node.CreateMemberList(0, 10)
 	mbList.InsertNode(0, "0.0.0.0", "90", 1)
 	mbList.InsertNode(1, "0.0.0.0", "90", 100)
 	mbList.InsertNode(2, "0.0.0.0", "90", 100)
@@ -184,14 +184,14 @@ func TestGetTimeOutNodes(t *testing.T) {
 }
 
 func TestToJson(t *testing.T) {
-	mbList := memberlist.CreateMemberList(0, 10)
+	mbList := node.CreateMemberList(0, 10)
 	mbList.InsertNode(0, "1.0.0.0", "91", 1)
 	mbList.InsertNode(1, "0.2.0.0", "92", 100)
 	mbList.InsertNode(2, "0.0.3.0", "93", 100)
 	mbList.InsertNode(3, "0.0.0.4", "94", 1)
 	mbList.InsertNode(4, "0.0.0.5", "95", 100)
 	jsonData := mbList.ToJson()
-	var copy_mbList memberlist.MemberList
+	var copy_mbList node.MemberList
 	err := json.Unmarshal(jsonData, &copy_mbList)
 	if err != nil {
 		t.Fatal("unmarshal error")
@@ -209,7 +209,7 @@ func TestToJson(t *testing.T) {
 }
 
 func TestDumpToTmpFile(t *testing.T) {
-	mbList := memberlist.CreateMemberList(0, 10)
+	mbList := node.CreateMemberList(0, 10)
 	mbList.InsertNode(0, "192.169.163.111", "91", 1)
 	// use rand to force to really run this case, otherwise maybe cached
 	mbList.InsertNode(1, "0.2.0.0", "92", rand.Intn(100))
@@ -217,11 +217,11 @@ func TestDumpToTmpFile(t *testing.T) {
 	mbList.InsertNode(3, "0.0.0.4", "94", 1)
 	mbList.InsertNode(4, "0.0.0.5", "95", 100)
 	mbList.DumpToTmpFile()
-	_, err := os.Stat(memberlist.MEMBER_LIST_FILE)
+	_, err := os.Stat(node.MEMBER_LIST_FILE)
 	if os.IsNotExist(err) {
 		t.Fatal(err)
 	}
-	// err = os.Remove(memberlist.MEMBER_LIST_FILE)
+	// err = os.Remove(node.MEMBER_LIST_FILE)
 	// if err != nil {
 	// 	t.Fatal(err)
 	// }

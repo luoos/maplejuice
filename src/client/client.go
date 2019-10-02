@@ -5,7 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"memberlist"
+	"node"
 	"net"
 	"net/rpc"
 	"os"
@@ -35,7 +35,7 @@ func switchActions() {
 }
 
 func dumpMembershipList() {
-	mbList := memberlist.ConstructFromTmpFile()
+	mbList := node.ConstructFromTmpFile()
 	mbList.NicePrint()
 }
 

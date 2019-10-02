@@ -3,7 +3,6 @@ package node
 import (
 	"encoding/json"
 	"log"
-	M "memberlist"
 	"net"
 	"time"
 )
@@ -11,7 +10,7 @@ import (
 type Node struct {
 	Id       int
 	IP, Port string
-	MbList   *M.MemberList
+	MbList   *MemberList
 }
 
 type Packet struct {
@@ -19,7 +18,7 @@ type Packet struct {
 	Id     int
 	IP     string
 	Port   string
-	Map    *M.MemberList
+	Map    *MemberList
 }
 
 type ActionType int32
@@ -38,7 +37,7 @@ func CreateNode(ip, port string) *Node {
 }
 
 func (node *Node) InitMemberList() {
-	node.MbList = M.CreateMemberList(0, M.MAX_CAPACITY)
+	node.MbList = CreateMemberList(0, MAX_CAPACITY)
 	node.MbList.InsertNode(0, node.IP, node.Port, 100)
 }
 
@@ -82,7 +81,7 @@ func (node *Node) handlePacket(packet Packet) {
 		}
 		node.MbList.InsertNode(freeId, packet.IP, packet.Port, getMillisecond())
 	case ACTION_REPLY_JOIN:
-		node.MbList = M.CreateMemberList(packet.Id, M.MAX_CAPACITY)
+		node.MbList = CreateMemberList(packet.Id, MAX_CAPACITY)
 		for _, item := range packet.Map.Member_map {
 			node.MbList.InsertNode(item.Id, item.Ip, item.Port, getMillisecond())
 		}
