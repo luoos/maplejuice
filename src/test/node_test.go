@@ -220,3 +220,25 @@ func TestFindIntroducer(t *testing.T) {
 		t.Fatal("wrong")
 	}
 }
+
+func TestPingSelf(t *testing.T) {
+	node1 := node.CreateNode("0.0.0.0", "9060")
+	node1.InitMemberList()
+	go node1.MonitorInputPacket()
+	_, success := node1.ScanIntroducer([]string{"0.0.0.0:9060"})
+	if success {
+		t.Fatal("should no find introducer")
+	}
+	node2 := node.CreateNode("0.0.0.0", "9061")
+	go node2.MonitorInputPacket()
+	_, success = node1.ScanIntroducer([]string{"0.0.0.0:9061"})
+	if success {
+		t.Fatal("should no find introducer")
+	}
+	node2.InitMemberList()
+	_, success = node1.ScanIntroducer([]string{"0.0.0.0:9061"})
+	if !success {
+		t.Fatal("should no find introducer")
+	}
+
+}

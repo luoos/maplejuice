@@ -33,9 +33,10 @@ const (
 	ACTION_PING        ActionType = 1 << 5
 	ACTION_ACK         ActionType = 1 << 6
 
-	NUM_MONITORS       int = 3
-	MONITOR_INTERVAL   int = 2500
-	HEARTBEAT_INTERVAL int = 1000
+	NUM_MONITORS            int = 3
+	DEADLINE_IN_MILLISECOND     = 2500
+	MONITOR_INTERVAL            = DEADLINE_IN_MILLISECOND * time.Millisecond
+	HEARTBEAT_INTERVAL          = 1000 * time.Millisecond
 )
 
 var ack = make(chan string)
@@ -99,8 +100,15 @@ func (node *Node) SendHeartbeat() {
 	}
 }
 
+func (node *Node) SendHeartbeatRoutine() {
+	for {
+		node.SendHeartbeat()
+		time.Sleep(HEARTBEAT_INTERVAL)
+	}
+}
+
 func (node *Node) CheckFailure() {
-	lostNodes := node.MbList.GetTimeOutNodes(getMillisecond()-MONITOR_INTERVAL, node.Id, NUM_MONITORS)
+	lostNodes := node.MbList.GetTimeOutNodes(getMillisecond()-DEADLINE_IN_MILLISECOND, node.Id, NUM_MONITORS)
 	for _, lostNode := range lostNodes {
 		lostId := lostNode.Id
 		SLOG.Printf("[Node %d] found failure node id: %d\n", node.Id, lostId)
@@ -113,6 +121,13 @@ func (node *Node) CheckFailure() {
 	}
 }
 
+func (node *Node) CheckFailureRoutine() {
+	for {
+		time.Sleep(MONITOR_INTERVAL)
+		node.CheckFailure()
+	}
+}
+
 func sendPacketUDP(address string, packet *Packet) error {
 	data, err := json.Marshal(packet)
 	if err != nil {
@@ -121,6 +136,9 @@ func sendPacketUDP(address string, packet *Packet) error {
 	}
 	var conn net.Conn
 	conn, err = net.Dial("udp", address)
+	if err != nil {
+		return err
+	}
 	defer conn.Close()
 	conn.Write(data)
 	return nil
@@ -177,6 +195,12 @@ func (node *Node) handlePacket(packet Packet) {
 		// SLOG.Printf("[Node %d] Received ACTION_HEARTBEAT id: %d", node.Id, packet.Id)
 		node.MbList.UpdateNodeHeartbeat(packet.Id, getMillisecond())
 	case ACTION_PING:
+		if packet.IP == node.IP && packet.Port == node.Port {
+			break // self should not ack
+		}
+		if node.MbList == nil {
+			break
+		}
 		SLOG.Printf("[Node %d] Received ACTION_PING from %s:%s", node.Id, packet.IP, packet.Port)
 		address := packet.IP + ":" + packet.Port
 		ackPacket := &Packet{
