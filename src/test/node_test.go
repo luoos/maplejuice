@@ -2,6 +2,7 @@ package test
 
 import (
 	"node"
+	. "slogger"
 	"testing"
 	"time"
 )
@@ -118,4 +119,57 @@ func TestLeaveAndRejoin(t *testing.T) {
 	// node1.MbList.NicePrint()
 	// node2.MbList.NicePrint()
 	// node3.MbList.NicePrint()
+}
+
+func TestHeartbeat(t *testing.T) {
+	SLOG.Print("Staring TESTHEARTBEAT")
+	node1 := node.CreateNode("0.0.0.0", "9030")
+	node2 := node.CreateNode("0.0.0.0", "9031")
+	node3 := node.CreateNode("0.0.0.0", "9032")
+	node1.InitMemberList()
+	go node1.MonitorInputPacket()
+	go node2.MonitorInputPacket()
+	go node3.MonitorInputPacket()
+	node2.Join(node1.IP + ":" + node1.Port)
+	node3.Join(node1.IP + ":" + node1.Port)
+	time.Sleep(1 * time.Second)
+
+	oldHeartBeat2 := node2.MbList.GetNode(node1.Id).Heartbeat_t
+	oldHeartBeat3 := node3.MbList.GetNode(node1.Id).Heartbeat_t
+	node1.SendHeartbeat()
+	time.Sleep(500 * time.Millisecond)
+	newHeartBeat2 := node2.MbList.GetNode(node1.Id).Heartbeat_t
+	newHeartBeat3 := node3.MbList.GetNode(node1.Id).Heartbeat_t
+	if oldHeartBeat2 >= newHeartBeat2 {
+		t.Fatalf("wrong2 %d and %d", oldHeartBeat2, newHeartBeat2)
+	}
+	if oldHeartBeat3 >= newHeartBeat3 {
+		t.Fatal("wrong3")
+	}
+
+	oldHeartBeat1 := node1.MbList.GetNode(node2.Id).Heartbeat_t
+	oldHeartBeat3 = node3.MbList.GetNode(node2.Id).Heartbeat_t
+	node2.SendHeartbeat()
+	time.Sleep(500 * time.Millisecond)
+	newHeartBeat1 := node1.MbList.GetNode(node2.Id).Heartbeat_t
+	newHeartBeat3 = node3.MbList.GetNode(node2.Id).Heartbeat_t
+	if oldHeartBeat1 >= newHeartBeat1 {
+		t.Fatalf("wrong1 %d and %d", oldHeartBeat1, newHeartBeat1)
+	}
+	if oldHeartBeat3 >= newHeartBeat3 {
+		t.Fatal("wrong3")
+	}
+
+	oldHeartBeat1 = node1.MbList.GetNode(node3.Id).Heartbeat_t
+	oldHeartBeat2 = node2.MbList.GetNode(node3.Id).Heartbeat_t
+	node3.SendHeartbeat()
+	time.Sleep(500 * time.Millisecond)
+	newHeartBeat1 = node1.MbList.GetNode(node3.Id).Heartbeat_t
+	newHeartBeat2 = node2.MbList.GetNode(node3.Id).Heartbeat_t
+	if oldHeartBeat1 >= newHeartBeat1 {
+		t.Fatal("wrong1")
+	}
+	if oldHeartBeat2 >= newHeartBeat2 {
+		t.Fatal("wrong2")
+	}
 }

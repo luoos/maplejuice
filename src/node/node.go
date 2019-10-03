@@ -30,6 +30,13 @@ const (
 	ACTION_NEW_NODE    ActionType = 1 << 2
 	ACTION_DELETE_NODE ActionType = 1 << 3
 	ACTION_HEARTBEAT   ActionType = 1 << 4
+
+	NUM_MONITORS int = 3
+)
+
+var (
+	MONITOR_INTERVAL   = 2500 * time.Millisecond
+	HEARTBEAT_INTERVAL = 1000 * time.Millisecond
 )
 
 func CreateNode(ip, port string) *Node {
@@ -62,6 +69,17 @@ func (node *Node) Leave() {
 	node.Broadcast(deleteNodePacket)
 }
 
+func (node *Node) SendHeartbeat() {
+	heartbeatPacket := &Packet{
+		Action: ACTION_HEARTBEAT,
+		Id:     node.Id,
+	}
+	for _, monitorNode := range node.MbList.GetNextKNodes(node.Id, NUM_MONITORS) {
+		address := monitorNode.Ip + ":" + monitorNode.Port
+		sendPacketUDP(address, heartbeatPacket)
+	}
+}
+
 func sendPacketUDP(address string, packet *Packet) error {
 	data, err := json.Marshal(packet)
 	if err != nil {
@@ -76,7 +94,10 @@ func sendPacketUDP(address string, packet *Packet) error {
 }
 
 func (node *Node) Broadcast(packet *Packet) {
-	for _, member := range node.MbList.Member_map {
+	for id, member := range node.MbList.Member_map {
+		if id == node.Id {
+			continue
+		}
 		address := member.Ip + ":" + member.Port
 		sendPacketUDP(address, packet)
 	}
@@ -94,12 +115,12 @@ func (node *Node) handlePacket(packet Packet) {
 		reply_address := packet.IP + ":" + packet.Port
 		freeId := node.MbList.FindLeastFreeId()
 		SLOG.Printf("[Node] Received ACTION_JOIN from %s:%s, assign id: %d", packet.IP, packet.Port, freeId)
-		send_packet := &Packet{
+		sendMemberListPacket := &Packet{
 			Action: ACTION_REPLY_JOIN,
 			Id:     freeId,
 			Map:    node.MbList,
 		}
-		err := sendPacketUDP(reply_address, send_packet)
+		err := sendPacketUDP(reply_address, sendMemberListPacket)
 		if err != nil {
 			log.Println(err)
 		}
@@ -110,6 +131,7 @@ func (node *Node) handlePacket(packet Packet) {
 			Port:   packet.Port,
 		}
 		node.Broadcast(newNodePacket)
+		node.MbList.InsertNode(freeId, packet.IP, packet.Port, getMillisecond())
 	case ACTION_REPLY_JOIN:
 		node.MbList = CreateMemberList(packet.Id, MAX_CAPACITY)
 		node.Id = packet.Id
@@ -118,7 +140,11 @@ func (node *Node) handlePacket(packet Packet) {
 			node.MbList.InsertNode(item.Id, item.Ip, item.Port, getMillisecond())
 		}
 		node.MbList.InsertNode(packet.Id, node.IP, node.Port, getMillisecond())
+	case ACTION_HEARTBEAT:
+		// SLOG.Printf("[Node %d] Received ACTION_HEARTBEAT id: %d", node.Id, packet.Id)
+		node.MbList.UpdateNodeHeartbeat(packet.Id, getMillisecond())
 	}
+
 }
 
 func (node *Node) MonitorInputPacket() {
