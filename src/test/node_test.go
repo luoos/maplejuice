@@ -173,3 +173,50 @@ func TestHeartbeat(t *testing.T) {
 		t.Fatal("wrong2")
 	}
 }
+
+func TestCheckFailure(t *testing.T) {
+	SLOG.Print("Staring TestCheckFailure")
+	node1 := node.CreateNode("0.0.0.0", "9040")
+	node2 := node.CreateNode("0.0.0.0", "9041")
+	node3 := node.CreateNode("0.0.0.0", "9042")
+	node1.InitMemberList()
+	go node1.MonitorInputPacket()
+	go node2.MonitorInputPacket()
+	go node3.MonitorInputPacket()
+	node2.Join(node1.IP + ":" + node1.Port)
+	node3.Join(node1.IP + ":" + node1.Port)
+	time.Sleep(3 * time.Second)
+
+	node1.SendHeartbeat()
+	node2.SendHeartbeat()
+	time.Sleep(1 * time.Second)
+	node1.CheckFailure()
+	node2.CheckFailure()
+	time.Sleep(1 * time.Second)
+
+	if node1.MbList.Size != 2 {
+		t.Fatal("wrong4")
+	}
+	if node2.MbList.Size != 2 {
+		t.Fatal("wrong4")
+	}
+}
+
+func TestFindIntroducer(t *testing.T) {
+	SLOG.Print("Staring TEST introducer")
+	node1 := node.CreateNode("0.0.0.0", "9050")
+	node2 := node.CreateNode("0.0.0.0", "9051")
+	node1.InitMemberList()
+	go node1.MonitorInputPacket()
+	go node2.MonitorInputPacket()
+	introducer, success := node2.ScanIntroducer([]string{"0.0.0.0:9050"})
+	if !success || introducer != "0.0.0.0:9050" {
+		t.Fatal("wrong")
+	}
+	node3 := node.CreateNode("0.0.0.0", "9052")
+	go node3.MonitorInputPacket()
+	introducer, success = node3.ScanIntroducer([]string{"0.0.0.0:9055"})
+	if success {
+		t.Fatal("wrong")
+	}
+}

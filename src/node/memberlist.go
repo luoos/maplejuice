@@ -104,7 +104,7 @@ func (mbList *MemberList) DeleteNode(id int) {
 	defer mbList.lock.Unlock()
 	cur_node := mbList.GetNode(id)
 	if cur_node == nil {
-		log.Panic("trying to delete non-exist id")
+		SLOG.Print("trying to delete non-exist id")
 		return
 	}
 	prev := cur_node.prev

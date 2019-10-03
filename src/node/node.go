@@ -30,14 +30,15 @@ const (
 	ACTION_NEW_NODE    ActionType = 1 << 2
 	ACTION_DELETE_NODE ActionType = 1 << 3
 	ACTION_HEARTBEAT   ActionType = 1 << 4
+	ACTION_PING        ActionType = 1 << 5
+	ACTION_ACK         ActionType = 1 << 6
 
-	NUM_MONITORS int = 3
+	NUM_MONITORS       int = 3
+	MONITOR_INTERVAL   int = 2500
+	HEARTBEAT_INTERVAL int = 1000
 )
 
-var (
-	MONITOR_INTERVAL   = 2500 * time.Millisecond
-	HEARTBEAT_INTERVAL = 1000 * time.Millisecond
-)
+var ack = make(chan string)
 
 func CreateNode(ip, port string) *Node {
 	node := &Node{IP: ip, Port: port}
@@ -47,6 +48,23 @@ func CreateNode(ip, port string) *Node {
 func (node *Node) InitMemberList() {
 	node.MbList = CreateMemberList(0, MAX_CAPACITY)
 	node.MbList.InsertNode(0, node.IP, node.Port, 100)
+}
+
+func (node *Node) ScanIntroducer(addresses []string) (string, bool) {
+	pingPacket := &Packet{
+		Action: ACTION_PING,
+		IP:     node.IP,
+		Port:   node.Port,
+	}
+	for _, introAddr := range addresses {
+		sendPacketUDP(introAddr, pingPacket)
+	}
+	select {
+	case res := <-ack:
+		return res, true
+	case <-time.After(time.Second):
+		return "", false
+	}
 }
 
 func (node *Node) Join(address string) {
@@ -66,6 +84,7 @@ func (node *Node) Leave() {
 		Action: ACTION_DELETE_NODE,
 		Id:     node.Id,
 	}
+	node.MbList.DeleteNode(node.Id)
 	node.Broadcast(deleteNodePacket)
 }
 
@@ -77,6 +96,20 @@ func (node *Node) SendHeartbeat() {
 	for _, monitorNode := range node.MbList.GetNextKNodes(node.Id, NUM_MONITORS) {
 		address := monitorNode.Ip + ":" + monitorNode.Port
 		sendPacketUDP(address, heartbeatPacket)
+	}
+}
+
+func (node *Node) CheckFailure() {
+	lostNodes := node.MbList.GetTimeOutNodes(getMillisecond()-MONITOR_INTERVAL, node.Id, NUM_MONITORS)
+	for _, lostNode := range lostNodes {
+		lostId := lostNode.Id
+		SLOG.Printf("[Node %d] found failure node id: %d\n", node.Id, lostId)
+		deleteNodePacket := &Packet{
+			Action: ACTION_DELETE_NODE,
+			Id:     lostId,
+		}
+		node.MbList.DeleteNode(lostId)
+		node.Broadcast(deleteNodePacket)
 	}
 }
 
@@ -106,15 +139,15 @@ func (node *Node) Broadcast(packet *Packet) {
 func (node *Node) handlePacket(packet Packet) {
 	switch packet.Action {
 	case ACTION_NEW_NODE:
-		SLOG.Printf("[Node] Received ACTION_NEW_NODE (%d, %s:%s)", packet.Id, packet.IP, packet.Port)
+		SLOG.Printf("[Node %d] Received ACTION_NEW_NODE (%d, %s:%s)", node.Id, packet.Id, packet.IP, packet.Port)
 		node.MbList.InsertNode(packet.Id, packet.IP, packet.Port, getMillisecond())
 	case ACTION_DELETE_NODE:
-		SLOG.Printf("[Node] Received ACTION_DELETE_NODE (%d)", packet.Id)
+		SLOG.Printf("[Node %d] Received ACTION_DELETE_NODE (%d)", node.Id, packet.Id)
 		node.MbList.DeleteNode(packet.Id)
 	case ACTION_JOIN:
 		reply_address := packet.IP + ":" + packet.Port
 		freeId := node.MbList.FindLeastFreeId()
-		SLOG.Printf("[Node] Received ACTION_JOIN from %s:%s, assign id: %d", packet.IP, packet.Port, freeId)
+		SLOG.Printf("[Node %d] Received ACTION_JOIN from %s:%s, assign id: %d", node.Id, packet.IP, packet.Port, freeId)
 		sendMemberListPacket := &Packet{
 			Action: ACTION_REPLY_JOIN,
 			Id:     freeId,
@@ -135,7 +168,7 @@ func (node *Node) handlePacket(packet Packet) {
 	case ACTION_REPLY_JOIN:
 		node.MbList = CreateMemberList(packet.Id, MAX_CAPACITY)
 		node.Id = packet.Id
-		SLOG.Printf("[Node] Received ACTION_REPLY_JOIN assigned id: %d, member cnt: %d", node.Id, len(packet.Map.Member_map))
+		SLOG.Printf("[Node %d] Received ACTION_REPLY_JOIN assigned, member cnt: %d", node.Id, len(packet.Map.Member_map))
 		for _, item := range packet.Map.Member_map {
 			node.MbList.InsertNode(item.Id, item.Ip, item.Port, getMillisecond())
 		}
@@ -143,6 +176,19 @@ func (node *Node) handlePacket(packet Packet) {
 	case ACTION_HEARTBEAT:
 		// SLOG.Printf("[Node %d] Received ACTION_HEARTBEAT id: %d", node.Id, packet.Id)
 		node.MbList.UpdateNodeHeartbeat(packet.Id, getMillisecond())
+	case ACTION_PING:
+		SLOG.Printf("[Node %d] Received ACTION_PING from %s:%s", node.Id, packet.IP, packet.Port)
+		address := packet.IP + ":" + packet.Port
+		ackPacket := &Packet{
+			Action: ACTION_ACK,
+			IP:     node.IP,
+			Port:   node.Port,
+		}
+		sendPacketUDP(address, ackPacket)
+	case ACTION_ACK:
+		SLOG.Printf("[Node x] Received ACTION_ACK from %s:%s", packet.IP, packet.Port)
+		address := packet.IP + ":" + packet.Port
+		ack <- address
 	}
 
 }
@@ -163,7 +209,6 @@ func (node *Node) MonitorInputPacket() {
 		json.Unmarshal(buf[:length], &rec_packet)
 		node.handlePacket(rec_packet)
 	}
-
 }
 
 func getMillisecond() int {
