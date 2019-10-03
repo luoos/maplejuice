@@ -93,6 +93,7 @@ func (node *Node) handlePacket(packet Packet) {
 	case ACTION_JOIN:
 		reply_address := packet.IP + ":" + packet.Port
 		freeId := node.MbList.FindLeastFreeId()
+		SLOG.Printf("[Node] Received ACTION_JOIN from %s:%s, assign id: %d", packet.IP, packet.Port, freeId)
 		send_packet := &Packet{
 			Action: ACTION_REPLY_JOIN,
 			Id:     freeId,
@@ -112,6 +113,7 @@ func (node *Node) handlePacket(packet Packet) {
 	case ACTION_REPLY_JOIN:
 		node.MbList = CreateMemberList(packet.Id, MAX_CAPACITY)
 		node.Id = packet.Id
+		SLOG.Printf("[Node] Received ACTION_REPLY_JOIN assigned id: %d, member cnt: %d", node.Id, len(packet.Map.Member_map))
 		for _, item := range packet.Map.Member_map {
 			node.MbList.InsertNode(item.Id, item.Ip, item.Port, getMillisecond())
 		}
