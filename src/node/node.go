@@ -39,7 +39,8 @@ const (
 	HEARTBEAT_INTERVAL          = 1000 * time.Millisecond
 )
 
-var ack = make(chan string)
+var ACK_INTRO = make(chan string)
+var ACK_JOIN = make(chan bool)
 
 func CreateNode(ip, port string) *Node {
 	node := &Node{IP: ip, Port: port}
@@ -61,14 +62,14 @@ func (node *Node) ScanIntroducer(addresses []string) (string, bool) {
 		sendPacketUDP(introAddr, pingPacket)
 	}
 	select {
-	case res := <-ack:
+	case res := <-ACK_INTRO:
 		return res, true
 	case <-time.After(time.Second):
 		return "", false
 	}
 }
 
-func (node *Node) Join(address string) {
+func (node *Node) Join(address string) bool {
 	packet := &Packet{
 		Action: ACTION_JOIN,
 		IP:     node.IP,
@@ -77,6 +78,12 @@ func (node *Node) Join(address string) {
 	err := sendPacketUDP(address, packet)
 	if err != nil {
 		log.Panic(err)
+	}
+	select {
+	case <-ACK_JOIN:
+		return true
+	case <-time.After(time.Second):
+		return false
 	}
 }
 
@@ -191,6 +198,7 @@ func (node *Node) handlePacket(packet Packet) {
 			node.MbList.InsertNode(item.Id, item.Ip, item.Port, getMillisecond())
 		}
 		node.MbList.InsertNode(packet.Id, node.IP, node.Port, getMillisecond())
+		ACK_JOIN <- true
 	case ACTION_HEARTBEAT:
 		// SLOG.Printf("[Node %d] Received ACTION_HEARTBEAT id: %d", node.Id, packet.Id)
 		node.MbList.UpdateNodeHeartbeat(packet.Id, getMillisecond())
@@ -212,7 +220,7 @@ func (node *Node) handlePacket(packet Packet) {
 	case ACTION_ACK:
 		SLOG.Printf("[Node x] Received ACTION_ACK from %s:%s", packet.IP, packet.Port)
 		address := packet.IP + ":" + packet.Port
-		ack <- address
+		ACK_INTRO <- address
 	}
 
 }

@@ -17,7 +17,6 @@ func TestInitNode(t *testing.T) {
 	go node1.MonitorInputPacket()
 	go node2.MonitorInputPacket()
 	node2.Join(node1.IP + ":" + node1.Port)
-	time.Sleep(1 * time.Second)
 	// node1.MbList.NicePrint()
 	// node2.MbList.NicePrint()
 	if node2.MbList.Size != 2 {
@@ -40,7 +39,6 @@ func TestBroadCast(t *testing.T) {
 	go node2.MonitorInputPacket()
 	go node3.MonitorInputPacket()
 	node2.Join(node1.IP + ":" + node1.Port)
-	time.Sleep(1 * time.Second)
 	if node1.MbList.Size != 2 {
 		t.Fatal("wrong2")
 	}
@@ -49,7 +47,6 @@ func TestBroadCast(t *testing.T) {
 	}
 
 	node3.Join(node1.IP + ":" + node1.Port)
-	time.Sleep(1 * time.Second)
 
 	if node2.MbList.Size != 3 {
 		t.Fatal("wrong4")
@@ -74,7 +71,6 @@ func TestLeaveAndRejoin(t *testing.T) {
 	go node2.MonitorInputPacket()
 	go node3.MonitorInputPacket()
 	node2.Join(node1.IP + ":" + node1.Port)
-	time.Sleep(1 * time.Second)
 	if node1.MbList.Size != 2 {
 		t.Fatal("wrong2")
 	}
@@ -83,7 +79,6 @@ func TestLeaveAndRejoin(t *testing.T) {
 	}
 
 	node3.Join(node1.IP + ":" + node1.Port)
-	time.Sleep(1 * time.Second)
 
 	if node2.MbList.Size != 3 {
 		t.Fatal("wrong4")
@@ -106,7 +101,6 @@ func TestLeaveAndRejoin(t *testing.T) {
 	}
 
 	node2.Join(node1.IP + ":" + node1.Port)
-	time.Sleep(1 * time.Second)
 	if node1.MbList.Size != 3 {
 		t.Fatal("wrong4")
 	}
@@ -132,7 +126,6 @@ func TestHeartbeat(t *testing.T) {
 	go node3.MonitorInputPacket()
 	node2.Join(node1.IP + ":" + node1.Port)
 	node3.Join(node1.IP + ":" + node1.Port)
-	time.Sleep(1 * time.Second)
 
 	oldHeartBeat2 := node2.MbList.GetNode(node1.Id).Heartbeat_t
 	oldHeartBeat3 := node3.MbList.GetNode(node1.Id).Heartbeat_t
@@ -174,6 +167,48 @@ func TestHeartbeat(t *testing.T) {
 	}
 }
 
+// *** this is for passive monitoring
+// func TestCheckFailure_new(t *testing.T) {
+// 	SLOG.Print("Staring TestCheckFailure")
+// 	node1 := node.CreateNode("0.0.0.0", "9040")
+// 	node2 := node.CreateNode("0.0.0.0", "9041")
+// 	node3 := node.CreateNode("0.0.0.0", "9042")
+// 	node1.InitMemberList()
+// 	go node1.MonitorInputPacket()
+// 	go node2.MonitorInputPacket()
+// 	go node3.MonitorInputPacket()
+// 	node2.Join(node1.IP + ":" + node1.Port)
+// 	node3.Join(node1.IP + ":" + node1.Port)
+// 	time.Sleep(1 * time.Second)
+// 	node1.SendHeartbeat()
+// 	node2.SendHeartbeat()
+
+// 	if node1.MbList.Size != 3 {
+// 		t.Fatal("wrong4")
+// 	}
+// 	if node2.MbList.Size != 3 {
+// 		t.Fatal("wrong4")
+// 	}
+// 	if node3.MbList.Size != 3 {
+// 		t.Fatal("wrong4")
+// 	}
+
+// 	node1.SendHeartbeat()
+// 	node2.SendHeartbeat()
+// 	time.Sleep(1 * time.Second)
+// 	node1.SendHeartbeat()
+// 	node2.SendHeartbeat()
+// 	time.Sleep(1 * time.Second)
+
+// 	// node3 never sends heartbeat, at least 4 second after join.
+// 	// so node1 and node2 should find the failure and broadcast
+// 	if node1.MbList.Size != 2 {
+// 		t.Fatalf("wrong, size is: %d", node1.MbList.Size)
+// 	}
+// 	if node2.MbList.Size != 2 {
+// 		t.Fatal("wrong4")
+// 	}
+// }
 func TestCheckFailure(t *testing.T) {
 	SLOG.Print("Staring TestCheckFailure")
 	node1 := node.CreateNode("0.0.0.0", "9040")

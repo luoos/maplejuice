@@ -165,6 +165,15 @@ func (mbList MemberList) GetNextKNodes(id, k int) []MemberNode {
 	return arr
 }
 
+// *** this is for passive monitoring
+// func (mbList MemberList) NodeTimeOut(deadline, id int) bool {
+// 	node := mbList.GetNode(id)
+// 	if node == nil {
+// 		log.Panic("NodeTimeOut: this node id does not exist!")
+// 	}
+// 	return node.Heartbeat_t < deadline
+// }
+
 func (mbList MemberList) GetTimeOutNodes(deadline, id, k int) []MemberNode {
 	// Check if previous k nodes (start from id) are timeout
 	previousNodes := mbList.GetPrevKNodes(id, k)
