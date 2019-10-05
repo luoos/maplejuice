@@ -40,7 +40,7 @@ const (
 )
 
 var ACK_INTRO = make(chan string)
-var ACK_JOIN = make(chan bool)
+var ACK_JOIN = make(chan Packet)
 
 func CreateNode(ip, port string) *Node {
 	node := &Node{IP: ip, Port: port}
@@ -80,7 +80,11 @@ func (node *Node) Join(address string) bool {
 		log.Panic(err)
 	}
 	select {
-	case <-ACK_JOIN:
+	case mblistPacket := <-ACK_JOIN:
+		for _, item := range mblistPacket.Map.Member_map {
+			node.MbList.InsertNode(item.Id, item.Ip, item.Port, getMillisecond())
+		}
+		node.MbList.InsertNode(mblistPacket.Id, node.IP, node.Port, getMillisecond())
 		return true
 	case <-time.After(time.Second):
 		return false
@@ -194,11 +198,7 @@ func (node *Node) handlePacket(packet Packet) {
 		node.MbList = CreateMemberList(packet.Id, MAX_CAPACITY)
 		node.Id = packet.Id
 		SLOG.Printf("[Node %d] Received ACTION_REPLY_JOIN assigned, member cnt: %d", node.Id, len(packet.Map.Member_map))
-		for _, item := range packet.Map.Member_map {
-			node.MbList.InsertNode(item.Id, item.Ip, item.Port, getMillisecond())
-		}
-		node.MbList.InsertNode(packet.Id, node.IP, node.Port, getMillisecond())
-		ACK_JOIN <- true
+		ACK_JOIN <- packet
 	case ACTION_HEARTBEAT:
 		// SLOG.Printf("[Node %d] Received ACTION_HEARTBEAT id: %d", node.Id, packet.Id)
 		node.MbList.UpdateNodeHeartbeat(packet.Id, getMillisecond())
