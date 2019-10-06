@@ -167,16 +167,16 @@ func TestUpdateNodeHeartbeat(t *testing.T) {
 }
 
 // *** this is for passive monitoring
-// func TestNodeTimeOut(t *testing.T) {
-// 	mbList := node.CreateMemberList(0, 10)
-// 	mbList.InsertNode(0, "0.0.0.0", "90", 1)
-// 	if !mbList.NodeTimeOut(0, 0) {
-// 		t.Fatal("wrong")
-// 	}
-// 	if mbList.NodeTimeOut(2, 0) {
-// 		t.Fatal("wrong")
-// 	}
-// }
+func TestNodeTimeOut(t *testing.T) {
+	mbList := node.CreateMemberList(0, 10)
+	mbList.InsertNode(0, "0.0.0.0", "90", 1)
+	if mbList.NodeTimeOut(0, 0) {
+		t.Fatalf("wrong heartbeat_t: %d, deadline: %d", mbList.GetNode(0).Heartbeat_t, 0)
+	}
+	if !mbList.NodeTimeOut(2, 0) {
+		t.Fatal("wrong")
+	}
+}
 
 func TestGetTimeOutNodes(t *testing.T) {
 	mbList := node.CreateMemberList(0, 10)

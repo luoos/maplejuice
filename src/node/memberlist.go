@@ -81,7 +81,7 @@ func (mbList *MemberList) InsertNode(id int, ip, port string, heartbeat_t int) {
 	new_node.prev = pre_node
 	new_node.next = next_node
 	next_node.prev = new_node
-	SLOG.Printf("[MembershipList] Inserted node (%d, %s:%s, %d)", id, ip, port, heartbeat_t)
+	SLOG.Printf("[MembershipList %d] Inserted node (%d, %s:%s, %d)", mbList.SelfId, id, ip, port, heartbeat_t)
 	mbList.DumpToTmpFile()
 }
 
@@ -104,7 +104,7 @@ func (mbList *MemberList) DeleteNode(id int) {
 	defer mbList.lock.Unlock()
 	cur_node := mbList.GetNode(id)
 	if cur_node == nil {
-		SLOG.Print("trying to delete non-exist id")
+		SLOG.Printf("[MemberList %d] trying to delete non-exist id", mbList.SelfId)
 		return
 	}
 	prev := cur_node.prev
@@ -113,7 +113,7 @@ func (mbList *MemberList) DeleteNode(id int) {
 	next.prev = prev
 	delete(mbList.Member_map, id)
 	mbList.Size--
-	SLOG.Printf("[MembershipList] Deleted node %d", id)
+	SLOG.Printf("[MembershipList %d] Deleted node %d", mbList.SelfId, id)
 	mbList.DumpToTmpFile()
 }
 
@@ -166,13 +166,16 @@ func (mbList MemberList) GetNextKNodes(id, k int) []MemberNode {
 }
 
 // *** this is for passive monitoring
-// func (mbList MemberList) NodeTimeOut(deadline, id int) bool {
-// 	node := mbList.GetNode(id)
-// 	if node == nil {
-// 		log.Panic("NodeTimeOut: this node id does not exist!")
-// 	}
-// 	return node.Heartbeat_t < deadline
-// }
+func (mbList MemberList) NodeTimeOut(deadline, id int) bool {
+	node := mbList.GetNode(id)
+	if node == nil {
+		log.Panic("NodeTimeOut: this node id does not exist!")
+	}
+	if node.Heartbeat_t < deadline {
+		SLOG.Printf("[NODE TIME OUT %d] id: %d last heartbeat_t: %d, deadline: %d", mbList.SelfId, id, node.Heartbeat_t, deadline)
+	}
+	return node.Heartbeat_t < deadline
+}
 
 func (mbList MemberList) GetTimeOutNodes(deadline, id, k int) []MemberNode {
 	// Check if previous k nodes (start from id) are timeout

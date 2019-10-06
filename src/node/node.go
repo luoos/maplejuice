@@ -22,7 +22,8 @@ type Packet struct {
 	Map    *MemberList
 }
 
-type ActionType int32
+type ActionType int8
+type StatusType int8
 
 const (
 	ACTION_JOIN        ActionType = 1 << 0
@@ -32,6 +33,10 @@ const (
 	ACTION_HEARTBEAT   ActionType = 1 << 4
 	ACTION_PING        ActionType = 1 << 5
 	ACTION_ACK         ActionType = 1 << 6
+
+	STATUS_OK   StatusType = 1 << 0
+	STATUS_FAIL StatusType = 1 << 1
+	STATUS_END  StatusType = 1 << 2
 
 	NUM_MONITORS            int = 3
 	DEADLINE_IN_MILLISECOND     = 2500
@@ -84,7 +89,10 @@ func (node *Node) Join(address string) bool {
 		for _, item := range mblistPacket.Map.Member_map {
 			node.MbList.InsertNode(item.Id, item.Ip, item.Port, getMillisecond())
 		}
-		node.MbList.InsertNode(mblistPacket.Id, node.IP, node.Port, getMillisecond())
+		node.MbList.InsertNode(node.Id, node.IP, node.Port, getMillisecond())
+		for _, prevNode := range node.MbList.GetPrevKNodes(node.Id, NUM_MONITORS) {
+			node.CheckFailureRoutine(prevNode.Id)
+		}
 		return true
 	case <-time.After(time.Second):
 		return false
@@ -118,25 +126,60 @@ func (node *Node) SendHeartbeatRoutine() {
 	}
 }
 
-func (node *Node) CheckFailure() {
-	lostNodes := node.MbList.GetTimeOutNodes(getMillisecond()-DEADLINE_IN_MILLISECOND, node.Id, NUM_MONITORS)
-	for _, lostNode := range lostNodes {
-		lostId := lostNode.Id
-		SLOG.Printf("[Node %d] found failure node id: %d\n", node.Id, lostId)
-		deleteNodePacket := &Packet{
-			Action: ACTION_DELETE_NODE,
-			Id:     lostId,
+func (node *Node) NodeStatus(id int) StatusType {
+	if node.MbList.GetNode(id) == nil {
+		return STATUS_END
+	}
+	next3Nodes := node.MbList.GetNextKNodes(id, 3)
+	found := false
+	for _, nextNode := range next3Nodes {
+		if node.Id == nextNode.Id {
+			found = true
+			break
 		}
-		node.MbList.DeleteNode(lostId)
-		node.Broadcast(deleteNodePacket)
+	}
+	// prev3Nodes := node.MbList.GetPrevKNodes(node.Id, 3)
+	// found := false
+	// for _, prevNode := range prev3Nodes {
+	// 	if id == prevNode.Id {
+	// 		found = true
+	// 		break
+	// 	}
+	// }
+	if !found {
+		return STATUS_END
+	}
+
+	deadline := getMillisecond() - DEADLINE_IN_MILLISECOND
+	if !node.MbList.NodeTimeOut(deadline, id) {
+		return STATUS_OK
+	} else {
+		return STATUS_FAIL
 	}
 }
 
-func (node *Node) CheckFailureRoutine() {
-	for {
-		time.Sleep(MONITOR_INTERVAL)
-		node.CheckFailure()
-	}
+func (node *Node) CheckFailureRoutine(id int) {
+	go func() {
+		for {
+			time.Sleep(MONITOR_INTERVAL)
+			switch node.NodeStatus(id) {
+			case STATUS_OK:
+				continue
+			case STATUS_FAIL:
+				SLOG.Printf("[Node %d] found failure node id: %d\n", node.Id, id)
+				deleteNodePacket := &Packet{
+					Action: ACTION_DELETE_NODE,
+					Id:     id,
+				}
+				node.Broadcast(deleteNodePacket)
+				node.MbList.DeleteNode(id)
+				break
+			case STATUS_END:
+				SLOG.Printf("[Node %d] end routine for node id: %d\n", node.Id, id)
+				break
+			}
+		}
+	}()
 }
 
 func sendPacketUDP(address string, packet *Packet) error {
@@ -170,6 +213,7 @@ func (node *Node) handlePacket(packet Packet) {
 	case ACTION_NEW_NODE:
 		SLOG.Printf("[Node %d] Received ACTION_NEW_NODE (%d, %s:%s)", node.Id, packet.Id, packet.IP, packet.Port)
 		node.MbList.InsertNode(packet.Id, packet.IP, packet.Port, getMillisecond())
+		node.CheckFailureRoutine(packet.Id)
 	case ACTION_DELETE_NODE:
 		SLOG.Printf("[Node %d] Received ACTION_DELETE_NODE (%d)", node.Id, packet.Id)
 		node.MbList.DeleteNode(packet.Id)
@@ -194,6 +238,7 @@ func (node *Node) handlePacket(packet Packet) {
 		}
 		node.Broadcast(newNodePacket)
 		node.MbList.InsertNode(freeId, packet.IP, packet.Port, getMillisecond())
+		node.CheckFailureRoutine(freeId)
 	case ACTION_REPLY_JOIN:
 		node.MbList = CreateMemberList(packet.Id, MAX_CAPACITY)
 		node.Id = packet.Id
