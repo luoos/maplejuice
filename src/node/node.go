@@ -80,9 +80,10 @@ func (node *Node) Join(address string) bool {
 		IP:     node.IP,
 		Port:   node.Port,
 	}
+	SLOG.Printf("Sending Join packet, source %s:%s, destination %s", node.IP, node.Port, address)
 	err := sendPacketUDP(address, packet)
 	if err != nil {
-		log.Panic(err)
+		SLOG.Panic(err)
 	}
 	select {
 	case mblistPacket := <-ACK_JOIN:
@@ -95,6 +96,7 @@ func (node *Node) Join(address string) bool {
 		}
 		return true
 	case <-time.After(time.Second):
+		SLOG.Printf("Join Time out, source: %s:%s", node.IP, node.Port)
 		return false
 	}
 }

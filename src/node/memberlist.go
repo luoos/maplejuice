@@ -104,7 +104,7 @@ func (mbList *MemberList) DeleteNode(id int) {
 	defer mbList.lock.Unlock()
 	cur_node := mbList.GetNode(id)
 	if cur_node == nil {
-		SLOG.Printf("[MemberList %d] trying to delete non-exist id", mbList.SelfId)
+		SLOG.Printf("[MembershipList %d] trying to delete non-exist id: %d", mbList.SelfId, id)
 		return
 	}
 	prev := cur_node.prev
@@ -172,7 +172,7 @@ func (mbList MemberList) NodeTimeOut(deadline, id int) bool {
 		log.Panic("NodeTimeOut: this node id does not exist!")
 	}
 	if node.Heartbeat_t < deadline {
-		SLOG.Printf("[NODE TIME OUT %d] id: %d last heartbeat_t: %d, deadline: %d", mbList.SelfId, id, node.Heartbeat_t, deadline)
+		SLOG.Printf("[MembershipList %d] found TIMEOUT node, id: %d last heartbeat_t: %d, deadline: %d", mbList.SelfId, id, node.Heartbeat_t, deadline)
 	}
 	return node.Heartbeat_t < deadline
 }
