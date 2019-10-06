@@ -38,7 +38,6 @@ func main() {
 		node.InitMemberList()
 	}
 	go node.SendHeartbeatRoutine()
-	go node.CheckFailureRoutine()
 
 	signal.Notify(sigCh, syscall.SIGINT)
 	go func() {

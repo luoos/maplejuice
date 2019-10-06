@@ -95,7 +95,7 @@ func (node *Node) Join(address string) bool {
 		}
 		node.MbList.InsertNode(node.Id, node.IP, node.Port, getMillisecond())
 		for _, prevNode := range node.MbList.GetPrevKNodes(node.Id, NUM_MONITORS) {
-			node.CheckFailureRoutine(prevNode.Id)
+			go node.CheckFailureRoutine(prevNode.Id)
 		}
 		return true
 	case <-time.After(time.Second):
@@ -167,24 +167,24 @@ func (node *Node) NodeStatus(id int) StatusType {
 }
 
 func (node *Node) CheckFailureRoutine(id int) {
-	go func() {
-		for {
-			time.Sleep(MONITOR_INTERVAL)
-			status := node.NodeStatus(id)
-			if status == STATUS_FAIL {
-				SLOG.Printf("[Node %d] found failure node id: %d\n", node.Id, id)
-				deleteNodePacket := &Packet{
-					Action: ACTION_DELETE_NODE,
-					Id:     id,
-					IP:     node.IP,
-				}
-				node.Broadcast(deleteNodePacket)
-				node.MbList.DeleteNode(id)
-			} else if status == STATUS_END {
-				SLOG.Printf("[Node %d] end routine for node id: %d\n", node.Id, id)
+	for {
+		time.Sleep(MONITOR_INTERVAL)
+		status := node.NodeStatus(id)
+		if status == STATUS_FAIL {
+			SLOG.Printf("[Node %d] found failure node id: %d\n", node.Id, id)
+			deleteNodePacket := &Packet{
+				Action: ACTION_DELETE_NODE,
+				Id:     id,
+				IP:     node.IP,
 			}
+			node.Broadcast(deleteNodePacket)
+			node.MbList.DeleteNode(id)
+			break
+		} else if status == STATUS_END {
+			SLOG.Printf("[Node %d] end routine for node id: %d\n", node.Id, id)
+			break
 		}
-	}()
+	}
 }
 
 func sendPacketUDP(address string, packet *Packet) error {
@@ -218,7 +218,7 @@ func (node *Node) handlePacket(packet Packet) {
 	case ACTION_NEW_NODE:
 		SLOG.Printf("[Node %d] Received ACTION_NEW_NODE (%d, %s:%s)", node.Id, packet.Id, packet.IP, packet.Port)
 		node.MbList.InsertNode(packet.Id, packet.IP, packet.Port, getMillisecond())
-		node.CheckFailureRoutine(packet.Id)
+		go node.CheckFailureRoutine(packet.Id)
 	case ACTION_DELETE_NODE:
 		SLOG.Printf("[Node %d] Received ACTION_DELETE_NODE (%d), source: %s", node.Id, packet.Id, packet.IP)
 		node.MbList.DeleteNode(packet.Id)
@@ -243,7 +243,7 @@ func (node *Node) handlePacket(packet Packet) {
 		}
 		node.Broadcast(newNodePacket)
 		node.MbList.InsertNode(freeId, packet.IP, packet.Port, getMillisecond())
-		node.CheckFailureRoutine(freeId)
+		go node.CheckFailureRoutine(freeId)
 	case ACTION_REPLY_JOIN:
 		node.MbList = CreateMemberList(packet.Id, MAX_CAPACITY)
 		node.Id = packet.Id
