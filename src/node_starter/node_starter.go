@@ -6,7 +6,6 @@ import (
 	"os/signal"
 	. "slogger"
 	"syscall"
-	"time"
 )
 
 const (
@@ -37,10 +36,6 @@ func main() {
 		node.Join(add)
 	} else {
 		node.InitMemberList()
-	}
-	for node.MbList == nil {
-		time.Sleep(1 * time.Second)
-		SLOG.Print("waiting for setup...")
 	}
 	go node.SendHeartbeatRoutine()
 	go node.CheckFailureRoutine()
