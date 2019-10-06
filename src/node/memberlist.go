@@ -58,9 +58,10 @@ func (mbList *MemberList) InsertNode(id int, ip, port string, heartbeat_t int) {
 	mbList.lock.Lock()
 	defer mbList.lock.Unlock()
 	if _, exist := mbList.Member_map[id]; exist {
-		log.Panic("trying to insert an existed id")
+		SLOG.Printf("[MembershipList %d] trying to insert an existed id: %d", mbList.SelfId, id)
 	}
 	new_node := CreateMemberNode(id, ip, port, heartbeat_t)
+	SLOG.Printf("[MembershipList %d] Inserted node (%d, %s:%s, %d)", mbList.SelfId, id, ip, port, heartbeat_t)
 	mbList.Member_map[id] = new_node
 	mbList.Size++
 	if mbList.Size == 1 {
@@ -81,7 +82,6 @@ func (mbList *MemberList) InsertNode(id int, ip, port string, heartbeat_t int) {
 	new_node.prev = pre_node
 	new_node.next = next_node
 	next_node.prev = new_node
-	SLOG.Printf("[MembershipList %d] Inserted node (%d, %s:%s, %d)", mbList.SelfId, id, ip, port, heartbeat_t)
 	mbList.DumpToTmpFile()
 }
 
@@ -122,6 +122,7 @@ func (mbList *MemberList) UpdateNodeHeartbeat(id, heartbeat_t int) {
 	if node == nil {
 		return
 	}
+	SLOG.Printf("[MembershipList %d] Update heartbeat for node: %d, hb: %d", mbList.SelfId, id, heartbeat_t)
 	node.Heartbeat_t = heartbeat_t
 
 	mbList.DumpToTmpFile()
@@ -167,6 +168,8 @@ func (mbList MemberList) GetNextKNodes(id, k int) []MemberNode {
 
 // *** this is for passive monitoring
 func (mbList MemberList) NodeTimeOut(deadline, id int) bool {
+	mbList.lock.Lock()
+	defer mbList.lock.Unlock()
 	node := mbList.GetNode(id)
 	if node == nil {
 		log.Panic("NodeTimeOut: this node id does not exist!")

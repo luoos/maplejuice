@@ -47,6 +47,8 @@ const (
 var ACK_INTRO = make(chan string)
 var ACK_JOIN = make(chan Packet)
 
+var HEARTBEAT_LOG_FLAG = false // debug
+
 func CreateNode(ip, port string) *Node {
 	node := &Node{IP: ip, Port: port}
 	return node
@@ -117,6 +119,9 @@ func (node *Node) SendHeartbeat() {
 	}
 	for _, monitorNode := range node.MbList.GetNextKNodes(node.Id, NUM_MONITORS) {
 		address := monitorNode.Ip + ":" + monitorNode.Port
+		if HEARTBEAT_LOG_FLAG {
+			SLOG.Printf("[Node %d] Sending ACTION_HEARTBEAT to %s", node.Id, address)
+		}
 		sendPacketUDP(address, heartbeatPacket)
 	}
 }
@@ -164,10 +169,8 @@ func (node *Node) CheckFailureRoutine(id int) {
 	go func() {
 		for {
 			time.Sleep(MONITOR_INTERVAL)
-			switch node.NodeStatus(id) {
-			case STATUS_OK:
-				continue
-			case STATUS_FAIL:
+			status := node.NodeStatus(id)
+			if status == STATUS_FAIL {
 				SLOG.Printf("[Node %d] found failure node id: %d\n", node.Id, id)
 				deleteNodePacket := &Packet{
 					Action: ACTION_DELETE_NODE,
@@ -175,10 +178,8 @@ func (node *Node) CheckFailureRoutine(id int) {
 				}
 				node.Broadcast(deleteNodePacket)
 				node.MbList.DeleteNode(id)
-				break
-			case STATUS_END:
+			} else if status == STATUS_END {
 				SLOG.Printf("[Node %d] end routine for node id: %d\n", node.Id, id)
-				break
 			}
 		}
 	}()
@@ -247,7 +248,9 @@ func (node *Node) handlePacket(packet Packet) {
 		SLOG.Printf("[Node %d] Received ACTION_REPLY_JOIN assigned, member cnt: %d", node.Id, len(packet.Map.Member_map))
 		ACK_JOIN <- packet
 	case ACTION_HEARTBEAT:
-		// SLOG.Printf("[Node %d] Received ACTION_HEARTBEAT id: %d", node.Id, packet.Id)
+		if HEARTBEAT_LOG_FLAG {
+			SLOG.Printf("[Node %d] Received ACTION_HEARTBEAT id: %d", node.Id, packet.Id)
+		}
 		node.MbList.UpdateNodeHeartbeat(packet.Id, getMillisecond())
 	case ACTION_PING:
 		if packet.IP == node.IP && packet.Port == node.Port {

@@ -254,7 +254,7 @@ func TestPingSelf(t *testing.T) {
 
 func TestManyNodes(t *testing.T) {
 	SLOG.Print("starting test many nodes")
-	const NODES = 6
+	const NODES = 10
 	var nodes [NODES]*node.Node
 	for i := 0; i < NODES; i++ {
 		nodes[i] = node.CreateNode("0.0.0.0", fmt.Sprintf("907%d", i))
@@ -267,17 +267,29 @@ func TestManyNodes(t *testing.T) {
 		nodes[i].Join(nodes[0].IP + ":" + nodes[0].Port)
 		log.Printf("nodes %d joined", i)
 	}
-	time.Sleep(1 * time.Second)
 
 	for i, nod := range nodes {
 		if nod.MbList.Size != NODES {
 			t.Fatalf("wrong size for nod: %d size: %d", i, nod.MbList.Size)
 		}
 	}
-	time.Sleep(3 * time.Second)
-	for _, nod := range nodes {
-		if nod.MbList.Size != 0 {
-			t.Fatalf("wrong size: %d", nod.MbList.Size)
+	for j := 0; j < 3; j++ {
+		for i := 0; i < 7; i++ {
+			nodes[i].SendHeartbeat()
+		}
+		time.Sleep(1 * time.Second)
+	}
+	for i := 0; i < 7; i++ {
+		n := nodes[i]
+		if n.MbList.Size != 7 {
+			t.Fatalf("wrong sizes: %d", n.MbList.Size)
 		}
 	}
+	// for i := 1;
+	// time.Sleep(3 * time.Second)
+	// for _, nod := range nodes {
+	// 	if nod.MbList.Size != 0 {
+	// 		t.Fatalf("wrong size: %d", nod.MbList.Size)
+	// 	}
+	// }
 }
