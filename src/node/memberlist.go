@@ -10,6 +10,7 @@ import (
 	"sort"
 	"sync"
 	"text/tabwriter"
+	"time"
 )
 
 const MEMBER_LIST_FILE = "/tmp/member.list"
@@ -18,6 +19,7 @@ const MAX_CAPACITY = 10
 type MemberNode struct {
 	Id          int
 	Heartbeat_t int
+	JoinTime    string
 	Ip          string
 	Port        string
 	prev        *MemberNode
@@ -25,7 +27,8 @@ type MemberNode struct {
 }
 
 func CreateMemberNode(id int, ip, port string, heartbeat_t int) *MemberNode {
-	new_node := &MemberNode{Id: id, Ip: ip, Port: port, Heartbeat_t: heartbeat_t}
+	timestamp := time.Now().Format("2006.01.02 15:04:05")
+	new_node := &MemberNode{Id: id, Ip: ip, Port: port, Heartbeat_t: heartbeat_t, JoinTime: timestamp}
 	new_node.prev = new_node
 	new_node.next = new_node
 	return new_node
@@ -228,11 +231,12 @@ func (mblist MemberList) NicePrint() {
 		keys = append(keys, k)
 	}
 	sort.Ints(keys)
-	fmt.Fprintln(w, "ID\tIP\tPORT\tHeartbeat")
+	fmt.Fprintln(w, "ID\tIP\tPORT\tHeartbeat\tJoin Time")
 	for _, k := range keys {
 		node := mblist.Member_map[k]
-		fmt.Fprintf(w, "%d\t%s\t%s\t%d\n",
-			node.Id, node.Ip, node.Port, node.Heartbeat_t)
+		ts := time.Unix(int64(node.Heartbeat_t/1000), 0).Format("2006.01.02 15:04:05")
+		fmt.Fprintf(w, "%d\t%s\t%s\t%s\t%s\n",
+			node.Id, node.Ip, node.Port, ts, node.JoinTime)
 	}
 	fmt.Fprintln(w)
 	fmt.Fprintf(w, "Self ID: %d\tSize: %d\tCapacity: %d\n",

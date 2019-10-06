@@ -6,6 +6,7 @@ import (
 	"node"
 	"os"
 	"testing"
+	"time"
 )
 
 func TestCreateMemberList(t *testing.T) {
@@ -227,7 +228,7 @@ func TestDumpToTmpFile(t *testing.T) {
 	mbList.InsertNode(1, "0.2.0.0", "92", rand.Intn(100))
 	mbList.InsertNode(2, "0.0.3.0", "93", 100)
 	mbList.InsertNode(3, "0.0.0.4", "94", 1)
-	mbList.InsertNode(4, "0.0.0.5", "95", 100)
+	mbList.InsertNode(4, "0.0.0.7", "95", int(time.Now().UnixNano()/1000000))
 	mbList.DumpToTmpFile()
 	_, err := os.Stat(node.MEMBER_LIST_FILE)
 	if os.IsNotExist(err) {

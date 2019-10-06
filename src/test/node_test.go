@@ -2,7 +2,6 @@ package test
 
 import (
 	"fmt"
-	"log"
 	"node"
 	. "slogger"
 	"testing"
@@ -265,7 +264,6 @@ func TestManyNodes(t *testing.T) {
 	}
 	for i := 1; i < NODES; i++ {
 		nodes[i].Join(nodes[0].IP + ":" + nodes[0].Port)
-		log.Printf("nodes %d joined", i)
 	}
 
 	for i, nod := range nodes {
