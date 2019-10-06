@@ -227,6 +227,19 @@ func TestFindIntroducer(t *testing.T) {
 	if success {
 		t.Fatal("wrong")
 	}
+	node2.Join("0.0.0.0:9050")
+	time.Sleep(1 * time.Second)
+	node4 := node.CreateNode("0.0.0.0", "9053")
+	go node4.MonitorInputPacket()
+	introducer, success = node4.ScanIntroducer([]string{"0.0.0.0:9050", "0.0.0.0:9051"})
+	if !success {
+		t.Fatal("wrong")
+	}
+	node4.Join(introducer)
+	time.Sleep(1 * time.Second)
+	if node4.MbList.Size != 3 {
+		t.Fail()
+	}
 }
 
 func TestPingSelf(t *testing.T) {

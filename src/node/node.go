@@ -67,13 +67,14 @@ func (node *Node) ScanIntroducer(addresses []string) (string, bool) {
 	}
 	for _, introAddr := range addresses {
 		sendPacketUDP(introAddr, pingPacket)
+		select {
+		case res := <-ACK_INTRO:
+			return res, true
+		case <-time.After(time.Second):
+			break
+		}
 	}
-	select {
-	case res := <-ACK_INTRO:
-		return res, true
-	case <-time.After(time.Second):
-		return "", false
-	}
+	return "", false
 }
 
 func (node *Node) Join(address string) bool {
