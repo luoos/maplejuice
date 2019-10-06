@@ -176,6 +176,7 @@ func (node *Node) CheckFailureRoutine(id int) {
 				deleteNodePacket := &Packet{
 					Action: ACTION_DELETE_NODE,
 					Id:     id,
+					IP:     node.IP,
 				}
 				node.Broadcast(deleteNodePacket)
 				node.MbList.DeleteNode(id)
@@ -219,7 +220,7 @@ func (node *Node) handlePacket(packet Packet) {
 		node.MbList.InsertNode(packet.Id, packet.IP, packet.Port, getMillisecond())
 		node.CheckFailureRoutine(packet.Id)
 	case ACTION_DELETE_NODE:
-		SLOG.Printf("[Node %d] Received ACTION_DELETE_NODE (%d)", node.Id, packet.Id)
+		SLOG.Printf("[Node %d] Received ACTION_DELETE_NODE (%d), source: %s", node.Id, packet.Id, packet.IP)
 		node.MbList.DeleteNode(packet.Id)
 	case ACTION_JOIN:
 		reply_address := packet.IP + ":" + packet.Port
