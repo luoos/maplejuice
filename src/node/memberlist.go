@@ -125,7 +125,9 @@ func (mbList *MemberList) UpdateNodeHeartbeat(id, heartbeat_t int) {
 	if node == nil {
 		return
 	}
-	SLOG.Printf("[MembershipList %d] Update heartbeat for node: %d, hb: %d", mbList.SelfId, id, heartbeat_t)
+	if HEARTBEAT_LOG_FLAG {
+		SLOG.Printf("[MembershipList %d] Update heartbeat for node: %d, hb: %d", mbList.SelfId, id, heartbeat_t)
+	}
 	node.Heartbeat_t = heartbeat_t
 
 	mbList.DumpToTmpFile()
