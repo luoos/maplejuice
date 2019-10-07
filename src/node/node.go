@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	. "slogger"
+	"sync"
 	"time"
 )
 
@@ -12,6 +13,8 @@ type Node struct {
 	Id       int
 	IP, Port string
 	MbList   *MemberList
+	timerMap map[int]*time.Timer
+	mapLock  *sync.Mutex
 }
 
 type Packet struct {
@@ -41,7 +44,8 @@ const (
 	NUM_MONITORS            int = 3
 	DEADLINE_IN_MILLISECOND     = 2500
 	MONITOR_INTERVAL            = DEADLINE_IN_MILLISECOND * time.Millisecond
-	HEARTBEAT_INTERVAL          = 1000 * time.Millisecond
+	HEARTBEAT_INTERVAL          = 1500 * time.Millisecond
+	TIMEOUT_THRESHOLD           = 4 * time.Second
 )
 
 var ACK_INTRO = make(chan string)
@@ -50,7 +54,8 @@ var ACK_JOIN = make(chan Packet)
 var HEARTBEAT_LOG_FLAG = false // debug
 
 func CreateNode(ip, port string) *Node {
-	node := &Node{IP: ip, Port: port}
+	timer_map := make(map[int]*time.Timer)
+	node := &Node{IP: ip, Port: port, mapLock: &sync.Mutex{}, timerMap: timer_map}
 	return node
 }
 
@@ -95,7 +100,7 @@ func (node *Node) Join(address string) bool {
 		}
 		node.MbList.InsertNode(node.Id, node.IP, node.Port, getMillisecond())
 		for _, prevNode := range node.MbList.GetPrevKNodes(node.Id, NUM_MONITORS) {
-			go node.CheckFailureRoutine(prevNode.Id)
+			node.monitorIfNecessary(prevNode.Id)
 		}
 		return true
 	case <-time.After(time.Second):
@@ -134,59 +139,6 @@ func (node *Node) SendHeartbeatRoutine() {
 	}
 }
 
-func (node *Node) NodeStatus(id int) StatusType {
-	if node.MbList.GetNode(id) == nil {
-		return STATUS_END
-	}
-	next3Nodes := node.MbList.GetNextKNodes(id, 3)
-	found := false
-	for _, nextNode := range next3Nodes {
-		if node.Id == nextNode.Id {
-			found = true
-			break
-		}
-	}
-	// prev3Nodes := node.MbList.GetPrevKNodes(node.Id, 3)
-	// found := false
-	// for _, prevNode := range prev3Nodes {
-	// 	if id == prevNode.Id {
-	// 		found = true
-	// 		break
-	// 	}
-	// }
-	if !found {
-		return STATUS_END
-	}
-
-	deadline := getMillisecond() - DEADLINE_IN_MILLISECOND
-	if !node.MbList.NodeTimeOut(deadline, id) {
-		return STATUS_OK
-	} else {
-		return STATUS_FAIL
-	}
-}
-
-func (node *Node) CheckFailureRoutine(id int) {
-	for {
-		time.Sleep(MONITOR_INTERVAL)
-		status := node.NodeStatus(id)
-		if status == STATUS_FAIL {
-			SLOG.Printf("[Node %d] found failure node id: %d\n", node.Id, id)
-			deleteNodePacket := &Packet{
-				Action: ACTION_DELETE_NODE,
-				Id:     id,
-				IP:     node.IP,
-			}
-			node.Broadcast(deleteNodePacket)
-			node.MbList.DeleteNode(id)
-			break
-		} else if status == STATUS_END {
-			SLOG.Printf("[Node %d] end routine for node id: %d\n", node.Id, id)
-			break
-		}
-	}
-}
-
 func sendPacketUDP(address string, packet *Packet) error {
 	data, err := json.Marshal(packet)
 	if err != nil {
@@ -218,10 +170,19 @@ func (node *Node) handlePacket(packet Packet) {
 	case ACTION_NEW_NODE:
 		SLOG.Printf("[Node %d] Received ACTION_NEW_NODE (%d, %s:%s)", node.Id, packet.Id, packet.IP, packet.Port)
 		node.MbList.InsertNode(packet.Id, packet.IP, packet.Port, getMillisecond())
-		go node.CheckFailureRoutine(packet.Id)
+		node.monitorIfNecessary(packet.Id)
 	case ACTION_DELETE_NODE:
 		SLOG.Printf("[Node %d] Received ACTION_DELETE_NODE (%d), source: %s", node.Id, packet.Id, packet.IP)
+		lose_heartbeat := node.isPrevKNodes(packet.Id)
 		node.MbList.DeleteNode(packet.Id)
+		if lose_heartbeat {
+			// add other node to receive heartbeat
+			for _, item := range node.MbList.GetPrevKNodes(node.Id, NUM_MONITORS) {
+				if _, ok := node.timerMap[item.Id]; !ok {
+					node.monitorIfNecessary(item.Id)
+				}
+			}
+		}
 	case ACTION_JOIN:
 		reply_address := packet.IP + ":" + packet.Port
 		freeId := node.MbList.FindLeastFreeId()
@@ -243,7 +204,7 @@ func (node *Node) handlePacket(packet Packet) {
 		}
 		node.Broadcast(newNodePacket)
 		node.MbList.InsertNode(freeId, packet.IP, packet.Port, getMillisecond())
-		go node.CheckFailureRoutine(freeId)
+		node.monitorIfNecessary(freeId)
 	case ACTION_REPLY_JOIN:
 		node.MbList = CreateMemberList(packet.Id, MAX_CAPACITY)
 		node.Id = packet.Id
@@ -254,6 +215,7 @@ func (node *Node) handlePacket(packet Packet) {
 			SLOG.Printf("[Node %d] Received ACTION_HEARTBEAT id: %d", node.Id, packet.Id)
 		}
 		node.MbList.UpdateNodeHeartbeat(packet.Id, getMillisecond())
+		node.resetTimer(packet.Id)
 	case ACTION_PING:
 		if packet.IP == node.IP && packet.Port == node.Port {
 			break // self should not ack
@@ -293,6 +255,55 @@ func (node *Node) MonitorInputPacket() {
 		json.Unmarshal(buf[:length], &rec_packet)
 		node.handlePacket(rec_packet)
 	}
+}
+
+func (node *Node) resetTimer(id int) {
+	node.mapLock.Lock()
+	if timer, ok := node.timerMap[id]; ok {
+		timer.Reset(TIMEOUT_THRESHOLD)
+	} else {
+		SLOG.Printf("[Node %d] trying to reset a non-existed timer %d", node.Id, id)
+	}
+
+	node.mapLock.Unlock()
+}
+
+func (node *Node) monitorIfNecessary(id int) {
+	if !node.isPrevKNodes(id) {
+		return
+	}
+	node.mapLock.Lock()
+	if _, ok := node.timerMap[id]; ok {
+		node.timerMap[id].Stop()
+		SLOG.Printf("[Node %d] Stop existed timer %d", node.Id, id)
+	}
+	node.timerMap[id] = time.AfterFunc(TIMEOUT_THRESHOLD, func() {
+		node.nodeTimeOut(id)
+	})
+	node.mapLock.Unlock()
+}
+
+func (node *Node) isPrevKNodes(id int) bool {
+	for _, item := range node.MbList.GetPrevKNodes(node.Id, NUM_MONITORS) {
+		if item.Id == id {
+			return true
+		}
+	}
+	return false
+}
+
+func (node *Node) nodeTimeOut(id int) {
+	if !node.isPrevKNodes(id) {
+		return
+	}
+	SLOG.Printf("[Node %d] found failure node id: %d\n", node.Id, id)
+	deleteNodePacket := &Packet{
+		Action: ACTION_DELETE_NODE,
+		Id:     id,
+		IP:     node.IP,
+	}
+	node.Broadcast(deleteNodePacket)
+	node.MbList.DeleteNode(id)
 }
 
 func getMillisecond() int {

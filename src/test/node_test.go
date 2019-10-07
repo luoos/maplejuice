@@ -111,13 +111,10 @@ func TestLeaveAndRejoin(t *testing.T) {
 	if node3.MbList.Size != 3 {
 		t.Fatal("wrong")
 	}
-	// node1.MbList.NicePrint()
-	// node2.MbList.NicePrint()
-	// node3.MbList.NicePrint()
 }
 
 func TestHeartbeat(t *testing.T) {
-	SLOG.Print("Staring TESTHEARTBEAT")
+	SLOG.Print("Staring TESTHEARTBEAT20")
 	node1 := node.CreateNode("0.0.0.0", "9030")
 	node2 := node.CreateNode("0.0.0.0", "9031")
 	node3 := node.CreateNode("0.0.0.0", "9032")
@@ -138,7 +135,7 @@ func TestHeartbeat(t *testing.T) {
 		t.Fatalf("wrong2 %d and %d", oldHeartBeat2, newHeartBeat2)
 	}
 	if oldHeartBeat3 >= newHeartBeat3 {
-		t.Fatal("wrong3")
+		t.Fatal("wrong5")
 	}
 
 	oldHeartBeat1 := node1.MbList.GetNode(node2.Id).Heartbeat_t
@@ -192,13 +189,13 @@ func TestCheckFailure(t *testing.T) {
 	if node3.MbList.Size != 3 {
 		t.Fatal("wrong4")
 	}
-	time.Sleep(1 * time.Second)
+	time.Sleep(2 * time.Second)
 	node1.SendHeartbeat()
 	node2.SendHeartbeat()
-	time.Sleep(1 * time.Second)
+	time.Sleep(2 * time.Second)
 	node1.SendHeartbeat()
 	node2.SendHeartbeat()
-	time.Sleep(1 * time.Second)
+	time.Sleep(2 * time.Second)
 
 	// node3 never sends heartbeat, at least 4 second after join.
 	// so node1 and node2 should find the failure and broadcast
@@ -275,6 +272,7 @@ func TestManyNodes(t *testing.T) {
 	for _, nod := range nodes {
 		go nod.MonitorInputPacket()
 	}
+	time.Sleep(1 * time.Second)
 	for i := 1; i < NODES; i++ {
 		nodes[i].Join(nodes[0].IP + ":" + nodes[0].Port)
 	}
@@ -284,7 +282,7 @@ func TestManyNodes(t *testing.T) {
 			t.Fatalf("wrong size for nod: %d size: %d", i, nod.MbList.Size)
 		}
 	}
-	for j := 0; j < 3; j++ {
+	for j := 0; j < 5; j++ {
 		for i := 0; i < 7; i++ {
 			nodes[i].SendHeartbeat()
 		}

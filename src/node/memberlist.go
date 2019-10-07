@@ -142,7 +142,7 @@ func (mbList MemberList) GetPrevKNodes(id, k int) []MemberNode {
 	defer mbList.lock.Unlock()
 	node := mbList.GetNode(id)
 	if node == nil {
-		log.Panic("start id doesn't exit in node")
+		SLOG.Printf("[MembershipList %d] start id doesn't exit, node %d", mbList.SelfId, id)
 		return nil
 	}
 	arr := make([]MemberNode, 0)
