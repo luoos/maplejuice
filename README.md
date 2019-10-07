@@ -1,4 +1,29 @@
-# Distributed Log Querier
+# Distributed Node System - MP2
+
+Group members:
+1. Ruochen Shen   rs20
+2. Jun Luo        junluo2
+
+## Setup
+modify any code file and then run:
+1. `cd` to project root folder
+2. `./scripts/deploy_nodes.sh`
+
+## Demo
+1. start a node as introducer: at any machine: `sudo systemctl start dnode`
+2. start all other machine: `./scripts/start_all_nodes.sh`
+
+## Monitor
+1. use `dcli --dump` to see memberlist of current node
+2. use `dcli "tail /apps/logs/node.log"` to see all logs from other machine
+3. use grep for above command for specific target
+
+## Leave
+ 1. to tell a node to leave. We login into that machine and type command `kill -2 <PID>` which sends a SIGINT
+ 2. the <PID> can be found by checking `systemctl status dnode`
+
+
+# Distributed Log Querier - MP1
 
 Group members:
 1. Ruochen Shen   rs20
