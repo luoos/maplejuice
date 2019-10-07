@@ -3,6 +3,7 @@ package node
 import (
 	"encoding/json"
 	"log"
+	"math/rand"
 	"net"
 	. "slogger"
 	"sync"
@@ -41,6 +42,7 @@ const (
 	STATUS_FAIL StatusType = 1 << 1
 	STATUS_END  StatusType = 1 << 2
 
+	LOSS_RATE                   = 0.00
 	NUM_MONITORS            int = 3
 	DEADLINE_IN_MILLISECOND     = 2500
 	MONITOR_INTERVAL            = DEADLINE_IN_MILLISECOND * time.Millisecond
@@ -134,7 +136,9 @@ func (node *Node) SendHeartbeat() {
 
 func (node *Node) SendHeartbeatRoutine() {
 	for {
-		node.SendHeartbeat()
+		if rand.Float64() >= LOSS_RATE { // simulate loss packet
+			node.SendHeartbeat()
+		}
 		time.Sleep(HEARTBEAT_INTERVAL)
 	}
 }
