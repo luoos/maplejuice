@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"node"
 	"os"
 	"os/signal"
@@ -29,6 +30,7 @@ func main() {
 	sigCh := make(chan os.Signal, 1)
 	done := make(chan bool, 1)
 	hostname, _ := os.Hostname()
+	fmt.Println("Hostname: %s", hostname)
 	node := node.CreateNode(hostname, PORT)
 	go node.MonitorInputPacket()
 	add, success := node.ScanIntroducer(SERVER_LIST)

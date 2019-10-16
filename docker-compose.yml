@@ -1,0 +1,19 @@
+version: '3.6'
+
+services:
+
+  dnode:
+    container_name: dnode
+    build:
+      context: .
+      dockerfile: Dockerfile-dnode
+    ports:
+      - '8180:8180/udp'
+    network_mode: host
+    volumes:
+      - type: bind
+        source: /apps/logs
+        target: /apps/logs
+      - type: bind
+        source: /tmp
+        target: /tmp

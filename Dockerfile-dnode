@@ -1,0 +1,21 @@
+###############
+### STAGE 1 ###
+###############
+FROM golang:alpine as builder
+
+WORKDIR /usr/app
+ENV GOPATH /usr/app
+
+COPY . .
+
+RUN GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" src/node_starter/node_starter.go
+###############
+### STAGE 2 ###
+###############
+FROM alpine:latest
+
+COPY --from=builder /usr/app/node_starter /go/bin/node_starter
+
+EXPOSE 8180/udp
+
+ENTRYPOINT [ "/go/bin/node_starter" ]

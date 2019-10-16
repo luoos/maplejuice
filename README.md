@@ -22,6 +22,14 @@ modify any code file and then run:
  1. to tell a node to leave. We login into that machine and type command `kill -2 <PID>` which sends a SIGINT
  2. the <PID> can be found by checking `systemctl status dnode`
 
+## Docker
+
+```shell
+# build
+docker build -f Dockerfile-dnode -t luojl/dnode_starter .
+# run
+docker run -d -v /apps/logs:/apps/logs -v /tmp:/tmp luojl/dnode_starter
+```
 
 # Distributed Log Querier - MP1
 
