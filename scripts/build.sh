@@ -7,5 +7,5 @@ then
     go build src/server/server.go
 elif [ $1 == 'mp2' ]
 then
-    go build src/node/node.go
+    go build src/node_starter/node_starter.go
 fi

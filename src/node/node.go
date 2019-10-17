@@ -44,9 +44,7 @@ const (
 
 	LOSS_RATE                   = 0.00
 	NUM_MONITORS            int = 3
-	DEADLINE_IN_MILLISECOND     = 2500
-	MONITOR_INTERVAL            = DEADLINE_IN_MILLISECOND * time.Millisecond
-	HEARTBEAT_INTERVAL          = 1500 * time.Millisecond
+	HEARTBEAT_INTERVAL          = 1000 * time.Millisecond
 	TIMEOUT_THRESHOLD           = 4 * time.Second
 )
 
@@ -146,12 +144,14 @@ func (node *Node) SendHeartbeatRoutine() {
 func sendPacketUDP(address string, packet *Packet) error {
 	data, err := json.Marshal(packet)
 	if err != nil {
-		log.Println(err)
+		SLOG.Print(err)
 		return err
 	}
 	var conn net.Conn
-	conn, err = net.Dial("udp", address)
+	conn, err = net.DialTimeout("udp", address, 500 * time.Millisecond)
 	if err != nil {
+		SLOG.Printf("Dial Failed: address: %s", address)
+		SLOG.Print(err)
 		return err
 	}
 	defer conn.Close()
@@ -257,7 +257,7 @@ func (node *Node) MonitorInputPacket() {
 		}
 		var rec_packet Packet
 		json.Unmarshal(buf[:length], &rec_packet)
-		node.handlePacket(rec_packet)
+		go node.handlePacket(rec_packet)
 	}
 }
 

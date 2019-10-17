@@ -1,5 +1,5 @@
 #!/bin/bash
-./scripts/build.sh
+./scripts/build.sh mp1
 for h in `cat ./scripts/servers`;
 do
     scp ./server $h:/usr/app/log_querier;
