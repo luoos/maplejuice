@@ -42,10 +42,10 @@ const (
 	STATUS_FAIL StatusType = 1 << 1
 	STATUS_END  StatusType = 1 << 2
 
-	LOSS_RATE                   = 0.00
-	NUM_MONITORS            int = 3
-	HEARTBEAT_INTERVAL          = 1000 * time.Millisecond
-	TIMEOUT_THRESHOLD           = 4 * time.Second
+	LOSS_RATE              = 0.00
+	NUM_MONITORS       int = 3
+	HEARTBEAT_INTERVAL     = 1500 * time.Millisecond
+	TIMEOUT_THRESHOLD      = 4 * time.Second
 )
 
 var ACK_INTRO = make(chan string)
@@ -148,7 +148,7 @@ func sendPacketUDP(address string, packet *Packet) error {
 		return err
 	}
 	var conn net.Conn
-	conn, err = net.DialTimeout("udp", address, 500 * time.Millisecond)
+	conn, err = net.Dial("udp", address)
 	if err != nil {
 		SLOG.Printf("Dial Failed: address: %s", address)
 		SLOG.Print(err)

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"node"
 	"os"
 	"os/signal"
@@ -30,8 +31,13 @@ func main() {
 	sigCh := make(chan os.Signal, 1)
 	done := make(chan bool, 1)
 	hostname, _ := os.Hostname()
-	fmt.Println("Hostname: %s", hostname)
-	node := node.CreateNode(hostname, PORT)
+	addr_raw, err := net.LookupIP(hostname)
+	if err != nil {
+		fmt.Println("Unknown host")
+	}
+	addr := fmt.Sprintf("%s", addr_raw[0])
+	SLOG.Printf("Hostname: %s", addr)
+	node := node.CreateNode(addr, PORT)
 	go node.MonitorInputPacket()
 	add, success := node.ScanIntroducer(SERVER_LIST)
 	if success {
