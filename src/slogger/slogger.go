@@ -21,7 +21,7 @@ func init() {
 	}
 
 	if SLOG == nil {
-		outfile, err := os.OpenFile(LOG_FILE, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		outfile, err := os.OpenFile(LOG_FILE, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0777)
 		if err != nil {
 			log.Fatal(err)
 		}
