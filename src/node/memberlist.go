@@ -14,7 +14,7 @@ import (
 )
 
 const MEMBER_LIST_FILE = "/tmp/member.list"
-const MAX_CAPACITY = 10
+const MAX_CAPACITY = 1024
 
 type MemberNode struct {
 	Id          int
@@ -62,6 +62,7 @@ func (mbList *MemberList) InsertNode(id int, ip, port string, heartbeat_t int) {
 	defer mbList.lock.Unlock()
 	if _, exist := mbList.Member_map[id]; exist {
 		SLOG.Printf("[MembershipList %d] trying to insert an existed id: %d", mbList.SelfId, id)
+		return
 	}
 	new_node := CreateMemberNode(id, ip, port, heartbeat_t)
 	SLOG.Printf("[MembershipList %d] Inserted node (%d, %s:%s, %d)", mbList.SelfId, id, ip, port, heartbeat_t)

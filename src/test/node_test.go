@@ -277,6 +277,7 @@ func TestManyNodes(t *testing.T) {
 		nodes[i].Join(nodes[0].IP + ":" + nodes[0].Port)
 	}
 
+	nodes[0].MbList.NicePrint()
 	for i, nod := range nodes {
 		if nod.MbList.Size != NODES {
 			t.Fatalf("wrong size for nod: %d size: %d", i, nod.MbList.Size)
@@ -301,4 +302,25 @@ func TestManyNodes(t *testing.T) {
 	// 		t.Fatalf("wrong size: %d", nod.MbList.Size)
 	// 	}
 	// }
+}
+
+func TestHashID(t *testing.T) {
+	node1 := node.CreateNode("0.0.0.0", "9080")
+	node2 := node.CreateNode("0.0.0.0", "9081")
+	node1.InitMemberList()
+	if node1.MbList.Size != 1 {
+		t.Fatal("wrong")
+	}
+	go node1.MonitorInputPacket()
+	go node2.MonitorInputPacket()
+	node2.Join(node1.IP + ":" + node1.Port)
+	node1.MbList.NicePrint()
+	node2.MbList.NicePrint()
+	if node2.MbList.Size != 2 {
+		t.Fatal("wrong ")
+	}
+	if node1.MbList.Size != 2 {
+		t.Fatalf("wrong: %d", node1.MbList.Size)
+	}
+
 }

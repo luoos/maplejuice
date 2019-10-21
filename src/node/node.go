@@ -2,6 +2,7 @@ package node
 
 import (
 	"encoding/json"
+	"hash/fnv"
 	"log"
 	"math/rand"
 	"net"
@@ -55,13 +56,15 @@ var HEARTBEAT_LOG_FLAG = false // debug
 
 func CreateNode(ip, port string) *Node {
 	timer_map := make(map[int]*time.Timer)
-	node := &Node{IP: ip, Port: port, mapLock: &sync.Mutex{}, timerMap: timer_map}
+	id := getHashID(ip+":"+port, MAX_CAPACITY)
+	node := &Node{Id: id, IP: ip, Port: port, mapLock: &sync.Mutex{}, timerMap: timer_map}
 	return node
 }
 
 func (node *Node) InitMemberList() {
-	node.MbList = CreateMemberList(0, MAX_CAPACITY)
-	node.MbList.InsertNode(0, node.IP, node.Port, 100)
+	ID := getHashID(node.IP+":"+node.Port, MAX_CAPACITY)
+	node.MbList = CreateMemberList(ID, MAX_CAPACITY)
+	node.MbList.InsertNode(ID, node.IP, node.Port, getMillisecond())
 }
 
 func (node *Node) ScanIntroducer(addresses []string) (string, bool) {
@@ -189,7 +192,8 @@ func (node *Node) handlePacket(packet Packet) {
 		}
 	case ACTION_JOIN:
 		reply_address := packet.IP + ":" + packet.Port
-		freeId := node.MbList.FindLeastFreeId()
+		// freeId := node.MbList.FindLeastFreeId()
+		freeId := getHashID(reply_address, MAX_CAPACITY)
 		SLOG.Printf("[Node %d] Received ACTION_JOIN from %s:%s, assign id: %d", node.Id, packet.IP, packet.Port, freeId)
 		sendMemberListPacket := &Packet{
 			Action: ACTION_REPLY_JOIN,
@@ -312,4 +316,10 @@ func (node *Node) nodeTimeOut(id int) {
 
 func getMillisecond() int {
 	return int(time.Now().UnixNano() / 1000000)
+}
+
+func getHashID(s string, max_val int) int {
+	h := fnv.New32a()
+	h.Write([]byte(s))
+	return int(h.Sum32()) % max_val
 }
