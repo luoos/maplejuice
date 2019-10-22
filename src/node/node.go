@@ -56,8 +56,7 @@ var HEARTBEAT_LOG_FLAG = false // debug
 
 func CreateNode(ip, port string) *Node {
 	timer_map := make(map[int]*time.Timer)
-	id := getHashID(ip+":"+port, MAX_CAPACITY)
-	node := &Node{Id: id, IP: ip, Port: port, mapLock: &sync.Mutex{}, timerMap: timer_map}
+	node := &Node{IP: ip, Port: port, mapLock: &sync.Mutex{}, timerMap: timer_map}
 	return node
 }
 
@@ -65,6 +64,7 @@ func (node *Node) InitMemberList() {
 	ID := getHashID(node.IP+":"+node.Port, MAX_CAPACITY)
 	node.MbList = CreateMemberList(ID, MAX_CAPACITY)
 	node.MbList.InsertNode(ID, node.IP, node.Port, getMillisecond())
+	node.Id = ID
 }
 
 func (node *Node) ScanIntroducer(addresses []string) (string, bool) {
