@@ -60,7 +60,7 @@ func CreateNode(ip, port string) *Node {
 }
 
 func (node *Node) InitMemberList() {
-	ID := GetHashID(node.IP + ":" + node.Port)
+	ID := node.GetHashID(node.IP + ":" + node.Port)
 	node.MbList = CreateMemberList(ID, MAX_CAPACITY)
 	node.MbList.InsertNode(ID, node.IP, node.Port, getMillisecond())
 	node.Id = ID
@@ -192,7 +192,7 @@ func (node *Node) handlePacket(packet Packet) {
 	case ACTION_JOIN:
 		reply_address := packet.IP + ":" + packet.Port
 		// freeId := node.MbList.FindLeastFreeId()
-		freeId := GetHashID(reply_address)
+		freeId := node.GetHashID(reply_address)
 		SLOG.Printf("[Node %d] Received ACTION_JOIN from %s:%s, assign id: %d", node.Id, packet.IP, packet.Port, freeId)
 		sendMemberListPacket := &Packet{
 			Action: ACTION_REPLY_JOIN,
