@@ -42,7 +42,7 @@ func (fl *FileList) PutFileInfoObject(sdfsfilename string, fi *FileInfo) {
 	if fl.GetFileInfo(sdfsfilename) != nil {
 		SLOG.Printf("%s already exist, updating all metainfo", sdfsfilename)
 	}
-	hashid := getHashID(sdfsfilename)
+	hashid := GetHashID(sdfsfilename)
 	if fl.FileMap[hashid] == nil {
 		fl.FileMap[hashid] = make(map[string]*FileInfo)
 	}
@@ -57,7 +57,7 @@ func (fl *FileList) PutFileInfo(hashID int,
 	if fl.GetFileInfo(sdfsfilename) != nil {
 		SLOG.Printf("%s already exist, updating all metainfo", sdfsfilename)
 	}
-	hashid := getHashID(sdfsfilename)
+	hashid := GetHashID(sdfsfilename)
 	if fl.FileMap[hashid] == nil {
 		fl.FileMap[hashid] = make(map[string]*FileInfo)
 	}
@@ -74,13 +74,13 @@ func (fl *FileList) DeleteFileInfo(sdfsfilename string) bool {
 	if fl.GetFileInfo(sdfsfilename) == nil {
 		log.Fatal("File not found")
 	}
-	hashid := getHashID(sdfsfilename)
+	hashid := GetHashID(sdfsfilename)
 	delete(fl.FileMap[hashid], sdfsfilename)
 	return true
 }
 
 func (fl *FileList) GetFileInfo(sdfsfilename string) *FileInfo {
-	hashid := getHashID(sdfsfilename)
+	hashid := GetHashID(sdfsfilename)
 	if fl.FileMap[hashid] == nil {
 		return nil
 	}
@@ -88,7 +88,7 @@ func (fl *FileList) GetFileInfo(sdfsfilename string) *FileInfo {
 }
 
 func (fl *FileList) GetTimeStamp(sdfsfilename string) int {
-	hashid := getHashID(sdfsfilename)
+	hashid := GetHashID(sdfsfilename)
 	return fl.FileMap[hashid][sdfsfilename].Timestamp
 }
 
