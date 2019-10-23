@@ -23,7 +23,7 @@ func randomString(len int) string {
 func createDummyFile() (string, *node.FileInfo) {
 	hashID := rand.Intn(1024)
 	sdfsfilename := randomString(10)
-	localpath := "/app/fs/" + sdfsfilename
+	localpath := "/app/files/" + sdfsfilename
 	timestamp := rand.Intn(1024)
 	masterNodeID := rand.Intn(1024)
 	return sdfsfilename, &node.FileInfo{
@@ -31,12 +31,11 @@ func createDummyFile() (string, *node.FileInfo) {
 		Sdfsfilename: sdfsfilename,
 		Localpath:    localpath,
 		Timestamp:    timestamp,
-		MasterNodeID: masterNodeID,
-	}
+		MasterNodeID: masterNodeID}
 }
 
 func TestAddFileInfo(t *testing.T) {
-	fl := node.CreateFileList()
+	fl := node.CreateFileList(1)
 	hashID := 123
 	sdfsfilename := "testFilename"
 	localpath := "/app/fs/testFilename"
@@ -62,7 +61,7 @@ func TestAddFileInfo(t *testing.T) {
 }
 
 func TestDeleteFile(t *testing.T) {
-	fl := node.CreateFileList()
+	fl := node.CreateFileList(1)
 	sdfsfilename, fi := createDummyFile()
 	fl.PutFileInfoObject(sdfsfilename, fi)
 	log.Printf("%+v\n", fi)
@@ -73,4 +72,18 @@ func TestDeleteFile(t *testing.T) {
 	if fl.GetFileInfo(sdfsfilename) != nil {
 		t.Fatalf("not delete")
 	}
+}
+
+func TestGetResponsibleFileWithID(t *testing.T) {
+	fl := node.CreateFileList(1)
+	for i := 0; i < 10; i++ {
+		sdfsfilename, fi := createDummyFile()
+		fl.PutFileInfoObject(sdfsfilename, fi)
+		log.Printf("%+v\n", fi)
+	}
+	files := fl.GetResponsibleFileWithID(-1, 1024)
+	if len(files) != 10 {
+		t.Fatal("didn't get right files")
+	}
+	log.Println(files)
 }

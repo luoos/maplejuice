@@ -2,7 +2,6 @@ package node
 
 import (
 	"encoding/json"
-	"hash/fnv"
 	"log"
 	"math/rand"
 	"net"
@@ -61,7 +60,7 @@ func CreateNode(ip, port string) *Node {
 }
 
 func (node *Node) InitMemberList() {
-	ID := getHashID(node.IP+":"+node.Port, MAX_CAPACITY)
+	ID := getHashID(node.IP + ":" + node.Port)
 	node.MbList = CreateMemberList(ID, MAX_CAPACITY)
 	node.MbList.InsertNode(ID, node.IP, node.Port, getMillisecond())
 	node.Id = ID
@@ -193,7 +192,7 @@ func (node *Node) handlePacket(packet Packet) {
 	case ACTION_JOIN:
 		reply_address := packet.IP + ":" + packet.Port
 		// freeId := node.MbList.FindLeastFreeId()
-		freeId := getHashID(reply_address, MAX_CAPACITY)
+		freeId := getHashID(reply_address)
 		SLOG.Printf("[Node %d] Received ACTION_JOIN from %s:%s, assign id: %d", node.Id, packet.IP, packet.Port, freeId)
 		sendMemberListPacket := &Packet{
 			Action: ACTION_REPLY_JOIN,
@@ -316,10 +315,4 @@ func (node *Node) nodeTimeOut(id int) {
 
 func getMillisecond() int {
 	return int(time.Now().UnixNano() / 1000000)
-}
-
-func getHashID(s string, max_val int) int {
-	h := fnv.New32a()
-	h.Write([]byte(s))
-	return int(h.Sum32()) % max_val
 }

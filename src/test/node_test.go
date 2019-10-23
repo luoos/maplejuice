@@ -2,12 +2,25 @@ package test
 
 import (
 	"fmt"
+	"hash/fnv"
+	"log"
 	"node"
 	. "slogger"
 	"testing"
 	"time"
 )
 
+func getHashID(s string) int {
+	h := fnv.New32a()
+	h.Write([]byte(s))
+	return int(h.Sum32()) % 1024
+}
+
+func assert(condition bool, mesg string) {
+	if !condition {
+		log.Fatal(mesg)
+	}
+}
 func TestInitNode(t *testing.T) {
 	node1 := node.CreateNode("0.0.0.0", "9000")
 	node2 := node.CreateNode("0.0.0.0", "9001")
@@ -323,4 +336,26 @@ func TestHashID(t *testing.T) {
 		t.Fatalf("wrong: %d", node1.MbList.Size)
 	}
 
+}
+
+func TestGetMasterID(t *testing.T) {
+	node1 := node.CreateNode("0.0.0.0", "9090")
+	node2 := node.CreateNode("0.0.0.0", "9091")
+	node3 := node.CreateNode("0.0.0.0", "9092")
+	node1.InitMemberList()
+	go node1.MonitorInputPacket()
+	go node2.MonitorInputPacket()
+	go node3.MonitorInputPacket()
+	node2.Join(node1.IP + ":" + node1.Port)
+	node3.Join(node1.IP + ":" + node1.Port)
+	node1.MbList.NicePrint()
+	hashID := getHashID("testname1")
+	masterID := node1.GetMasterID("testname1")
+	assert(hashID == 917 &&
+		node1.Id == 625 &&
+		node2.Id == 222 &&
+		node3.Id == 843, "wrong setup")
+	log.Print(masterID)
+	assert(masterID == 222, "wrong algorithm")
+	log.Println(masterID, hashID)
 }
