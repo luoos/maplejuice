@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/rpc"
@@ -30,6 +31,8 @@ var port = flag.Int("port", 8000, "The port to connect to; defaults to 8000.")
 var dump = flag.Bool("dump", false, "Dump membership list")
 var servers_file = "/usr/app/log_querier/servers"
 var wg sync.WaitGroup
+
+const sdfsDir = "/apps/files"
 
 func main() {
 	flag.Parse()
@@ -74,7 +77,16 @@ func listHostsForFile(sdfsName string) {
 }
 
 func listLocalFiles() {
-
+	files, err := ioutil.ReadDir(sdfsDir)
+	if err != nil {
+		log.Fatal(err)
+	}
+	cnt := 0
+	for _, file := range files {
+		fmt.Println(file.Name(), file.Size())
+		cnt++
+	}
+	fmt.Printf("\n%d files.\n", cnt)
 }
 
 func putFileToSystem(localName, sdfsName string) {
