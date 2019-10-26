@@ -29,3 +29,10 @@ client
 server
 node
 node_starter
+
+# whitelist
+!node/
+!client/
+!server/
+!test/
+!node_starter/
