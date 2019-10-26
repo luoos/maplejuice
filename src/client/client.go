@@ -16,7 +16,7 @@ import (
 	"github.com/fatih/color"
 )
 
-var usage_prompt = `Client commands:
+const usage_prompt = `Client commands:
 
 1. exec "<command>" - execute command on all servers
 2. dump - dump local host membership list
