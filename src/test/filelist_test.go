@@ -87,3 +87,21 @@ func TestGetResponsibleFileWithID(t *testing.T) {
 	}
 	log.Println(files)
 }
+
+func TestGetTimeStamp(t *testing.T) {
+	fl := node.CreateFileList(1)
+	hashID := 123
+	sdfsfilename := "testFilename"
+	localpath := "/app/fs/testFilename"
+	timestamp := 100
+	masterNodeID := 128
+	fl.PutFileInfo(hashID, sdfsfilename, localpath, timestamp, masterNodeID)
+	ts := fl.GetTimeStamp(sdfsfilename)
+	if ts != 100 {
+		t.Fail()
+	}
+	ts = fl.GetTimeStamp("foo")
+	if ts != -1 {
+		t.Fail()
+	}
+}

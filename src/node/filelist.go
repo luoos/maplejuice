@@ -89,6 +89,11 @@ func (fl *FileList) GetFileInfo(sdfsfilename string) *FileInfo {
 
 func (fl *FileList) GetTimeStamp(sdfsfilename string) int {
 	hashid := getHashID(sdfsfilename)
+	if fl.FileMap[hashid] == nil {
+		return -1
+	} else if fl.FileMap[hashid][sdfsfilename] == nil {
+		return -1
+	}
 	return fl.FileMap[hashid][sdfsfilename].Timestamp
 }
 
