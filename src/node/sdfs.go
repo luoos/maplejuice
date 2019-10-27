@@ -5,6 +5,9 @@ import (
 	"log"
 )
 
+const DEBUG = false
+const DUPLICATE_CNT = 4
+
 func getHashID(s string) int {
 	h := fnv.New32a()
 	h.Write([]byte(s))
@@ -22,11 +25,15 @@ func (node *Node) GetMasterID(sdfsfilename string) int {
 	for curId, _ := range node.MbList.Member_map {
 		prevId = node.MbList.GetPrevKNodes(curId, 1)[0].Id
 		if prevId < fileHashID && fileHashID <= curId {
-			log.Printf("first case: prevId %d, fileHashID %d, curId %d", prevId, fileHashID, curId)
+			if DEBUG {
+				log.Printf("first case: prevId %d, fileHashID %d, curId %d", prevId, fileHashID, curId)
+			}
 			return curId
 		}
 		if prevId > curId && (fileHashID > prevId || fileHashID <= curId) {
-			log.Printf("second case: prevId %d, fileHashID %d, curId %d", prevId, fileHashID, curId)
+			if DEBUG {
+				log.Printf("second case: prevId %d, fileHashID %d, curId %d", prevId, fileHashID, curId)
+			}
 			return curId
 		}
 	}
@@ -46,4 +53,17 @@ func (node *Node) GetFirstKReplicaNodeID(sdfsfilename string, K int) []int {
 		cur = cur.next
 	}
 	return res
+}
+
+func (node *Node) GetAddressWithIds(ids []int) []string {
+	address := make([]string, 0)
+	for _, id := range ids {
+		address = append(address, node.MbList.GetAddress(id))
+	}
+	return address
+}
+
+func (node *Node) GetAddressWithSDFSFileName(sdfsfilename string) []string {
+	ids := node.GetFirstKReplicaNodeID(sdfsfilename, DUPLICATE_CNT)
+	return node.GetAddressWithIds(ids)
 }

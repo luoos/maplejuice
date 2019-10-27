@@ -14,9 +14,11 @@ import (
 	"log"
 	"net"
 	"net/rpc"
+	"strconv"
 )
 
 const FileServiceName = "SimpleFileService"
+const FILE_SERVICE_DEFAULT_PORT = "8011"
 
 type RPCResultType int8
 
@@ -24,10 +26,22 @@ const (
 	RPC_SUCCESS RPCResultType = 1 << 0
 )
 
-type FileService struct{}
+type FileService struct {
+	node *Node
+}
 
 type FileServiceInterface = interface {
-	PutFile(args []string, code *RPCResultType) error
+	PutFileRequest(args []string, code *RPCResultType) error
+	GetTimeStamp(sdfsFileName string, timestamp *int) error
+}
+
+func DialFileService(address string) (*rpc.Client, error) {
+	// address: IP + Port, such as "0.0.0.0:8011"
+	c, err := rpc.Dial("tcp", address)
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
 }
 
 func (node *Node) RegisterFileService(svc FileServiceInterface) error {
@@ -35,7 +49,7 @@ func (node *Node) RegisterFileService(svc FileServiceInterface) error {
 }
 
 func (node *Node) StartRPCFileService(port string) {
-	node.RegisterFileService(new(FileService))
+	node.RegisterFileService(&FileService{node: node})
 	listener, err := net.Listen("tcp", "0.0.0.0:"+port)
 	if err != nil {
 		log.Fatal("ListenTCP error:", err)
@@ -50,7 +64,47 @@ func (node *Node) StartRPCFileService(port string) {
 	}
 }
 
-func (service *FileService) PutFile(args []string, result *RPCResultType) error {
+/* Callee begin */
+func (fileService *FileService) PutFileRequest(args []string, result *RPCResultType) error {
+	// args should have three elements: [localFilePath, sdfsFileName, forceUpdate]
+
+	// filePath, sdfsFileName := args[0], args[1]
+	// filename := filepath.Base(filePath)
+	// hashId := getHashID(filename)
+	/*TODO:
+	1. find machines responsible for this file
+	2. collect timestamp from above machines through RPC
+		2.1 if timestamp is not nil and and last update is within 60s, return RPC_CAUTION
+		2.2 otherwise transfer the file to responsible machines and wait for 3 ACK, return RPC_SUCCESS
+	*/
 	*result = RPC_SUCCESS
 	return nil
 }
+
+func (fileService *FileService) GetTimeStamp(sdfsFileName string, timestamp *int) error {
+	// node := fileService.node
+
+	return nil
+}
+
+/* Callee end */
+
+/* Caller begin */
+func CallPutFileRequest(address, src, dest string, forceUpdate bool) RPCResultType {
+	/* If forceUpdate is false,
+	 */
+	client, err := DialFileService(address)
+	if err != nil {
+		log.Fatal("dialing:", err)
+	}
+	var reply RPCResultType
+	err = client.Call(FileServiceName+".PutFileRequest", []string{src, dest, strconv.FormatBool(forceUpdate)}, &reply)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return reply
+}
+
+// func CallGetTimeStamp(adress, sdfsFileName)
+
+/* Caller end */
