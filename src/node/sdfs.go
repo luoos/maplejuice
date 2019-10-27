@@ -34,7 +34,13 @@ func (node *Node) GetMasterID(sdfsfilename string) int {
 	return -1
 }
 
-// func (node *Node) MonitorInputTCP() {
-// 	rpc.RegisterName("Node", node)
-// 	listener, err := net.Listen("tcp", ":" + node.TCPPort)
-// }
+func (node *Node) GetFirstKReplicaNodeID(sdfsfilename string, K int) []int {
+	masterID := node.GetMasterID(sdfsfilename)
+	res := []int{masterID}
+	cur := node.MbList.Member_map[masterID]
+	for i := 0; i < K-1; i++ {
+		res = append(res, cur.next.Id)
+		cur = cur.next
+	}
+	return res
+}

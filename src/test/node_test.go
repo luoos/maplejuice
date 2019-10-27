@@ -359,3 +359,27 @@ func TestGetMasterID(t *testing.T) {
 	assert(masterID == 222, "wrong algorithm")
 	// log.Println(masterID, hashID)
 }
+
+func TestGetKReplica(t *testing.T) {
+	node1 := node.CreateNode("0.0.0.0", "9100")
+	node2 := node.CreateNode("0.0.0.0", "9101")
+	node3 := node.CreateNode("0.0.0.0", "9102")
+	node1.InitMemberList()
+	go node1.MonitorInputPacket()
+	go node2.MonitorInputPacket()
+	go node3.MonitorInputPacket()
+	node2.Join(node1.IP + ":" + node1.Port)
+	node3.Join(node1.IP + ":" + node1.Port)
+	node1.MbList.NicePrint()
+	hashID := getHashID("testname1")
+	log.Print(hashID)
+	IDs := node1.GetFirstKReplicaNodeID("testname1", 3)
+	assert(hashID == 917 &&
+		node1.Id == 555 &&
+		node2.Id == 152 &&
+		node3.Id == 337, "wrong setup")
+	log.Print(IDs)
+	assert(IDs[0] == 152, "wrong algorithm")
+	assert(IDs[1] == 337, "wrong algorithm")
+	assert(IDs[2] == 555, "wrong algorithm")
+}
