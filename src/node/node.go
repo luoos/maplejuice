@@ -5,6 +5,7 @@ import (
 	"log"
 	"math/rand"
 	"net"
+	"os"
 	. "slogger"
 	"sync"
 	"time"
@@ -16,6 +17,7 @@ type Node struct {
 	MbList   *MemberList
 	timerMap map[int]*time.Timer
 	mapLock  *sync.Mutex
+	FileList *FileList
 }
 
 type Packet struct {
@@ -54,16 +56,17 @@ var ACK_JOIN = make(chan Packet)
 var HEARTBEAT_LOG_FLAG = false // debug
 
 func CreateNode(ip, port string) *Node {
+	ID := getHashID(ip + ":" + port)
 	timer_map := make(map[int]*time.Timer)
-	node := &Node{IP: ip, Port: port, mapLock: &sync.Mutex{}, timerMap: timer_map}
+	fileList := CreateFileList(ID)
+	node := &Node{IP: ip, Port: port, mapLock: &sync.Mutex{}, timerMap: timer_map, FileList: fileList}
+	node.Id = ID
 	return node
 }
 
 func (node *Node) InitMemberList() {
-	ID := getHashID(node.IP + ":" + node.Port)
-	node.MbList = CreateMemberList(ID, MAX_CAPACITY)
-	node.MbList.InsertNode(ID, node.IP, node.Port, getMillisecond())
-	node.Id = ID
+	node.MbList = CreateMemberList(node.Id, MAX_CAPACITY)
+	node.MbList.InsertNode(node.Id, node.IP, node.Port, getMillisecond())
 }
 
 func (node *Node) ScanIntroducer(addresses []string) (string, bool) {
@@ -89,6 +92,7 @@ func (node *Node) Join(address string) bool {
 		Action: ACTION_JOIN,
 		IP:     node.IP,
 		Port:   node.Port,
+		Id:     node.Id,
 	}
 	SLOG.Printf("Sending Join packet, source %s:%s, destination %s", node.IP, node.Port, address)
 	err := sendPacketUDP(address, packet)
@@ -191,12 +195,15 @@ func (node *Node) handlePacket(packet Packet) {
 		}
 	case ACTION_JOIN:
 		reply_address := packet.IP + ":" + packet.Port
-		// freeId := node.MbList.FindLeastFreeId()
-		freeId := getHashID(reply_address)
-		SLOG.Printf("[Node %d] Received ACTION_JOIN from %s:%s, assign id: %d", node.Id, packet.IP, packet.Port, freeId)
+		new_id := packet.Id
+		SLOG.Printf("[Node %d] Received ACTION_JOIN from %s:%s, assign id: %d", node.Id, packet.IP, packet.Port, new_id)
+		if node.MbList.GetNode(new_id) != nil {
+			n := node.MbList.GetNode(new_id)
+			SLOG.Printf("[WTF] Duplicated hash ID. reply_address: %s, id: %d, victim: %s", reply_address, new_id, n.Ip)
+			os.Exit(1)
+		}
 		sendMemberListPacket := &Packet{
 			Action: ACTION_REPLY_JOIN,
-			Id:     freeId,
 			Map:    node.MbList,
 		}
 		err := sendPacketUDP(reply_address, sendMemberListPacket)
@@ -205,16 +212,15 @@ func (node *Node) handlePacket(packet Packet) {
 		}
 		newNodePacket := &Packet{
 			Action: ACTION_NEW_NODE,
-			Id:     freeId,
+			Id:     new_id,
 			IP:     packet.IP,
 			Port:   packet.Port,
 		}
 		node.Broadcast(newNodePacket)
-		node.MbList.InsertNode(freeId, packet.IP, packet.Port, getMillisecond())
-		node.monitorIfNecessary(freeId)
+		node.MbList.InsertNode(new_id, packet.IP, packet.Port, getMillisecond())
+		node.monitorIfNecessary(new_id)
 	case ACTION_REPLY_JOIN:
 		node.MbList = CreateMemberList(packet.Id, MAX_CAPACITY)
-		node.Id = packet.Id
 		SLOG.Printf("[Node %d] Received ACTION_REPLY_JOIN assigned, member cnt: %d", node.Id, len(packet.Map.Member_map))
 		ACK_JOIN <- packet
 	case ACTION_HEARTBEAT:
