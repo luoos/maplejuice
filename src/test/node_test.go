@@ -290,7 +290,7 @@ func TestManyNodes(t *testing.T) {
 		nodes[i].Join(nodes[0].IP + ":" + nodes[0].Port)
 	}
 
-	nodes[0].MbList.NicePrint()
+	// nodes[0].MbList.NicePrint()
 	for i, nod := range nodes {
 		if nod.MbList.Size != NODES {
 			t.Fatalf("wrong size for nod: %d size: %d", i, nod.MbList.Size)
@@ -327,8 +327,8 @@ func TestHashID(t *testing.T) {
 	go node1.MonitorInputPacket()
 	go node2.MonitorInputPacket()
 	node2.Join(node1.IP + ":" + node1.Port)
-	node1.MbList.NicePrint()
-	node2.MbList.NicePrint()
+	// node1.MbList.NicePrint()
+	// node2.MbList.NicePrint()
 	if node2.MbList.Size != 2 {
 		t.Fatal("wrong ")
 	}
@@ -348,14 +348,14 @@ func TestGetMasterID(t *testing.T) {
 	go node3.MonitorInputPacket()
 	node2.Join(node1.IP + ":" + node1.Port)
 	node3.Join(node1.IP + ":" + node1.Port)
-	node1.MbList.NicePrint()
+	// node1.MbList.NicePrint()
 	hashID := getHashID("testname1")
 	masterID := node1.GetMasterID("testname1")
 	assert(hashID == 917 &&
 		node1.Id == 625 &&
 		node2.Id == 222 &&
 		node3.Id == 843, "wrong setup")
-	log.Print(masterID)
+	// log.Print(masterID)
 	assert(masterID == 222, "wrong algorithm")
-	log.Println(masterID, hashID)
+	// log.Println(masterID, hashID)
 }
