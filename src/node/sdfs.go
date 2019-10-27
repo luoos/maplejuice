@@ -39,6 +39,9 @@ func (node *Node) GetFirstKReplicaNodeID(sdfsfilename string, K int) []int {
 	res := []int{masterID}
 	cur := node.MbList.Member_map[masterID]
 	for i := 0; i < K-1; i++ {
+		if cur.next.Id == masterID {
+			break
+		}
 		res = append(res, cur.next.Id)
 		cur = cur.next
 	}
