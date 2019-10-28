@@ -11,6 +11,7 @@ Includes:
 package node
 
 import (
+	"io/ioutil"
 	"log"
 	"net"
 	"net/rpc"
@@ -24,7 +25,8 @@ const FILE_SERVICE_DEFAULT_PORT = "8011"
 type RPCResultType int8
 
 const (
-	RPC_SUCCESS RPCResultType = 1 << 0
+	RPC_SUCCESS     RPCResultType = 1 << 0
+	LOCAL_PATH_ROOT               = "/apps/files"
 )
 
 type FileService struct {
@@ -87,9 +89,37 @@ func (fileService *FileService) GetTimeStamp(sdfsFileName string, timestamp *int
 	return nil
 }
 
+func (fileService *FileService) StoreFileToLocal(args []string, result *bool) error {
+	masterNodeID, err := strconv.Atoi(args[0])
+	sdfsfilename := args[1]
+	local_path_root := args[2]
+	timestamp, err := strconv.Atoi(args[3])
+	content := args[4]
+	fileService.node.FileList.PutFileInfo(sdfsfilename, local_path_root, timestamp, masterNodeID)
+	content_bytes := []byte(content)
+	err = ioutil.WriteFile(local_path_root+"/"+sdfsfilename, content_bytes, 0777)
+	if err != nil {
+		SLOG.Print(err)
+	}
+	*result = true
+	return nil
+}
+
+func (fileService *FileService) ServeLocalFile(sdfsfilename string, result *string) error {
+	fileinfo := fileService.node.FileList.GetFileInfo(sdfsfilename)
+	data, err := ioutil.ReadFile(fileinfo.Localpath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	*result = string(data)
+	return nil
+}
+
 /* Callee end */
 
 /* Caller begin */
+
+/** from client **/
 func CallPutFileRequest(address, src, dest string, forceUpdate bool) RPCResultType {
 	/* If forceUpdate is false,
 	 */
@@ -100,6 +130,26 @@ func CallPutFileRequest(address, src, dest string, forceUpdate bool) RPCResultTy
 		SLOG.Fatal(err)
 	}
 	return reply
+}
+
+/** from coordinator **/
+func PutFile(masterNodeID int, timestamp int, address, local_path_root, sdfsfilename, content string) {
+	sender := DialFileService(address)
+	reply := false
+	send_err := sender.Call(FileServiceName+".StoreFileToLocal", []string{strconv.Itoa(masterNodeID), sdfsfilename, local_path_root, strconv.Itoa(timestamp), content}, &reply)
+	if !reply || send_err != nil {
+		log.Fatal("send_err:", send_err)
+	}
+}
+
+func GetFile(address, sdfsfilename string) string {
+	sender := DialFileService(address)
+	var file_content string
+	send_err := sender.Call(FileServiceName+".ServeLocalFile", sdfsfilename, &file_content)
+	if send_err != nil {
+		log.Fatal("send_err:", send_err)
+	}
+	return file_content
 }
 
 func CallGetTimeStamp(address, sdfsFileName string) int {
