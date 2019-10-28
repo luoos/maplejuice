@@ -38,10 +38,10 @@ func TestAddFileInfo(t *testing.T) {
 	fl := node.CreateFileList(1)
 	hashID := 123
 	sdfsfilename := "testFilename"
-	localpath := "/app/fs/testFilename"
+	localpath := "/app/fs"
 	timestamp := 100
 	masterNodeID := 128
-	fl.PutFileInfo(hashID, sdfsfilename, localpath, timestamp, masterNodeID)
+	fl.PutFileInfo(sdfsfilename, localpath, timestamp, masterNodeID)
 	fi := fl.GetFileInfo(sdfsfilename)
 	if fi == nil {
 		t.Fatalf("not added")
@@ -92,10 +92,10 @@ func TestGetTimeStamp(t *testing.T) {
 	fl := node.CreateFileList(1)
 	hashID := 123
 	sdfsfilename := "testFilename"
-	localpath := "/app/fs/testFilename"
+	localpath := "/app/fs"
 	timestamp := 100
 	masterNodeID := 128
-	fl.PutFileInfo(hashID, sdfsfilename, localpath, timestamp, masterNodeID)
+	fl.PutFileInfo(sdfsfilename, localpath, timestamp, masterNodeID)
 	ts := fl.GetTimeStamp(sdfsfilename)
 	if ts != 100 {
 		t.Fail()

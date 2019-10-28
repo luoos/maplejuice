@@ -49,7 +49,7 @@ func (fl *FileList) PutFileInfoObject(sdfsfilename string, fi *FileInfo) {
 	fl.FileMap[hashid][sdfsfilename] = fi
 }
 
-func (fl *FileList) PutFileInfo(hashID int,
+func (fl *FileList) PutFileInfo(
 	sdfsfilename string,
 	localpath string,
 	timestamp int,
@@ -62,9 +62,9 @@ func (fl *FileList) PutFileInfo(hashID int,
 		fl.FileMap[hashid] = make(map[string]*FileInfo)
 	}
 	fl.FileMap[hashid][sdfsfilename] = &FileInfo{
-		HashID:       hashID,
+		HashID:       hashid,
 		Sdfsfilename: sdfsfilename,
-		Localpath:    localpath,
+		Localpath:    localpath + "/" + sdfsfilename,
 		Timestamp:    timestamp,
 		MasterNodeID: masterNodeID,
 	}
