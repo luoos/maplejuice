@@ -14,6 +14,7 @@ import (
 	"log"
 	"net"
 	"net/rpc"
+	. "slogger"
 	"strconv"
 )
 
@@ -35,13 +36,13 @@ type FileServiceInterface = interface {
 	GetTimeStamp(sdfsFileName string, timestamp *int) error
 }
 
-func DialFileService(address string) (*rpc.Client, error) {
+func DialFileService(address string) *rpc.Client {
 	// address: IP + Port, such as "0.0.0.0:8011"
 	c, err := rpc.Dial("tcp", address)
 	if err != nil {
-		return nil, err
+		SLOG.Fatal(err)
 	}
-	return c, nil
+	return c
 }
 
 func (node *Node) RegisterFileService(svc FileServiceInterface) error {
@@ -82,8 +83,7 @@ func (fileService *FileService) PutFileRequest(args []string, result *RPCResultT
 }
 
 func (fileService *FileService) GetTimeStamp(sdfsFileName string, timestamp *int) error {
-	// node := fileService.node
-
+	*timestamp = fileService.node.FileList.GetTimeStamp(sdfsFileName)
 	return nil
 }
 
@@ -93,18 +93,23 @@ func (fileService *FileService) GetTimeStamp(sdfsFileName string, timestamp *int
 func CallPutFileRequest(address, src, dest string, forceUpdate bool) RPCResultType {
 	/* If forceUpdate is false,
 	 */
-	client, err := DialFileService(address)
-	if err != nil {
-		log.Fatal("dialing:", err)
-	}
+	client := DialFileService(address)
 	var reply RPCResultType
-	err = client.Call(FileServiceName+".PutFileRequest", []string{src, dest, strconv.FormatBool(forceUpdate)}, &reply)
+	err := client.Call(FileServiceName+".PutFileRequest", []string{src, dest, strconv.FormatBool(forceUpdate)}, &reply)
 	if err != nil {
-		log.Fatal(err)
+		SLOG.Fatal(err)
 	}
 	return reply
 }
 
-// func CallGetTimeStamp(adress, sdfsFileName)
+func CallGetTimeStamp(address, sdfsFileName string) int {
+	client := DialFileService(address)
+	var timestamp int
+	err := client.Call(FileServiceName+".GetTimeStamp", sdfsFileName, &timestamp)
+	if err != nil {
+		SLOG.Fatal(err)
+	}
+	return timestamp
+}
 
 /* Caller end */

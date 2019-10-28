@@ -90,7 +90,6 @@ func TestGetResponsibleFileWithID(t *testing.T) {
 
 func TestGetTimeStamp(t *testing.T) {
 	fl := node.CreateFileList(1)
-	hashID := 123
 	sdfsfilename := "testFilename"
 	localpath := "/app/fs"
 	timestamp := 100
