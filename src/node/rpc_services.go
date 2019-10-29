@@ -70,6 +70,12 @@ func (node *Node) StartRPCFileService(port string) {
 /* Callee begin */
 func (fileService *FileService) PutFileRequest(args []string, result *RPCResultType) error {
 	// args should have three elements: [localFilePath, sdfsFileName, forceUpdate]
+	// _, sdfsFileName := args[0], args[1] // TODO: use localFilePath, (args[0])
+	// _, err := strconv.ParseBool("true") // TODO: use forceUpdate
+	// if err != nil {
+	// 	SLOG.Fatal(err)
+	// }
+	// addressList := fileService.node.GetAddressWithSDFSFileName(sdfsFileName)
 
 	// filePath, sdfsFileName := args[0], args[1]
 	// filename := filepath.Base(filePath)
@@ -152,14 +158,14 @@ func GetFile(address, sdfsfilename string) string {
 	return file_content
 }
 
-func CallGetTimeStamp(address, sdfsFileName string) int {
+func CallGetTimeStamp(address, sdfsFileName string, c chan int) {
 	client := DialFileService(address)
 	var timestamp int
 	err := client.Call(FileServiceName+".GetTimeStamp", sdfsFileName, &timestamp)
 	if err != nil {
 		SLOG.Fatal(err)
 	}
-	return timestamp
+	c <- timestamp
 }
 
 /* Caller end */
