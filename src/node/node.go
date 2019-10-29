@@ -66,7 +66,7 @@ func CreateNode(ip, port string) *Node {
 
 func (node *Node) InitMemberList() {
 	node.MbList = CreateMemberList(node.Id, MAX_CAPACITY)
-	node.MbList.InsertNode(node.Id, node.IP, node.Port, getMillisecond())
+	node.MbList.InsertNode(node.Id, node.IP, node.Port, GetMillisecond())
 }
 
 func (node *Node) ScanIntroducer(addresses []string) (string, bool) {
@@ -102,9 +102,9 @@ func (node *Node) Join(address string) bool {
 	select {
 	case mblistPacket := <-ACK_JOIN:
 		for _, item := range mblistPacket.Map.Member_map {
-			node.MbList.InsertNode(item.Id, item.Ip, item.Port, getMillisecond())
+			node.MbList.InsertNode(item.Id, item.Ip, item.Port, GetMillisecond())
 		}
-		node.MbList.InsertNode(node.Id, node.IP, node.Port, getMillisecond())
+		node.MbList.InsertNode(node.Id, node.IP, node.Port, GetMillisecond())
 		for _, prevNode := range node.MbList.GetPrevKNodes(node.Id, NUM_MONITORS) {
 			node.monitorIfNecessary(prevNode.Id)
 		}
@@ -179,7 +179,7 @@ func (node *Node) handlePacket(packet Packet) {
 	switch packet.Action {
 	case ACTION_NEW_NODE:
 		SLOG.Printf("[Node %d] Received ACTION_NEW_NODE (%d, %s:%s)", node.Id, packet.Id, packet.IP, packet.Port)
-		node.MbList.InsertNode(packet.Id, packet.IP, packet.Port, getMillisecond())
+		node.MbList.InsertNode(packet.Id, packet.IP, packet.Port, GetMillisecond())
 		node.monitorIfNecessary(packet.Id)
 	case ACTION_DELETE_NODE:
 		SLOG.Printf("[Node %d] Received ACTION_DELETE_NODE (%d), source: %s", node.Id, packet.Id, packet.IP)
@@ -217,7 +217,7 @@ func (node *Node) handlePacket(packet Packet) {
 			Port:   packet.Port,
 		}
 		node.Broadcast(newNodePacket)
-		node.MbList.InsertNode(new_id, packet.IP, packet.Port, getMillisecond())
+		node.MbList.InsertNode(new_id, packet.IP, packet.Port, GetMillisecond())
 		node.monitorIfNecessary(new_id)
 	case ACTION_REPLY_JOIN:
 		node.MbList = CreateMemberList(packet.Id, MAX_CAPACITY)
@@ -227,7 +227,7 @@ func (node *Node) handlePacket(packet Packet) {
 		if HEARTBEAT_LOG_FLAG {
 			SLOG.Printf("[Node %d] Received ACTION_HEARTBEAT id: %d", node.Id, packet.Id)
 		}
-		node.MbList.UpdateNodeHeartbeat(packet.Id, getMillisecond())
+		node.MbList.UpdateNodeHeartbeat(packet.Id, GetMillisecond())
 		node.resetTimer(packet.Id)
 	case ACTION_PING:
 		if packet.IP == node.IP && packet.Port == node.Port {
@@ -319,6 +319,6 @@ func (node *Node) nodeTimeOut(id int) {
 	node.MbList.DeleteNode(id)
 }
 
-func getMillisecond() int {
+func GetMillisecond() int {
 	return int(time.Now().UnixNano() / 1000000)
 }

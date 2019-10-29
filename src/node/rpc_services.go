@@ -11,16 +11,20 @@ Includes:
 package node
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net"
 	"net/rpc"
 	. "slogger"
 	"strconv"
+	"strings"
 )
 
 const FileServiceName = "SimpleFileService"
 const FILE_SERVICE_DEFAULT_PORT = "8011"
+const READ_QUORUM = 2
+const MIN_UPDATE_INTERVAL = 60 * 1000
 
 type RPCResultType int8
 
@@ -67,6 +71,32 @@ func (node *Node) StartRPCFileService(port string) {
 	}
 }
 
+func (fileService *FileService) getAddressOfLatestTS(sdfsfilename string) (string, int) {
+	responsible_machine_ids := fileService.node.GetFirstKReplicaNodeID(sdfsfilename, 4)
+	c := make(chan string, 4)
+	for _, id := range responsible_machine_ids {
+		node := fileService.node.MbList.GetNode(id)
+		address := node.Ip + ":" + FILE_SERVICE_DEFAULT_PORT
+		go CallGetTimeStamp(address, sdfsfilename, c)
+	}
+	max_timestamp := -1
+	max_address := ""
+	for i := 0; i < READ_QUORUM; i++ {
+		val := <-c
+		vals := strings.Split(val, " ")
+		address := vals[0]
+		timestamp, err := strconv.Atoi(vals[1])
+		if err != nil {
+			log.Fatal(err)
+		}
+		if timestamp > max_timestamp {
+			max_timestamp = timestamp
+			max_address = address
+		}
+	}
+	return max_address, max_timestamp
+}
+
 /* Callee begin */
 func (fileService *FileService) PutFileRequest(args []string, result *RPCResultType) error {
 	// args should have three elements: [localFilePath, sdfsFileName, forceUpdate]
@@ -86,7 +116,16 @@ func (fileService *FileService) PutFileRequest(args []string, result *RPCResultT
 		2.1 if timestamp is not nil and and last update is within 60s, return RPC_CAUTION
 		2.2 otherwise transfer the file to responsible machines and wait for 3 ACK, return RPC_SUCCESS
 	*/
+	// if GetMillisecond-file_ts < MIN_UPDATE_INTERVAL {
+	// TODO:	promp to user
+	// }
 	*result = RPC_SUCCESS
+	return nil
+}
+
+func (fileService *FileService) GetFileRequest(sdfsfilename string, result *string) error {
+	file_addr, _ := fileService.getAddressOfLatestTS(sdfsfilename)
+	*result = GetFile(file_addr, sdfsfilename)
 	return nil
 }
 
@@ -169,14 +208,14 @@ func GetFile(address, sdfsfilename string) string {
 	return file_content
 }
 
-func CallGetTimeStamp(address, sdfsFileName string, c chan int) {
-	client := DialFileService(address)
+func CallGetTimeStamp(address, sdfsFileName string, c chan string) {
+	sender := DialFileService(address)
 	var timestamp int
-	err := client.Call(FileServiceName+address+".GetTimeStamp", sdfsFileName, &timestamp)
+	err := sender.Call(FileServiceName+address+".GetTimeStamp", sdfsFileName, &timestamp)
 	if err != nil {
 		SLOG.Fatal(err)
 	}
-	c <- timestamp
+	c <- fmt.Sprintf("%s %d", address, timestamp)
 }
 
 /* Caller end */
