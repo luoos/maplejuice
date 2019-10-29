@@ -75,7 +75,7 @@ func TestGetResponsibleFileWithID(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		sdfsfilename, fi := createDummyFile()
 		fl.PutFileInfoObject(sdfsfilename, fi)
-		log.Printf("%+v\n", fi)
+		//log.Printf("%+v\n", fi)
 	}
 	files := fl.GetResponsibleFileWithID(-1, 1024)
 	if len(files) != 10 {

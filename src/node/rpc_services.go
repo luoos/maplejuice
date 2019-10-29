@@ -90,6 +90,17 @@ func (fileService *FileService) PutFileRequest(args []string, result *RPCResultT
 	return nil
 }
 
+func (fileService *FileService) Ls(sdfsfilename string, addrs *[]string) error {
+	ids := fileService.node.GetFirstKReplicaNodeID(sdfsfilename, 4)
+	res := []string{}
+	for _, id := range ids {
+		mem_node := fileService.node.MbList.GetNode(id)
+		res = append(res, mem_node.Ip+":"+mem_node.Port)
+	}
+	*addrs = res
+	return nil
+}
+
 func (fileService *FileService) GetTimeStamp(sdfsFileName string, timestamp *int) error {
 	*timestamp = fileService.node.FileList.GetTimeStamp(sdfsFileName)
 	return nil

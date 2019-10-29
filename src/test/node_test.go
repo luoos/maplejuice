@@ -148,7 +148,7 @@ func TestHeartbeat(t *testing.T) {
 		t.Fatalf("wrong2 %d and %d", oldHeartBeat2, newHeartBeat2)
 	}
 	if oldHeartBeat3 >= newHeartBeat3 {
-		t.Fatal("wrong5")
+		t.Fatal("wrong5", oldHeartBeat3, newHeartBeat3)
 	}
 
 	oldHeartBeat1 := node1.MbList.GetNode(node2.Id).Heartbeat_t

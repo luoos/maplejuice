@@ -2,6 +2,7 @@ package test
 
 import (
 	"log"
+	"net/rpc"
 	"node"
 	"testing"
 	"time"
@@ -50,4 +51,43 @@ func TestPutAndGetFilePRC(t *testing.T) {
 	sdfsfilename := "testFilename"
 	content := "this is my file content"
 	node.PutFile(master.Id, 1, "0.0.0.0:9321", "/apps/files", sdfsfilename, content)
+}
+
+func TestLs(t *testing.T) {
+	coordinator := node.CreateNode("0.0.0.0", "9400")
+	node1 := node.CreateNode("0.0.0.0", "9410")
+	node2 := node.CreateNode("0.0.0.0", "9420")
+	node3 := node.CreateNode("0.0.0.0", "9430")
+	coordinator.InitMemberList()
+	go coordinator.MonitorInputPacket()
+	go node1.MonitorInputPacket()
+	go node2.MonitorInputPacket()
+	go node3.MonitorInputPacket()
+	node1.Join(coordinator.IP + ":" + coordinator.Port)
+	node2.Join(coordinator.IP + ":" + coordinator.Port)
+	node3.Join(coordinator.IP + ":" + coordinator.Port)
+	go coordinator.StartRPCFileService("9401")
+	go node1.StartRPCFileService("9411")
+	go node2.StartRPCFileService("9421")
+	go node3.StartRPCFileService("9431")
+	time.Sleep(50 * time.Millisecond)
+	address := "0.0.0.0:9401"
+	client, err := rpc.Dial("tcp", "0.0.0.0:9401")
+	if err != nil {
+		log.Fatal(err)
+	}
+	sdfsfilename := "testFilename"
+	hashid := getHashID(sdfsfilename)
+	var addrs []string
+	err = client.Call(node.FileServiceName+address+".Ls", sdfsfilename, &addrs)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("addrs:")
+	assert(len(addrs) == 4, "wrong")
+	assert(hashid == 392 &&
+		addrs[0] == "0.0.0.0:9400" &&
+		addrs[1] == "0.0.0.0:9410" &&
+		addrs[2] == "0.0.0.0:9420" &&
+		addrs[3] == "0.0.0.0:9430", "wrong order")
 }

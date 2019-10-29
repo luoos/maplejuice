@@ -72,8 +72,30 @@ func parseCommand() {
 	}
 }
 
+func getSelfIp() string {
+	hostname, _ := os.Hostname()
+	addr_raw, err := net.LookupIP(hostname)
+	if err != nil {
+		fmt.Println("Unknown host")
+	}
+	ip := fmt.Sprintf("%s", addr_raw[0])
+	return ip
+}
 func listHostsForFile(sdfsName string) {
-
+	ip := getSelfIp()
+	address := ip + ":" + node.FILE_SERVICE_DEFAULT_PORT
+	client, err := rpc.Dial("tcp", address)
+	if err != nil {
+		log.Fatal(err)
+	}
+	var addrs []string
+	err = client.Call(node.FileServiceName+address+".Ls", sdfsName, &addrs)
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, addr := range addrs {
+		fmt.Println(addr)
+	}
 }
 
 func listLocalFiles() {
