@@ -27,8 +27,8 @@ func deleteDummyFile(filename string) {
 }
 
 func TestRegisterFileService(t *testing.T) {
-	node0 := node.CreateNode("0.0.0.0", "9200")
-	go node0.StartRPCFileService("9300")
+	node0 := node.CreateNode("0.0.0.0", "9200", "9300")
+	go node0.StartRPCFileService()
 	time.Sleep(50 * time.Millisecond)
 	filename := "/tmp/dummyrpcfile"
 	writeDummyFile(filename, "hello")
@@ -41,8 +41,8 @@ func TestRegisterFileService(t *testing.T) {
 }
 
 func TestGetTimeStampRPC(t *testing.T) {
-	node0 := node.CreateNode("0.0.0.0", "9210")
-	go node0.StartRPCFileService("9310")
+	node0 := node.CreateNode("0.0.0.0", "9210", "9310")
+	go node0.StartRPCFileService()
 	time.Sleep(50 * time.Millisecond)
 	sdfsfilename := "testFilename"
 	c := make(chan node.Pair, 4)
@@ -63,10 +63,10 @@ func TestGetTimeStampRPC(t *testing.T) {
 }
 
 func TestPutAndGetFileRPC(t *testing.T) {
-	coordinator := node.CreateNode("0.0.0.0", "9200")
-	master := node.CreateNode("0.0.0.0", "9201")
-	go coordinator.StartRPCFileService("9320")
-	go master.StartRPCFileService("9321")
+	coordinator := node.CreateNode("0.0.0.0", "9200", "9320")
+	master := node.CreateNode("0.0.0.0", "9201", "9321")
+	go coordinator.StartRPCFileService()
+	go master.StartRPCFileService()
 	time.Sleep(50 * time.Millisecond)
 	sdfsfilename := "testFilename"
 	content := "this is my file content"
@@ -75,10 +75,10 @@ func TestPutAndGetFileRPC(t *testing.T) {
 }
 
 func TestLs(t *testing.T) {
-	coordinator := node.CreateNode("0.0.0.0", "9400")
-	node1 := node.CreateNode("0.0.0.0", "9410")
-	node2 := node.CreateNode("0.0.0.0", "9420")
-	node3 := node.CreateNode("0.0.0.0", "9430")
+	coordinator := node.CreateNode("0.0.0.0", "9400", "9401")
+	node1 := node.CreateNode("0.0.0.0", "9410", "9411")
+	node2 := node.CreateNode("0.0.0.0", "9420", "9421")
+	node3 := node.CreateNode("0.0.0.0", "9430", "9431")
 	coordinator.InitMemberList()
 	go coordinator.MonitorInputPacket()
 	go node1.MonitorInputPacket()
@@ -87,7 +87,7 @@ func TestLs(t *testing.T) {
 	node1.Join(coordinator.IP + ":" + coordinator.Port)
 	node2.Join(coordinator.IP + ":" + coordinator.Port)
 	node3.Join(coordinator.IP + ":" + coordinator.Port)
-	go coordinator.StartRPCFileService("9401")
+	go coordinator.StartRPCFileService()
 	time.Sleep(50 * time.Millisecond)
 	address := "0.0.0.0:9401"
 	sdfsfilename := "testFilename"
@@ -96,8 +96,8 @@ func TestLs(t *testing.T) {
 	assert(len(addrs) == 4, "wrong")
 	// 8011 is the default port for FileService
 	assert(hashid == 392 &&
-		addrs[0] == "0.0.0.0:8011" &&
-		addrs[1] == "0.0.0.0:8011" &&
-		addrs[2] == "0.0.0.0:8011" &&
-		addrs[3] == "0.0.0.0:8011", "wrong order")
+		addrs[0] == "0.0.0.0:9401" &&
+		addrs[1] == "0.0.0.0:9411" &&
+		addrs[2] == "0.0.0.0:9421" &&
+		addrs[3] == "0.0.0.0:9431", "wrong order")
 }

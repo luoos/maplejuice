@@ -22,13 +22,14 @@ type MemberNode struct {
 	JoinTime    string
 	Ip          string
 	Port        string
+	RPC_Port    string
 	prev        *MemberNode
 	next        *MemberNode
 }
 
-func CreateMemberNode(id int, ip, port string, heartbeat_t int) *MemberNode {
+func CreateMemberNode(id int, ip, port, rpc_port string, heartbeat_t int) *MemberNode {
 	timestamp := time.Now().Format("2006.01.02 15:04:05")
-	new_node := &MemberNode{Id: id, Ip: ip, Port: port, Heartbeat_t: heartbeat_t, JoinTime: timestamp}
+	new_node := &MemberNode{Id: id, Ip: ip, Port: port, RPC_Port: rpc_port, Heartbeat_t: heartbeat_t, JoinTime: timestamp}
 	new_node.prev = new_node
 	new_node.next = new_node
 	return new_node
@@ -57,14 +58,14 @@ func CreateMemberList(selfId, capacity int) *MemberList {
 	return memberList
 }
 
-func (mbList *MemberList) InsertNode(id int, ip, port string, heartbeat_t int) {
+func (mbList *MemberList) InsertNode(id int, ip, port, rpc_port string, heartbeat_t int) {
 	mbList.lock.Lock()
 	defer mbList.lock.Unlock()
 	if _, exist := mbList.Member_map[id]; exist {
 		SLOG.Printf("[MembershipList %d] trying to insert an existed id: %d", mbList.SelfId, id)
 		return
 	}
-	new_node := CreateMemberNode(id, ip, port, heartbeat_t)
+	new_node := CreateMemberNode(id, ip, port, rpc_port, heartbeat_t)
 	SLOG.Printf("[MembershipList %d] Inserted node (%d, %s:%s, %d)", mbList.SelfId, id, ip, port, heartbeat_t)
 	mbList.Member_map[id] = new_node
 	mbList.Size++
@@ -141,6 +142,11 @@ func (mbList MemberList) GetNode(id int) *MemberNode {
 func (mbList MemberList) GetAddress(id int) string {
 	n := mbList.GetNode(id)
 	return n.Ip + ":" + n.Port
+}
+
+func (mbList MemberList) GetRPCAddress(id int) string {
+	n := mbList.GetNode(id)
+	return n.Ip + ":" + n.RPC_Port
 }
 
 func (mbList MemberList) GetIP(id int) string {

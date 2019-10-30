@@ -12,20 +12,21 @@ import (
 )
 
 type Node struct {
-	Id       int
-	IP, Port string
-	MbList   *MemberList
-	timerMap map[int]*time.Timer
-	mapLock  *sync.Mutex
-	FileList *FileList
+	Id                 int
+	IP, Port, RPC_Port string
+	MbList             *MemberList
+	timerMap           map[int]*time.Timer
+	mapLock            *sync.Mutex
+	FileList           *FileList
 }
 
 type Packet struct {
-	Action ActionType
-	Id     int
-	IP     string
-	Port   string
-	Map    *MemberList
+	Action   ActionType
+	Id       int
+	IP       string
+	Port     string
+	RPC_Port string
+	Map      *MemberList
 }
 
 type ActionType int8
@@ -55,25 +56,26 @@ var ACK_JOIN = make(chan Packet)
 
 var HEARTBEAT_LOG_FLAG = false // debug
 
-func CreateNode(ip, port string) *Node {
+func CreateNode(ip, port, rpc_port string) *Node {
 	ID := getHashID(ip + ":" + port)
 	timer_map := make(map[int]*time.Timer)
 	fileList := CreateFileList(ID)
-	node := &Node{IP: ip, Port: port, mapLock: &sync.Mutex{}, timerMap: timer_map, FileList: fileList}
+	node := &Node{IP: ip, Port: port, RPC_Port: rpc_port, mapLock: &sync.Mutex{}, timerMap: timer_map, FileList: fileList}
 	node.Id = ID
 	return node
 }
 
 func (node *Node) InitMemberList() {
 	node.MbList = CreateMemberList(node.Id, MAX_CAPACITY)
-	node.MbList.InsertNode(node.Id, node.IP, node.Port, GetMillisecond())
+	node.MbList.InsertNode(node.Id, node.IP, node.Port, node.RPC_Port, GetMillisecond())
 }
 
 func (node *Node) ScanIntroducer(addresses []string) (string, bool) {
 	pingPacket := &Packet{
-		Action: ACTION_PING,
-		IP:     node.IP,
-		Port:   node.Port,
+		Action:   ACTION_PING,
+		IP:       node.IP,
+		Port:     node.Port,
+		RPC_Port: node.RPC_Port,
 	}
 	for _, introAddr := range addresses {
 		sendPacketUDP(introAddr, pingPacket)
@@ -89,10 +91,11 @@ func (node *Node) ScanIntroducer(addresses []string) (string, bool) {
 
 func (node *Node) Join(address string) bool {
 	packet := &Packet{
-		Action: ACTION_JOIN,
-		IP:     node.IP,
-		Port:   node.Port,
-		Id:     node.Id,
+		Action:   ACTION_JOIN,
+		IP:       node.IP,
+		Port:     node.Port,
+		Id:       node.Id,
+		RPC_Port: node.RPC_Port,
 	}
 	SLOG.Printf("Sending Join packet, source %s:%s, destination %s", node.IP, node.Port, address)
 	err := sendPacketUDP(address, packet)
@@ -102,9 +105,9 @@ func (node *Node) Join(address string) bool {
 	select {
 	case mblistPacket := <-ACK_JOIN:
 		for _, item := range mblistPacket.Map.Member_map {
-			node.MbList.InsertNode(item.Id, item.Ip, item.Port, GetMillisecond())
+			node.MbList.InsertNode(item.Id, item.Ip, item.Port, item.RPC_Port, GetMillisecond())
 		}
-		node.MbList.InsertNode(node.Id, node.IP, node.Port, GetMillisecond())
+		node.MbList.InsertNode(node.Id, node.IP, node.Port, node.RPC_Port, GetMillisecond())
 		for _, prevNode := range node.MbList.GetPrevKNodes(node.Id, NUM_MONITORS) {
 			node.monitorIfNecessary(prevNode.Id)
 		}
@@ -179,7 +182,7 @@ func (node *Node) handlePacket(packet Packet) {
 	switch packet.Action {
 	case ACTION_NEW_NODE:
 		SLOG.Printf("[Node %d] Received ACTION_NEW_NODE (%d, %s:%s)", node.Id, packet.Id, packet.IP, packet.Port)
-		node.MbList.InsertNode(packet.Id, packet.IP, packet.Port, GetMillisecond())
+		node.MbList.InsertNode(packet.Id, packet.IP, packet.Port, packet.RPC_Port, GetMillisecond())
 		node.monitorIfNecessary(packet.Id)
 	case ACTION_DELETE_NODE:
 		SLOG.Printf("[Node %d] Received ACTION_DELETE_NODE (%d), source: %s", node.Id, packet.Id, packet.IP)
@@ -211,13 +214,14 @@ func (node *Node) handlePacket(packet Packet) {
 			log.Println(err)
 		}
 		newNodePacket := &Packet{
-			Action: ACTION_NEW_NODE,
-			Id:     new_id,
-			IP:     packet.IP,
-			Port:   packet.Port,
+			Action:   ACTION_NEW_NODE,
+			Id:       new_id,
+			IP:       packet.IP,
+			Port:     packet.Port,
+			RPC_Port: packet.RPC_Port,
 		}
 		node.Broadcast(newNodePacket)
-		node.MbList.InsertNode(new_id, packet.IP, packet.Port, GetMillisecond())
+		node.MbList.InsertNode(new_id, packet.IP, packet.Port, packet.RPC_Port, GetMillisecond())
 		node.monitorIfNecessary(new_id)
 	case ACTION_REPLY_JOIN:
 		node.MbList = CreateMemberList(packet.Id, MAX_CAPACITY)

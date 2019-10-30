@@ -22,8 +22,8 @@ func assert(condition bool, mesg string) {
 	}
 }
 func TestInitNode(t *testing.T) {
-	node1 := node.CreateNode("0.0.0.0", "9000")
-	node2 := node.CreateNode("0.0.0.0", "9001")
+	node1 := node.CreateNode("0.0.0.0", "9000", "19000")
+	node2 := node.CreateNode("0.0.0.0", "9001", "19001")
 	node1.InitMemberList()
 	if node1.MbList.Size != 1 {
 		t.Fatal("wrong")
@@ -42,9 +42,9 @@ func TestInitNode(t *testing.T) {
 }
 
 func TestBroadCast(t *testing.T) {
-	node1 := node.CreateNode("0.0.0.0", "9010")
-	node2 := node.CreateNode("0.0.0.0", "9011")
-	node3 := node.CreateNode("0.0.0.0", "9012")
+	node1 := node.CreateNode("0.0.0.0", "9010", "19010")
+	node2 := node.CreateNode("0.0.0.0", "9011", "19011")
+	node3 := node.CreateNode("0.0.0.0", "9012", "19012")
 	node1.InitMemberList()
 	if node1.MbList.Size != 1 {
 		t.Fatal("wrong1")
@@ -74,9 +74,9 @@ func TestBroadCast(t *testing.T) {
 }
 
 func TestLeaveAndRejoin(t *testing.T) {
-	node1 := node.CreateNode("0.0.0.0", "9020")
-	node2 := node.CreateNode("0.0.0.0", "9021")
-	node3 := node.CreateNode("0.0.0.0", "9022")
+	node1 := node.CreateNode("0.0.0.0", "9020", "19020")
+	node2 := node.CreateNode("0.0.0.0", "9021", "19020")
+	node3 := node.CreateNode("0.0.0.0", "9022", "")
 	node1.InitMemberList()
 	if node1.MbList.Size != 1 {
 		t.Fatal("wrong1")
@@ -128,9 +128,9 @@ func TestLeaveAndRejoin(t *testing.T) {
 
 func TestHeartbeat(t *testing.T) {
 	SLOG.Print("Staring TESTHEARTBEAT20")
-	node1 := node.CreateNode("0.0.0.0", "9030")
-	node2 := node.CreateNode("0.0.0.0", "9031")
-	node3 := node.CreateNode("0.0.0.0", "9032")
+	node1 := node.CreateNode("0.0.0.0", "9030", "")
+	node2 := node.CreateNode("0.0.0.0", "9031", "")
+	node3 := node.CreateNode("0.0.0.0", "9032", "")
 	node1.InitMemberList()
 	go node1.MonitorInputPacket()
 	go node2.MonitorInputPacket()
@@ -181,9 +181,9 @@ func TestHeartbeat(t *testing.T) {
 // *** this is for passive monitoring
 func TestCheckFailure(t *testing.T) {
 	SLOG.Print("Staring TestCheckFailure.")
-	node1 := node.CreateNode("0.0.0.0", "9040")
-	node2 := node.CreateNode("0.0.0.0", "9041")
-	node3 := node.CreateNode("0.0.0.0", "9042")
+	node1 := node.CreateNode("0.0.0.0", "9040", "")
+	node2 := node.CreateNode("0.0.0.0", "9041", "")
+	node3 := node.CreateNode("0.0.0.0", "9042", "")
 	node1.InitMemberList()
 	go node1.MonitorInputPacket()
 	go node2.MonitorInputPacket()
@@ -222,8 +222,8 @@ func TestCheckFailure(t *testing.T) {
 
 func TestFindIntroducer(t *testing.T) {
 	SLOG.Print("Staring TEST introducer")
-	node1 := node.CreateNode("0.0.0.0", "9050")
-	node2 := node.CreateNode("0.0.0.0", "9051")
+	node1 := node.CreateNode("0.0.0.0", "9050", "")
+	node2 := node.CreateNode("0.0.0.0", "9051", "")
 	node1.InitMemberList()
 	go node1.MonitorInputPacket()
 	go node2.MonitorInputPacket()
@@ -231,7 +231,7 @@ func TestFindIntroducer(t *testing.T) {
 	if !success || introducer != "0.0.0.0:9050" {
 		t.Fatal("wrong")
 	}
-	node3 := node.CreateNode("0.0.0.0", "9052")
+	node3 := node.CreateNode("0.0.0.0", "9052", "")
 	go node3.MonitorInputPacket()
 	introducer, success = node3.ScanIntroducer([]string{"0.0.0.0:9055"})
 	if success {
@@ -239,7 +239,7 @@ func TestFindIntroducer(t *testing.T) {
 	}
 	node2.Join("0.0.0.0:9050")
 	time.Sleep(1 * time.Second)
-	node4 := node.CreateNode("0.0.0.0", "9053")
+	node4 := node.CreateNode("0.0.0.0", "9053", "")
 	go node4.MonitorInputPacket()
 	introducer, success = node4.ScanIntroducer([]string{"0.0.0.0:9050", "0.0.0.0:9051"})
 	if !success {
@@ -253,14 +253,14 @@ func TestFindIntroducer(t *testing.T) {
 }
 
 func TestPingSelf(t *testing.T) {
-	node1 := node.CreateNode("0.0.0.0", "9060")
+	node1 := node.CreateNode("0.0.0.0", "9060", "")
 	node1.InitMemberList()
 	go node1.MonitorInputPacket()
 	_, success := node1.ScanIntroducer([]string{"0.0.0.0:9060"})
 	if success {
 		t.Fatal("should no find introducer")
 	}
-	node2 := node.CreateNode("0.0.0.0", "9061")
+	node2 := node.CreateNode("0.0.0.0", "9061", "")
 	go node2.MonitorInputPacket()
 	_, success = node1.ScanIntroducer([]string{"0.0.0.0:9061"})
 	if success {
@@ -279,7 +279,7 @@ func TestManyNodes(t *testing.T) {
 	const NODES = 10
 	var nodes [NODES]*node.Node
 	for i := 0; i < NODES; i++ {
-		nodes[i] = node.CreateNode("0.0.0.0", fmt.Sprintf("907%d", i))
+		nodes[i] = node.CreateNode("0.0.0.0", fmt.Sprintf("907%d", i), "")
 	}
 	nodes[0].InitMemberList()
 	for _, nod := range nodes {
@@ -318,8 +318,8 @@ func TestManyNodes(t *testing.T) {
 }
 
 func TestHashID(t *testing.T) {
-	node1 := node.CreateNode("0.0.0.0", "9080")
-	node2 := node.CreateNode("0.0.0.0", "9081")
+	node1 := node.CreateNode("0.0.0.0", "9080", "")
+	node2 := node.CreateNode("0.0.0.0", "9081", "")
 	node1.InitMemberList()
 	if node1.MbList.Size != 1 {
 		t.Fatal("wrong")
@@ -339,9 +339,9 @@ func TestHashID(t *testing.T) {
 }
 
 func TestGetMasterID(t *testing.T) {
-	node1 := node.CreateNode("0.0.0.0", "9090")
-	node2 := node.CreateNode("0.0.0.0", "9091")
-	node3 := node.CreateNode("0.0.0.0", "9092")
+	node1 := node.CreateNode("0.0.0.0", "9090", "")
+	node2 := node.CreateNode("0.0.0.0", "9091", "")
+	node3 := node.CreateNode("0.0.0.0", "9092", "")
 	node1.InitMemberList()
 	go node1.MonitorInputPacket()
 	go node2.MonitorInputPacket()
@@ -361,9 +361,9 @@ func TestGetMasterID(t *testing.T) {
 }
 
 func TestGetKReplica(t *testing.T) {
-	node1 := node.CreateNode("0.0.0.0", "9100")
-	node2 := node.CreateNode("0.0.0.0", "9101")
-	node3 := node.CreateNode("0.0.0.0", "9102")
+	node1 := node.CreateNode("0.0.0.0", "9100", "")
+	node2 := node.CreateNode("0.0.0.0", "9101", "")
+	node3 := node.CreateNode("0.0.0.0", "9102", "")
 	node1.InitMemberList()
 	go node1.MonitorInputPacket()
 	go node2.MonitorInputPacket()

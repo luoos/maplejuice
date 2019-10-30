@@ -74,9 +74,9 @@ func (node *Node) RegisterFileService(address string, svc FileServiceInterface) 
 	return rpc.RegisterName(FileServiceName+address, svc)
 }
 
-func (node *Node) StartRPCFileService(port string) {
-	node.RegisterFileService(node.IP+":"+port, &FileService{node: node})
-	listener, err := net.Listen("tcp", "0.0.0.0:"+port)
+func (node *Node) StartRPCFileService() {
+	node.RegisterFileService(node.IP+":"+node.RPC_Port, &FileService{node: node})
+	listener, err := net.Listen("tcp", "0.0.0.0:"+node.RPC_Port)
 	if err != nil {
 		log.Fatal("ListenTCP error:", err)
 	}
@@ -124,7 +124,7 @@ func (fileService *FileService) GetFileRequest(sdfsfilename string, result *stri
 }
 
 func (fileService *FileService) Ls(sdfsfilename string, addrs *[]string) error {
-	*addrs = fileService.node.GetResponsibleAddresses(sdfsfilename, FILE_SERVICE_DEFAULT_PORT)
+	*addrs = fileService.node.GetResponsibleAddresses(sdfsfilename)
 	return nil
 }
 

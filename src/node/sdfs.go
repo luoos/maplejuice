@@ -55,31 +55,21 @@ func (node *Node) GetFirstKReplicaNodeID(sdfsfilename string, K int) []int {
 	return res
 }
 
-func (node *Node) GetIPsWithIds(ids []int) []string {
+func (node *Node) GetAddressesWithIds(ids []int) []string {
 	address := make([]string, 0)
 	for _, id := range ids {
-		address = append(address, node.MbList.GetIP(id))
+		address = append(address, node.MbList.GetRPCAddress(id))
 	}
 	return address
 }
 
-func (node *Node) GetResponsibleIPs(sdfsfilename string) []string {
+func (node *Node) GetResponsibleAddresses(sdfsfilename string) []string {
 	ids := node.GetFirstKReplicaNodeID(sdfsfilename, DUPLICATE_CNT)
-	return node.GetIPsWithIds(ids)
-}
-
-func (node *Node) GetResponsibleAddresses(sdfsfilename, port string) []string {
-	// Address = IP + Port
-	ips := node.GetResponsibleIPs(sdfsfilename)
-	addresses := make([]string, 0)
-	for _, ip := range ips {
-		addresses = append(addresses, ip+":"+port)
-	}
-	return addresses
+	return node.GetAddressesWithIds(ids)
 }
 
 func (node *Node) GetAddressOfLatestTS(sdfsfilename string) (string, int) {
-	addressList := node.GetResponsibleAddresses(sdfsfilename, FILE_SERVICE_DEFAULT_PORT)
+	addressList := node.GetResponsibleAddresses(sdfsfilename)
 	c := make(chan Pair, 4)
 	for _, address := range addressList {
 		go CallGetTimeStamp(address, sdfsfilename, c)
