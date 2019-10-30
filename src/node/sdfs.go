@@ -77,3 +77,23 @@ func (node *Node) GetResponsibleAddresses(sdfsfilename, port string) []string {
 	}
 	return addresses
 }
+
+func (node *Node) GetAddressOfLatestTS(sdfsfilename string) (string, int) {
+	addressList := node.GetResponsibleAddresses(sdfsfilename, FILE_SERVICE_DEFAULT_PORT)
+	c := make(chan Pair, 4)
+	for _, address := range addressList {
+		go CallGetTimeStamp(address, sdfsfilename, c)
+	}
+	max_timestamp := -1
+	max_address := ""
+	for i := 0; i < READ_QUORUM; i++ {
+		pair := <-c
+		address := pair.Address
+		timestamp := pair.Ts
+		if timestamp > max_timestamp {
+			max_timestamp = timestamp
+			max_address = address
+		}
+	}
+	return max_address, max_timestamp
+}

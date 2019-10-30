@@ -74,26 +74,6 @@ func (node *Node) StartRPCFileService(port string) {
 	}
 }
 
-func (fileService *FileService) getAddressOfLatestTS(sdfsfilename string) (string, int) {
-	addressList := fileService.node.GetResponsibleAddresses(sdfsfilename, FILE_SERVICE_DEFAULT_PORT)
-	c := make(chan Pair, 4)
-	for _, address := range addressList {
-		go CallGetTimeStamp(address, sdfsfilename, c)
-	}
-	max_timestamp := -1
-	max_address := ""
-	for i := 0; i < READ_QUORUM; i++ {
-		pair := <-c
-		address := pair.Address
-		timestamp := pair.Ts
-		if timestamp > max_timestamp {
-			max_timestamp = timestamp
-			max_address = address
-		}
-	}
-	return max_address, max_timestamp
-}
-
 /* Callee begin */
 func (fileService *FileService) PutFileRequest(args []string, result *RPCResultType) error {
 	// args should have three elements: [localFilePath, sdfsFileName, forceUpdate]
@@ -121,7 +101,7 @@ func (fileService *FileService) PutFileRequest(args []string, result *RPCResultT
 }
 
 func (fileService *FileService) GetFileRequest(sdfsfilename string, result *string) error {
-	file_addr, _ := fileService.getAddressOfLatestTS(sdfsfilename)
+	file_addr, _ := fileService.node.GetAddressOfLatestTS(sdfsfilename)
 	*result = GetFile(file_addr, sdfsfilename)
 	return nil
 }
