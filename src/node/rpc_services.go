@@ -75,10 +75,9 @@ func (node *Node) StartRPCFileService(port string) {
 }
 
 func (fileService *FileService) getAddressOfLatestTS(sdfsfilename string) (string, int) {
-	ip_list := fileService.node.GetResponsibleIPs(sdfsfilename)
+	addressList := fileService.node.GetResponsibleAddresses(sdfsfilename, FILE_SERVICE_DEFAULT_PORT)
 	c := make(chan Pair, 4)
-	for _, ip := range ip_list {
-		address := ip + ":" + FILE_SERVICE_DEFAULT_PORT
+	for _, address := range addressList {
 		go CallGetTimeStamp(address, sdfsfilename, c)
 	}
 	max_timestamp := -1
@@ -128,13 +127,7 @@ func (fileService *FileService) GetFileRequest(sdfsfilename string, result *stri
 }
 
 func (fileService *FileService) Ls(sdfsfilename string, addrs *[]string) error {
-	ids := fileService.node.GetFirstKReplicaNodeID(sdfsfilename, 4)
-	res := []string{}
-	for _, id := range ids {
-		mem_node := fileService.node.MbList.GetNode(id)
-		res = append(res, mem_node.Ip+":"+mem_node.Port)
-	}
-	*addrs = res
+	*addrs = fileService.node.GetResponsibleAddresses(sdfsfilename, FILE_SERVICE_DEFAULT_PORT)
 	return nil
 }
 
@@ -184,6 +177,16 @@ func CallPutFileRequest(address, src, dest string, forceUpdate bool) RPCResultTy
 		SLOG.Fatal(err)
 	}
 	return reply
+}
+
+func CallLs(address, sdfsfilename string) []string {
+	clien := DialFileService(address)
+	var addresses []string
+	err := clien.Call(FileServiceName+address+".Ls", sdfsfilename, &addresses)
+	if err != nil {
+		SLOG.Fatal(err)
+	}
+	return addresses
 }
 
 /** from coordinator **/

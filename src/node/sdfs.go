@@ -67,3 +67,13 @@ func (node *Node) GetResponsibleIPs(sdfsfilename string) []string {
 	ids := node.GetFirstKReplicaNodeID(sdfsfilename, DUPLICATE_CNT)
 	return node.GetIPsWithIds(ids)
 }
+
+func (node *Node) GetResponsibleAddresses(sdfsfilename, port string) []string {
+	// Address = IP + Port
+	ips := node.GetResponsibleIPs(sdfsfilename)
+	addresses := make([]string, 0)
+	for _, ip := range ips {
+		addresses = append(addresses, ip+":"+port)
+	}
+	return addresses
+}

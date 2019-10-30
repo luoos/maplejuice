@@ -2,7 +2,6 @@ package test
 
 import (
 	"log"
-	"net/rpc"
 	"node"
 	"testing"
 	"time"
@@ -67,27 +66,16 @@ func TestLs(t *testing.T) {
 	node2.Join(coordinator.IP + ":" + coordinator.Port)
 	node3.Join(coordinator.IP + ":" + coordinator.Port)
 	go coordinator.StartRPCFileService("9401")
-	go node1.StartRPCFileService("9411")
-	go node2.StartRPCFileService("9421")
-	go node3.StartRPCFileService("9431")
 	time.Sleep(50 * time.Millisecond)
 	address := "0.0.0.0:9401"
-	client, err := rpc.Dial("tcp", "0.0.0.0:9401")
-	if err != nil {
-		log.Fatal(err)
-	}
 	sdfsfilename := "testFilename"
+	addrs := node.CallLs(address, sdfsfilename)
 	hashid := getHashID(sdfsfilename)
-	var addrs []string
-	err = client.Call(node.FileServiceName+address+".Ls", sdfsfilename, &addrs)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Println("addrs:")
 	assert(len(addrs) == 4, "wrong")
+	// 8011 is the default port for FileService
 	assert(hashid == 392 &&
-		addrs[0] == "0.0.0.0:9400" &&
-		addrs[1] == "0.0.0.0:9410" &&
-		addrs[2] == "0.0.0.0:9420" &&
-		addrs[3] == "0.0.0.0:9430", "wrong order")
+		addrs[0] == "0.0.0.0:8011" &&
+		addrs[1] == "0.0.0.0:8011" &&
+		addrs[2] == "0.0.0.0:8011" &&
+		addrs[3] == "0.0.0.0:8011", "wrong order")
 }
