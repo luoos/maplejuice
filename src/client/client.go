@@ -72,24 +72,24 @@ func parseCommand() {
 	}
 }
 
-func getSelfIp() string {
+func dialLocalNode() (*rpc.Client, string) {
 	hostname, _ := os.Hostname()
 	addr_raw, err := net.LookupIP(hostname)
 	if err != nil {
 		fmt.Println("Unknown host")
 	}
 	ip := fmt.Sprintf("%s", addr_raw[0])
-	return ip
-}
-func listHostsForFile(sdfsName string) {
-	ip := getSelfIp()
 	address := ip + ":" + node.FILE_SERVICE_DEFAULT_PORT
 	client, err := rpc.Dial("tcp", address)
 	if err != nil {
 		log.Fatal(err)
 	}
+	return client, address
+}
+func listHostsForFile(sdfsName string) {
+	client, address := dialLocalNode()
 	var addrs []string
-	err = client.Call(node.FileServiceName+address+".Ls", sdfsName, &addrs)
+	err := client.Call(node.FileServiceName+address+".Ls", sdfsName, &addrs)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -116,7 +116,13 @@ func putFileToSystem(localName, sdfsName string) {
 }
 
 func getFileFromSystem(sdfsName, localName string) {
-
+	client, address := dialLocalNode()
+	var fileContent string
+	err := client.Call(node.FileServiceName+address+".GetFileRequest", sdfsName, &fileContent)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(fileContent)
 }
 
 func deleteFileFromSystem(sdfsName string) {
