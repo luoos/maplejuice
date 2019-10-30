@@ -72,11 +72,10 @@ func (node *Node) StartRPCFileService(port string) {
 }
 
 func (fileService *FileService) getAddressOfLatestTS(sdfsfilename string) (string, int) {
-	responsible_machine_ids := fileService.node.GetFirstKReplicaNodeID(sdfsfilename, 4)
+	ip_list := fileService.node.GetResponsibleIPs(sdfsfilename)
 	c := make(chan string, 4)
-	for _, id := range responsible_machine_ids {
-		node := fileService.node.MbList.GetNode(id)
-		address := node.Ip + ":" + FILE_SERVICE_DEFAULT_PORT
+	for _, ip := range ip_list {
+		address := ip + ":" + FILE_SERVICE_DEFAULT_PORT
 		go CallGetTimeStamp(address, sdfsfilename, c)
 	}
 	max_timestamp := -1

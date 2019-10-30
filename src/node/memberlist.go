@@ -143,6 +143,11 @@ func (mbList MemberList) GetAddress(id int) string {
 	return n.Ip + ":" + n.Port
 }
 
+func (mbList MemberList) GetIP(id int) string {
+	n := mbList.GetNode(id)
+	return n.Ip
+}
+
 func (mbList MemberList) GetPrevKNodes(id, k int) []MemberNode {
 	mbList.lock.Lock()
 	defer mbList.lock.Unlock()

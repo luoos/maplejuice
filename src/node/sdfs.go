@@ -55,15 +55,15 @@ func (node *Node) GetFirstKReplicaNodeID(sdfsfilename string, K int) []int {
 	return res
 }
 
-func (node *Node) GetAddressWithIds(ids []int) []string {
+func (node *Node) GetIPsWithIds(ids []int) []string {
 	address := make([]string, 0)
 	for _, id := range ids {
-		address = append(address, node.MbList.GetAddress(id))
+		address = append(address, node.MbList.GetIP(id))
 	}
 	return address
 }
 
-func (node *Node) GetAddressWithSDFSFileName(sdfsfilename string) []string {
+func (node *Node) GetResponsibleIPs(sdfsfilename string) []string {
 	ids := node.GetFirstKReplicaNodeID(sdfsfilename, DUPLICATE_CNT)
-	return node.GetAddressWithIds(ids)
+	return node.GetIPsWithIds(ids)
 }
