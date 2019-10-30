@@ -1,18 +1,40 @@
 package test
 
 import (
+	"io/ioutil"
 	"log"
 	"node"
+	"os"
 	"testing"
 	"time"
 )
+
+func check(e error) {
+	if e != nil {
+		panic(e)
+	}
+}
+
+func writeDummyFile(filename, content string) {
+	data := []byte(content)
+	err := ioutil.WriteFile(filename, data, 0777)
+	check(err)
+}
+
+func deleteDummyFile(filename string) {
+	err := os.Remove(filename)
+	check(err)
+}
 
 func TestRegisterFileService(t *testing.T) {
 	node0 := node.CreateNode("0.0.0.0", "9200")
 	go node0.StartRPCFileService("9300")
 	time.Sleep(50 * time.Millisecond)
+	filename := "/tmp/dummyrpcfile"
+	writeDummyFile(filename, "hello")
+	defer deleteDummyFile(filename)
 	var reply node.RPCResultType
-	reply = node.CallPutFileRequest("0.0.0.0:9300", "src", "dest", false)
+	reply = node.CallPutFileRequest("0.0.0.0:9300", filename, "dest", false)
 	if reply != node.RPC_SUCCESS {
 		log.Fatal(reply)
 	}
@@ -48,7 +70,7 @@ func TestPutAndGetFileRPC(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 	sdfsfilename := "testFilename"
 	content := "this is my file content"
-	node.PutFile(master.Id, 1, "0.0.0.0:9321", "/apps/files", sdfsfilename, content)
+	node.PutFile(master.Id, 1, "0.0.0.0:9321", sdfsfilename, content)
 	assert(node.GetFile("0.0.0.0:9321", sdfsfilename) == content, "wrong")
 }
 
