@@ -31,6 +31,12 @@ type Pair struct {
 	Ts      int // Timestamp
 }
 
+type PutFileArgs struct {
+	LocalName   string
+	SdfsName    string
+	ForceUpdate bool
+}
+
 const (
 	RPC_SUCCESS     RPCResultType = 1 << 0
 	LOCAL_PATH_ROOT               = "/apps/files"
@@ -41,7 +47,7 @@ type FileService struct {
 }
 
 type FileServiceInterface = interface {
-	PutFileRequest(args []string, code *RPCResultType) error
+	PutFileRequest(args PutFileArgs, code *RPCResultType) error
 	GetTimeStamp(sdfsFileName string, timestamp *int) error
 }
 
@@ -75,7 +81,7 @@ func (node *Node) StartRPCFileService(port string) {
 }
 
 /* Callee begin */
-func (fileService *FileService) PutFileRequest(args []string, result *RPCResultType) error {
+func (fileService *FileService) PutFileRequest(args PutFileArgs, result *RPCResultType) error {
 	// args should have three elements: [localFilePath, sdfsFileName, forceUpdate]
 	// _, sdfsFileName := args[0], args[1] // TODO: use localFilePath, (args[0])
 	// _, err := strconv.ParseBool("true") // TODO: use forceUpdate
@@ -96,6 +102,7 @@ func (fileService *FileService) PutFileRequest(args []string, result *RPCResultT
 	// if GetMillisecond-file_ts < MIN_UPDATE_INTERVAL {
 	// TODO:	promp to user
 	// }
+
 	*result = RPC_SUCCESS
 	return nil
 }
@@ -152,7 +159,7 @@ func CallPutFileRequest(address, src, dest string, forceUpdate bool) RPCResultTy
 	 */
 	client := DialFileService(address)
 	var reply RPCResultType
-	err := client.Call(FileServiceName+address+".PutFileRequest", []string{src, dest, strconv.FormatBool(forceUpdate)}, &reply)
+	err := client.Call(FileServiceName+address+".PutFileRequest", PutFileArgs{src, dest, forceUpdate}, &reply)
 	if err != nil {
 		SLOG.Fatal(err)
 	}
