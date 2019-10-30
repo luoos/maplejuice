@@ -11,13 +11,10 @@ Includes:
 package node
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net"
 	"net/rpc"
-	"os"
-	"path/filepath"
 	. "slogger"
 )
 
@@ -48,6 +45,7 @@ type StoreFileArgs struct {
 
 const (
 	RPC_SUCCESS     RPCResultType = 1 << 0
+	RPC_DUMMY       RPCResultType = 1 << 1
 	LOCAL_PATH_ROOT               = "/apps/files"
 )
 
@@ -117,10 +115,15 @@ func (fileService *FileService) PutFileRequest(args PutFileArgs, result *RPCResu
 	return nil
 }
 
-func (fileService *FileService) GetFileRequest(sdfsfilename string, result *string) error {
-	file_addr, _ := fileService.node.GetAddressOfLatestTS(sdfsfilename)
-	*result = GetFile(file_addr, sdfsfilename)
-	return nil
+// Executed in coordinator
+func (fileService *FileService) GetFileRequest(args []string, result *RPCResultType) error {
+	sdfsName := args[0]
+	localPath := args[1]
+	file_addr, _ := fileService.node.GetAddressOfLatestTS(sdfsName)
+	data := GetFile(file_addr, sdfsName)
+	err := ioutil.WriteFile(localPath, data, 0777)
+	*result = RPC_DUMMY
+	return err
 }
 
 func (fileService *FileService) Ls(sdfsfilename string, addrs *[]string) error {
@@ -145,40 +148,19 @@ func (fileService *FileService) StoreFileToLocal(args StoreFileArgs, result *RPC
 	return nil
 }
 
-func (fileService *FileService) ServeLocalFile(sdfsfilename string, result *string) error {
+func (fileService *FileService) ServeLocalFile(sdfsfilename string, result *[]byte) error {
 	fileinfo := fileService.node.FileList.GetFileInfo(sdfsfilename)
 	data, err := ioutil.ReadFile(fileinfo.Localpath)
 	if err != nil {
 		log.Fatal(err)
 	}
-	*result = string(data)
+	*result = data
 	return nil
 }
 
 /* Callee end */
 
 /* Caller begin */
-
-/** from client **/
-func CallPutFileRequest(address, src, dest string, forceUpdate bool) RPCResultType {
-	// src is absolute path.
-	// dest is sdfs filename
-	if !filepath.IsAbs(src) {
-		fmt.Printf("%s is not a absolute path\n", src)
-		os.Exit(1)
-	}
-	if _, err := os.Stat(src); os.IsNotExist(err) {
-		fmt.Printf("%s doesn't exist\n", src)
-		os.Exit(1)
-	}
-	client := DialFileService(address)
-	var reply RPCResultType
-	err := client.Call(FileServiceName+address+".PutFileRequest", PutFileArgs{src, dest, forceUpdate}, &reply)
-	if err != nil {
-		SLOG.Fatal(err)
-	}
-	return reply
-}
 
 func CallLs(address, sdfsfilename string) []string {
 	clien := DialFileService(address)
@@ -201,9 +183,9 @@ func PutFile(masterNodeID int, timestamp int, address, sdfsfilename, content str
 	}
 }
 
-func GetFile(address, sdfsfilename string) string {
+func GetFile(address, sdfsfilename string) []byte {
 	sender := DialFileService(address)
-	var file_content string
+	var file_content []byte
 	send_err := sender.Call(FileServiceName+address+".ServeLocalFile", sdfsfilename, &file_content)
 	if send_err != nil {
 		log.Fatal("send_err:", send_err)

@@ -10,6 +10,8 @@ import (
 	"net/rpc"
 	"node"
 	"os"
+	"path/filepath"
+	. "slogger"
 	"strconv"
 	"strings"
 	"sync"
@@ -112,17 +114,27 @@ func listLocalFiles() {
 }
 
 func putFileToSystem(localName, sdfsName string) {
-
+	CallPutFileRequest(localName, sdfsName, true)
 }
 
 func getFileFromSystem(sdfsName, localName string) {
-	client, address := dialLocalNode()
-	var fileContent string
-	err := client.Call(node.FileServiceName+address+".GetFileRequest", sdfsName, &fileContent)
-	if err != nil {
-		log.Fatal(err)
+	var localPath string
+	if filepath.IsAbs(localName) {
+		localPath = localName
+	} else {
+		path, err := os.Getwd()
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		localPath = path + "/" + localName
 	}
-	fmt.Println(fileContent)
+	err := CallGetFileRequest(sdfsName, localPath)
+	if err != nil {
+		fmt.Printf("Failed to get file %s\n", sdfsName)
+		fmt.Println(err)
+	}
+
 }
 
 func deleteFileFromSystem(sdfsName string) {
@@ -178,4 +190,32 @@ func request_cmd(host string, port int, cmd string) {
 			fmt.Println(l)
 		}
 	}
+}
+
+func CallPutFileRequest(src, dest string, forceUpdate bool) node.RPCResultType {
+	// src is absolute path.
+	// dest is sdfs filename
+	if !filepath.IsAbs(src) {
+		fmt.Printf("%s is not a absolute path\n", src)
+		os.Exit(1)
+	}
+	if _, err := os.Stat(src); os.IsNotExist(err) {
+		fmt.Printf("%s doesn't exist\n", src)
+		os.Exit(1)
+	}
+	client, address := dialLocalNode()
+	var reply node.RPCResultType
+	err := client.Call(node.FileServiceName+address+".PutFileRequest", node.PutFileArgs{src, dest, forceUpdate}, &reply)
+	if err != nil {
+		SLOG.Fatal(err)
+	}
+	return reply
+}
+
+func CallGetFileRequest(sdfsName, localPath string) error {
+	// localPath should be absolute path
+	client, address := dialLocalNode()
+	var result node.RPCResultType
+	err := client.Call(node.FileServiceName+address+".GetFileRequest", []string{sdfsName, localPath}, &result)
+	return err
 }

@@ -3,6 +3,7 @@ package test
 import (
 	"io/ioutil"
 	"log"
+	"net/rpc"
 	"node"
 	"os"
 	"testing"
@@ -34,7 +35,11 @@ func TestRegisterFileService(t *testing.T) {
 	writeDummyFile(filename, "hello")
 	defer deleteDummyFile(filename)
 	var reply node.RPCResultType
-	reply = node.CallPutFileRequest("0.0.0.0:9300", filename, "dest", false)
+	client, _ := rpc.Dial("tcp", "0.0.0.0:9300")
+	err := client.Call(node.FileServiceName+"0.0.0.0:9300"+".PutFileRequest", node.PutFileArgs{filename, "dest", false}, &reply)
+	if err != nil {
+		log.Fatal(err)
+	}
 	if reply != node.RPC_SUCCESS {
 		log.Fatal(reply)
 	}
@@ -71,7 +76,7 @@ func TestPutAndGetFileRPC(t *testing.T) {
 	sdfsfilename := "testFilename"
 	content := "this is my file content"
 	node.PutFile(master.Id, 1, "0.0.0.0:9321", sdfsfilename, content)
-	assert(node.GetFile("0.0.0.0:9321", sdfsfilename) == content, "wrong")
+	assert(string(node.GetFile("0.0.0.0:9321", sdfsfilename)) == content, "wrong")
 }
 
 func TestLs(t *testing.T) {
