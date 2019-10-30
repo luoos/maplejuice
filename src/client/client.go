@@ -114,22 +114,13 @@ func listLocalFiles() {
 }
 
 func putFileToSystem(localName, sdfsName string) {
-	CallPutFileRequest(localName, sdfsName, true)
+	localAbsPath, _ := filepath.Abs(localName)
+	CallPutFileRequest(localAbsPath, sdfsName, true)
 }
 
 func getFileFromSystem(sdfsName, localName string) {
-	var localPath string
-	if filepath.IsAbs(localName) {
-		localPath = localName
-	} else {
-		path, err := os.Getwd()
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		localPath = path + "/" + localName
-	}
-	err := CallGetFileRequest(sdfsName, localPath)
+	localAbsPath, _ := filepath.Abs(localName)
+	err := CallGetFileRequest(sdfsName, localAbsPath)
 	if err != nil {
 		fmt.Printf("Failed to get file %s\n", sdfsName)
 		fmt.Println(err)
