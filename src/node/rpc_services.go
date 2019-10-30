@@ -11,14 +11,12 @@ Includes:
 package node
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net"
 	"net/rpc"
 	. "slogger"
 	"strconv"
-	"strings"
 )
 
 const FileServiceName = "SimpleFileService"
@@ -27,6 +25,11 @@ const READ_QUORUM = 2
 const MIN_UPDATE_INTERVAL = 60 * 1000
 
 type RPCResultType int8
+
+type Pair struct {
+	Address string
+	Ts      int // Timestamp
+}
 
 const (
 	RPC_SUCCESS     RPCResultType = 1 << 0
@@ -73,7 +76,7 @@ func (node *Node) StartRPCFileService(port string) {
 
 func (fileService *FileService) getAddressOfLatestTS(sdfsfilename string) (string, int) {
 	ip_list := fileService.node.GetResponsibleIPs(sdfsfilename)
-	c := make(chan string, 4)
+	c := make(chan Pair, 4)
 	for _, ip := range ip_list {
 		address := ip + ":" + FILE_SERVICE_DEFAULT_PORT
 		go CallGetTimeStamp(address, sdfsfilename, c)
@@ -81,13 +84,9 @@ func (fileService *FileService) getAddressOfLatestTS(sdfsfilename string) (strin
 	max_timestamp := -1
 	max_address := ""
 	for i := 0; i < READ_QUORUM; i++ {
-		val := <-c
-		vals := strings.Split(val, " ")
-		address := vals[0]
-		timestamp, err := strconv.Atoi(vals[1])
-		if err != nil {
-			log.Fatal(err)
-		}
+		pair := <-c
+		address := pair.Address
+		timestamp := pair.Ts
 		if timestamp > max_timestamp {
 			max_timestamp = timestamp
 			max_address = address
@@ -207,14 +206,14 @@ func GetFile(address, sdfsfilename string) string {
 	return file_content
 }
 
-func CallGetTimeStamp(address, sdfsFileName string, c chan string) {
+func CallGetTimeStamp(address, sdfsFileName string, c chan Pair) {
 	sender := DialFileService(address)
 	var timestamp int
 	err := sender.Call(FileServiceName+address+".GetTimeStamp", sdfsFileName, &timestamp)
 	if err != nil {
 		SLOG.Fatal(err)
 	}
-	c <- fmt.Sprintf("%s %d", address, timestamp)
+	c <- Pair{address, timestamp}
 }
 
 /* Caller end */

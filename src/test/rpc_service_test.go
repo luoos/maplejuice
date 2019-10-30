@@ -24,22 +24,21 @@ func TestGetTimeStampRPC(t *testing.T) {
 	go node0.StartRPCFileService("9310")
 	time.Sleep(50 * time.Millisecond)
 	sdfsfilename := "testFilename"
-	var addr_and_ts string
-	c := make(chan string)
+	c := make(chan node.Pair, 4)
 	go node.CallGetTimeStamp("0.0.0.0:9310", sdfsfilename, c)
-	addr_and_ts = <-c
-	assert(addr_and_ts == "0.0.0.0:9310 -1", "wrong timestamp1")
+	pair := <-c
+	assert(pair.Address == "0.0.0.0:9310" && pair.Ts == -1, "wrong timestamp1")
 	localpath := "/app/fs/testFilename"
 	timestamp := 100
 	masterNodeID := 128
 	node0.FileList.PutFileInfo(sdfsfilename, localpath, timestamp, masterNodeID)
 	go node.CallGetTimeStamp("0.0.0.0:9310", sdfsfilename, c)
-	addr_and_ts = <-c
-	assert(addr_and_ts == "0.0.0.0:9310 100", "wrong timestamp2")
+	pair = <-c
+	assert(pair.Address == "0.0.0.0:9310" && pair.Ts == 100, "wrong timestamp2")
 	node0.FileList.DeleteFileInfo(sdfsfilename)
 	go node.CallGetTimeStamp("0.0.0.0:9310", sdfsfilename, c)
-	addr_and_ts = <-c
-	assert(addr_and_ts == "0.0.0.0:9310 -1", "wrong timestamp3")
+	pair = <-c
+	assert(pair.Address == "0.0.0.0:9310" && pair.Ts == -1, "wrong timestamp3")
 }
 
 func TestPutAndGetFileRPC(t *testing.T) {
