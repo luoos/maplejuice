@@ -16,11 +16,13 @@ import (
 	"net"
 	"net/rpc"
 	. "slogger"
+	"time"
 )
 
 const FileServiceName = "SimpleFileService"
 const FILE_SERVICE_DEFAULT_PORT = "8011"
 const READ_QUORUM = 2
+const WRITE_QUORUM = 3
 const MIN_UPDATE_INTERVAL = 60 * 1000
 
 type RPCResultType int8
@@ -40,7 +42,7 @@ type StoreFileArgs struct {
 	masterNodeId int
 	SdfsName     string
 	Ts           int
-	Content      string
+	Content      []byte
 }
 
 const (
@@ -111,9 +113,32 @@ func (fileService *FileService) PutFileRequest(args PutFileArgs, result *RPCResu
 	// if GetMillisecond-file_ts < MIN_UPDATE_INTERVAL {
 	// TODO:	promp to user
 	// }
+	targetAddresses := fileService.node.GetResponsibleAddresses(args.SdfsName)
+	masterId := fileService.node.GetMasterID(args.SdfsName)
+	ts := GetMillisecond()
+	data, err := ioutil.ReadFile(args.LocalName)
+	if err != nil {
+		SLOG.Println(err)
+		*result = RPC_FAIL
+		return err
+	}
+	c := make(chan int, 4)
+	for _, addr := range targetAddresses {
+		go PutFile(masterId, ts, addr, args.SdfsName, data, c)
+	}
 
+	for i := 0; i < WRITE_QUORUM && i < len(targetAddresses); i++ {
+		select {
+		case <-c:
+			continue
+		case <-time.After(10 * time.Second):
+			SLOG.Printf("[WTF] waiting too long when putting file: %s", args.LocalName)
+			*result = RPC_FAIL
+			return err
+		}
+	}
 	*result = RPC_SUCCESS
-	return nil
+	return err
 }
 
 // Executed in coordinator
@@ -129,6 +154,7 @@ func (fileService *FileService) GetFileRequest(args []string, result *RPCResultT
 	}
 	err = ioutil.WriteFile(localPath, data, 0777)
 	if err != nil {
+		SLOG.Println(localPath, err)
 		*result = RPC_FAIL
 		return err
 	}
@@ -149,10 +175,10 @@ func (fileService *FileService) GetTimeStamp(sdfsFileName string, timestamp *int
 func (fileService *FileService) StoreFileToLocal(args StoreFileArgs, result *RPCResultType) error {
 	filePath := LOCAL_PATH_ROOT + "/" + args.SdfsName
 	fileService.node.FileList.PutFileInfo(args.SdfsName, LOCAL_PATH_ROOT, args.Ts, args.masterNodeId)
-	content_bytes := []byte(args.Content)
+	content_bytes := args.Content
 	err := ioutil.WriteFile(filePath, content_bytes, 0777)
 	if err != nil {
-		SLOG.Print(err)
+		SLOG.Println(err)
 	}
 	*result = RPC_SUCCESS
 	return nil
@@ -180,7 +206,7 @@ func CallLs(address, sdfsfilename string) []string {
 }
 
 /** from coordinator **/
-func PutFile(masterNodeID int, timestamp int, address, sdfsfilename, content string) {
+func PutFile(masterNodeID int, timestamp int, address, sdfsfilename string, content []byte, c chan int) {
 	client := DialFileService(address)
 	var reply RPCResultType
 	args := StoreFileArgs{masterNodeID, sdfsfilename, timestamp, content}
@@ -188,6 +214,8 @@ func PutFile(masterNodeID int, timestamp int, address, sdfsfilename, content str
 	if send_err != nil {
 		log.Fatal("send_err:", send_err)
 	}
+	SLOG.Printf("[PutFile] destination: %s, filename: %s", address, sdfsfilename)
+	c <- 1
 }
 
 func GetFile(address, sdfsfilename string, data *[]byte) error {

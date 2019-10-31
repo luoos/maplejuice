@@ -29,6 +29,7 @@ func deleteDummyFile(filename string) {
 
 func TestRegisterFileService(t *testing.T) {
 	node0 := node.CreateNode("0.0.0.0", "9200", "9300")
+	node0.InitMemberList()
 	go node0.StartRPCFileService()
 	time.Sleep(50 * time.Millisecond)
 	filename := "/tmp/dummyrpcfile"
@@ -74,9 +75,11 @@ func TestPutAndGetFileRPC(t *testing.T) {
 	go master.StartRPCFileService()
 	time.Sleep(50 * time.Millisecond)
 	sdfsfilename := "testFilename"
-	content := "this is my file content"
-	node.PutFile(master.Id, 1, "0.0.0.0:9321", sdfsfilename, content)
-	assert(string(node.GetFile("0.0.0.0:9321", sdfsfilename)) == content, "wrong")
+	content := []byte("this is my file content")
+	node.PutFile(master.Id, 1, "0.0.0.0:9321", sdfsfilename, content, make(chan int, 4))
+	var data []byte
+	node.GetFile("0.0.0.0:9321", sdfsfilename, &data)
+	assert(string(data) == string(content), "wrong")
 }
 
 func TestLs(t *testing.T) {
@@ -127,15 +130,13 @@ func TestGetFileFromClient(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 	coorFsAddress := "0.0.0.0:19500"
 	sdfsfilename := "testFilename"
-	content := "this is my file content"
-	node.PutFile(coordinator.Id, 1, coorFsAddress, sdfsfilename, content)
+	content := []byte("this is my file content")
+	node.PutFile(coordinator.Id, 1, coorFsAddress, sdfsfilename, content, make(chan int, 4))
 	client := getDcliClient(coorFsAddress)
 	var res node.RPCResultType
-	localpath := "/Users/samshen/distributed_log_querier/gotTestFile"
-	client.Call(node.FileServiceName+coorFsAddress+".GetFileRequest", []string{sdfsfilename, localpath}, &res)
+	localpath := "/tmp/gotTestFile"
+	err := client.Call(node.FileServiceName+coorFsAddress+".GetFileRequest", []string{sdfsfilename, localpath}, &res)
+	assert(err == nil, "err")
 	data, _ := ioutil.ReadFile(localpath)
-	assert(string(data) == content, "wrong data")
-	// assert(fileContent == content, "wrong")
-	// log.Printf("master %+v", master.FileList.FileMap)
-	// log.Printf("coordinator %+v", coordinator.FileList.FileMap)
+	assert(string(data) == string(content), "wrong data")
 }
