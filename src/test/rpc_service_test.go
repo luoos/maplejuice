@@ -106,3 +106,36 @@ func TestLs(t *testing.T) {
 		addrs[2] == "0.0.0.0:9421" &&
 		addrs[3] == "0.0.0.0:9431", "wrong order")
 }
+
+func getDcliClient(address string) *rpc.Client {
+	client, err := rpc.Dial("tcp", address)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return client
+}
+
+func TestGetFileFromClient(t *testing.T) {
+	coordinator := node.CreateNode("0.0.0.0", "9500", "19500")
+	master := node.CreateNode("0.0.0.0", "9501", "19501")
+	coordinator.InitMemberList()
+	go coordinator.MonitorInputPacket()
+	go coordinator.StartRPCFileService()
+	master.Join(coordinator.IP + ":" + coordinator.Port)
+	go master.MonitorInputPacket()
+	go master.StartRPCFileService()
+	time.Sleep(50 * time.Millisecond)
+	coorFsAddress := "0.0.0.0:19500"
+	sdfsfilename := "testFilename"
+	content := "this is my file content"
+	node.PutFile(coordinator.Id, 1, coorFsAddress, sdfsfilename, content)
+	client := getDcliClient(coorFsAddress)
+	var res node.RPCResultType
+	localpath := "/Users/samshen/distributed_log_querier/gotTestFile"
+	client.Call(node.FileServiceName+coorFsAddress+".GetFileRequest", []string{sdfsfilename, localpath}, &res)
+	data, _ := ioutil.ReadFile(localpath)
+	assert(string(data) == content, "wrong data")
+	// assert(fileContent == content, "wrong")
+	// log.Printf("master %+v", master.FileList.FileMap)
+	// log.Printf("coordinator %+v", coordinator.FileList.FileMap)
+}

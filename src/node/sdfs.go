@@ -3,6 +3,7 @@ package node
 import (
 	"hash/fnv"
 	"log"
+	. "slogger"
 )
 
 const DEBUG = false
@@ -23,14 +24,15 @@ func (node *Node) GetMasterID(sdfsfilename string) int {
 	fileHashID := getHashID(sdfsfilename)
 	var prevId int = -1
 	for curId, _ := range node.MbList.Member_map {
-		prevId = node.MbList.GetPrevKNodes(curId, 1)[0].Id
-		if prevId < fileHashID && fileHashID <= curId {
+		prevId = node.MbList.GetNode(curId).GetPrevNode().Id
+		if prevId == curId {
+			return curId
+		} else if prevId < fileHashID && fileHashID <= curId {
 			if DEBUG {
 				log.Printf("first case: prevId %d, fileHashID %d, curId %d", prevId, fileHashID, curId)
 			}
 			return curId
-		}
-		if prevId > curId && (fileHashID > prevId || fileHashID <= curId) {
+		} else if prevId > curId && (fileHashID > prevId || fileHashID <= curId) {
 			if DEBUG {
 				log.Printf("second case: prevId %d, fileHashID %d, curId %d", prevId, fileHashID, curId)
 			}
@@ -80,6 +82,10 @@ func (node *Node) GetAddressOfLatestTS(sdfsfilename string) (string, int) {
 		pair := <-c
 		address := pair.Address
 		timestamp := pair.Ts
+		if timestamp == -1 {
+			SLOG.Print("FileNotExists in FileInfo")
+			log.Print("FileNotExists in FileInfo")
+		}
 		if timestamp > max_timestamp {
 			max_timestamp = timestamp
 			max_address = address
