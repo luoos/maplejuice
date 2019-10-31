@@ -125,7 +125,6 @@ func getFileFromSystem(sdfsName, localName string) {
 		fmt.Printf("Failed to get file %s\n", sdfsName)
 		fmt.Println(err)
 	}
-
 }
 
 func deleteFileFromSystem(sdfsName string) {

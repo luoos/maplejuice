@@ -46,6 +46,7 @@ type StoreFileArgs struct {
 const (
 	RPC_SUCCESS     RPCResultType = 1 << 0
 	RPC_DUMMY       RPCResultType = 1 << 1
+	RPC_FAIL        RPCResultType = 1 << 2
 	LOCAL_PATH_ROOT               = "/apps/files"
 )
 
@@ -120,10 +121,19 @@ func (fileService *FileService) GetFileRequest(args []string, result *RPCResultT
 	sdfsName := args[0]
 	localPath := args[1]
 	file_addr, _ := fileService.node.GetAddressOfLatestTS(sdfsName)
-	data := GetFile(file_addr, sdfsName)
-	err := ioutil.WriteFile(localPath, data, 0777)
+	var data []byte
+	err := GetFile(file_addr, sdfsName, &data)
+	if err != nil {
+		*result = RPC_FAIL
+		return err
+	}
+	err = ioutil.WriteFile(localPath, data, 0777)
+	if err != nil {
+		*result = RPC_FAIL
+		return err
+	}
 	*result = RPC_DUMMY
-	return err
+	return nil
 }
 
 func (fileService *FileService) Ls(sdfsfilename string, addrs *[]string) error {
@@ -151,11 +161,8 @@ func (fileService *FileService) StoreFileToLocal(args StoreFileArgs, result *RPC
 func (fileService *FileService) ServeLocalFile(sdfsfilename string, result *[]byte) error {
 	fileinfo := fileService.node.FileList.GetFileInfo(sdfsfilename)
 	data, err := ioutil.ReadFile(fileinfo.Localpath)
-	if err != nil {
-		log.Fatal(err)
-	}
 	*result = data
-	return nil
+	return err
 }
 
 /* Callee end */
@@ -183,14 +190,13 @@ func PutFile(masterNodeID int, timestamp int, address, sdfsfilename, content str
 	}
 }
 
-func GetFile(address, sdfsfilename string) []byte {
+func GetFile(address, sdfsfilename string, data *[]byte) error {
 	sender := DialFileService(address)
-	var file_content []byte
-	send_err := sender.Call(FileServiceName+address+".ServeLocalFile", sdfsfilename, &file_content)
+	send_err := sender.Call(FileServiceName+address+".ServeLocalFile", sdfsfilename, data)
 	if send_err != nil {
 		log.Fatal("send_err:", send_err)
 	}
-	return file_content
+	return send_err
 }
 
 func CallGetTimeStamp(address, sdfsFileName string, c chan Pair) {
