@@ -53,6 +53,7 @@ func TestBroadCast(t *testing.T) {
 	go node2.MonitorInputPacket()
 	go node3.MonitorInputPacket()
 	node2.Join(node1.IP + ":" + node1.Port)
+	time.Sleep(500 * time.Millisecond)
 	if node1.MbList.Size != 2 {
 		t.Fatal("wrong2")
 	}

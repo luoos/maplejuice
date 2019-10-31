@@ -1,8 +1,10 @@
 package test
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/rpc"
 	"node"
 	"os"
@@ -119,8 +121,8 @@ func getDcliClient(address string) *rpc.Client {
 }
 
 func TestGetFileFromClient(t *testing.T) {
-	coordinator := node.CreateNode("0.0.0.0", "9500", "19500")
-	master := node.CreateNode("0.0.0.0", "9501", "19501")
+	coordinator := node.CreateNode("0.0.0.0", "9510", "19510")
+	master := node.CreateNode("0.0.0.0", "9511", "19511")
 	coordinator.InitMemberList()
 	go coordinator.MonitorInputPacket()
 	go coordinator.StartRPCFileService()
@@ -128,7 +130,7 @@ func TestGetFileFromClient(t *testing.T) {
 	go master.MonitorInputPacket()
 	go master.StartRPCFileService()
 	time.Sleep(50 * time.Millisecond)
-	coorFsAddress := "0.0.0.0:19500"
+	coorFsAddress := "0.0.0.0:19510"
 	sdfsfilename := "testFilename"
 	content := []byte("this is my file content")
 	node.PutFile(coordinator.Id, 1, coorFsAddress, sdfsfilename, content, make(chan int, 4))
@@ -139,4 +141,24 @@ func TestGetFileFromClient(t *testing.T) {
 	assert(err == nil, "err")
 	data, _ := ioutil.ReadFile(localpath)
 	assert(string(data) == string(content), "wrong data")
+}
+
+func TestPutFileFromClient(t *testing.T) {
+	coordinator := node.CreateNode("0.0.0.0", "9500", "19500")
+	coordinator.InitMemberList()
+	go coordinator.MonitorInputPacket()
+	go coordinator.StartRPCFileService()
+	time.Sleep(50 * time.Millisecond)
+	coorFsAddress := "0.0.0.0:19500"
+	src := "/tmp/dummyrpcfile"
+	random_token := rand.Int()
+	content := fmt.Sprintf("this is my file content %d", random_token)
+	writeDummyFile(src, content)
+	defer deleteDummyFile(src)
+	dest := "destfile"
+	client := getDcliClient(coorFsAddress)
+	var reply node.RPCResultType
+	client.Call(node.FileServiceName+coorFsAddress+".PutFileRequest", node.PutFileArgs{src, dest, false}, &reply)
+	data, _ := ioutil.ReadFile(node.LOCAL_PATH_ROOT + "/" + dest)
+	assert(string(data) == content, "wrong")
 }

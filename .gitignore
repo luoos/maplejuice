@@ -23,6 +23,7 @@ github.com/
 
 # Unwanted folder
 sample_logs/
+bin/
 
 # Binary file
 client
