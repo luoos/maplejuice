@@ -39,6 +39,7 @@ func main() {
 	SLOG.Printf("Hostname: %s", addr)
 	node := node.CreateNode(addr, PORT, node.FILE_SERVICE_DEFAULT_PORT)
 	go node.MonitorInputPacket()
+	go node.StartRPCFileService()
 	add, success := node.ScanIntroducer(SERVER_LIST)
 	if success {
 		node.Join(add)
