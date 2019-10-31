@@ -1,2 +1,2 @@
 #!/bin/bash
-pssh -i scripts/servers "rm /apps/logs/node.log"
+pssh -h "scripts/servers" -i "rm /apps/logs/node.log"

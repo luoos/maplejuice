@@ -1,5 +1,5 @@
 #!/bin/bash
-./scripts/build.sh mp2
+./scripts/build.sh
 for h in `cat ./scripts/servers`;
 do
     scp ./node_starter $h:/usr/app/dnode;
