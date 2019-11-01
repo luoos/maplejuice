@@ -42,6 +42,8 @@ func TestInitNode(t *testing.T) {
 }
 
 func TestBroadCast(t *testing.T) {
+	t.SkipNow()
+	SLOG.Println("Start TestBroadCast1")
 	node1 := node.CreateNode("0.0.0.0", "9010", "19010")
 	node2 := node.CreateNode("0.0.0.0", "9011", "19011")
 	node3 := node.CreateNode("0.0.0.0", "9012", "19012")
@@ -53,9 +55,8 @@ func TestBroadCast(t *testing.T) {
 	go node2.MonitorInputPacket()
 	go node3.MonitorInputPacket()
 	node2.Join(node1.IP + ":" + node1.Port)
-	time.Sleep(500 * time.Millisecond)
 	if node1.MbList.Size != 2 {
-		t.Fatal("wrong2")
+		t.Fatal("wrong22")
 	}
 	if node2.MbList.Size != 2 {
 		t.Fatal("wrong3")
@@ -240,7 +241,7 @@ func TestFindIntroducer(t *testing.T) {
 		t.Fatal("wrong")
 	}
 	node2.Join("0.0.0.0:9050")
-	time.Sleep(1 * time.Second)
+	time.Sleep(500 * time.Millisecond)
 	node4 := node.CreateNode("0.0.0.0", "9053", "")
 	go node4.MonitorInputPacket()
 	introducer, success = node4.ScanIntroducer([]string{"0.0.0.0:9050", "0.0.0.0:9051"})
@@ -248,9 +249,9 @@ func TestFindIntroducer(t *testing.T) {
 		t.Fatal("wrong")
 	}
 	node4.Join(introducer)
-	time.Sleep(1 * time.Second)
+	time.Sleep(500 * time.Millisecond)
 	if node4.MbList.Size != 3 {
-		t.Fail()
+		t.Fatal("wrong f")
 	}
 }
 

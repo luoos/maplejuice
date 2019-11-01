@@ -76,7 +76,7 @@ func TestGetResponsibleFileWithID(t *testing.T) {
 		fl.PutFileInfoObject(sdfsfilename, fi)
 		//log.Printf("%+v\n", fi)
 	}
-	files := fl.GetResponsibleFileWithID(-1, 1024)
+	files := fl.GetFilesInRange(-1, 1024)
 	if len(files) != 10 {
 		t.Fatal("didn't get right files")
 	}
@@ -130,4 +130,18 @@ func TestUpdateMasterId(t *testing.T) {
 		return fileInfo.Timestamp == 20
 	})
 	assert(fl.GetFileInfo("testFilename4").MasterNodeID == 50, "wrong4")
+}
+
+func TestDeleteFileInfosOutOfRange(t *testing.T) {
+	fl := node.CreateFileList(1)
+	fl.PutFileInfoTest(1, "testFilename1", "/app/fs", 1, 2)
+	fl.PutFileInfoTest(2, "testFilename2", "/app/fs", 4, 3)
+	fl.PutFileInfoTest(3, "testFilename3", "/app/fs", 6, 40)
+	fl.PutFileInfoTest(4, "testFilename4", "/app/fs", 10, 40)
+	fl.PutFileInfoTest(5, "testFilename5", "/app/fs", 20, 128)
+	toDelete := fl.DeleteFileInfosOutOfRange(2, 4)
+	assert(len(toDelete) == 3, "wrong len")
+	assert(len(fl.FileMap) == 2, "wrong size")
+	assert(fl.GetFileInfo("testFilename1") == nil, "should not exist")
+	assert(fl.GetFileInfo("testFilename3") != nil, "should exist")
 }

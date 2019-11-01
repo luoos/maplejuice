@@ -18,6 +18,7 @@ type Node struct {
 	timerMap           map[int]*time.Timer
 	mapLock            *sync.Mutex
 	FileList           *FileList
+	exit               bool
 }
 
 type Packet struct {
@@ -125,6 +126,7 @@ func (node *Node) Leave() {
 	}
 	node.MbList.DeleteNode(node.Id)
 	node.Broadcast(deleteNodePacket)
+	node.exit = true
 }
 
 func (node *Node) SendHeartbeat() {
@@ -189,8 +191,23 @@ func (node *Node) handlePacket(packet Packet) {
 		node.FileList.UpdateMasterID(packet.Id, func(fileInfo *FileInfo) bool {
 			return IsInCircleRange(fileInfo.HashID, prev_node_id+1, packet.Id)
 		})
+
+		node.DeleteRedundantFile()
 	case ACTION_DELETE_NODE:
-		SLOG.Printf("[Node %d] Received ACTION_DELETE_NODE (%d), source: %s", node.Id, packet.Id, packet.IP)
+		SLOG.Printf("[Node %d] Received ACTION_DELETE_NODE (%d), source: %s, port: %s", node.Id, packet.Id, packet.IP, packet.Port)
+
+		to_delete_node := node.MbList.GetNode(packet.Id)
+		if to_delete_node == nil {
+			break
+		} else if to_delete_node.Id == node.Id {
+			SLOG.Println("Going to delete self, exiting...")
+			node.exit = true
+		}
+		next_node_id := to_delete_node.GetNextNode().Id
+		node.FileList.UpdateMasterID(next_node_id, func(fileInfo *FileInfo) bool {
+			return fileInfo.MasterNodeID == packet.Id
+		})
+
 		lose_heartbeat := node.isPrevKNodes(packet.Id)
 		node.MbList.DeleteNode(packet.Id)
 		if lose_heartbeat {
@@ -201,11 +218,6 @@ func (node *Node) handlePacket(packet Packet) {
 				}
 			}
 		}
-
-		next_node_id := node.MbList.GetNode(packet.Id).GetNextNode().Id
-		node.FileList.UpdateMasterID(next_node_id, func(fileInfo *FileInfo) bool {
-			return fileInfo.MasterNodeID == packet.Id
-		})
 	case ACTION_JOIN:
 		reply_address := packet.IP + ":" + packet.Port
 		new_id := packet.Id
@@ -273,6 +285,9 @@ func (node *Node) MonitorInputPacket() {
 	}
 	defer conn.Close()
 	for {
+		if node.exit {
+			break
+		}
 		buf := make([]byte, 4096)
 		length, _, err := conn.ReadFrom(buf)
 		if err != nil {
@@ -328,6 +343,7 @@ func (node *Node) nodeTimeOut(id int) {
 		Action: ACTION_DELETE_NODE,
 		Id:     id,
 		IP:     node.IP,
+		Port:   node.Port,
 	}
 	node.Broadcast(deleteNodePacket)
 	node.MbList.DeleteNode(id)

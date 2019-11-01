@@ -63,6 +63,21 @@ func (fl *FileList) PutFileInfo(
 	}
 }
 
+func (fl *FileList) PutFileInfoTest(
+	hashId int,
+	sdfsfilename string,
+	localpath string,
+	timestamp int,
+	masterNodeID int) {
+	fl.FileMap[sdfsfilename] = &FileInfo{
+		HashID:       hashId,
+		Sdfsfilename: sdfsfilename,
+		Localpath:    localpath + "/" + sdfsfilename,
+		Timestamp:    timestamp,
+		MasterNodeID: masterNodeID,
+	}
+}
+
 func (fl *FileList) DeleteFileInfo(sdfsfilename string) bool {
 	if fl.GetFileInfo(sdfsfilename) == nil {
 		log.Fatal("File not found")
@@ -92,12 +107,27 @@ func (fl *FileList) GetTimeStamp(sdfsfilename string) int {
 	return fl.FileMap[sdfsfilename].Timestamp
 }
 
-func (fl *FileList) GetResponsibleFileWithID(startID, endID int) []string {
+func (fl *FileList) GetFilesInRange(startID, endID int) []string {
 	res := []string{}
 	for _, fi := range fl.FileMap {
 		if IsInCircleRange(fi.HashID, startID+1, endID) {
 			res = append(res, fi.Sdfsfilename)
 		}
+	}
+	return res
+}
+
+func (fl *FileList) DeleteFileInfosOutOfRange(start, end int) []string {
+	res := []string{}
+	toDelete := []string{}
+	for _, fi := range fl.FileMap {
+		if !IsInCircleRange(fi.HashID, start+1, end) {
+			res = append(res, fi.Localpath)
+			toDelete = append(toDelete, fi.Sdfsfilename)
+		}
+	}
+	for _, n := range toDelete {
+		fl.DeleteFileInfo(n)
 	}
 	return res
 }

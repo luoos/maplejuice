@@ -3,6 +3,7 @@ package node
 import (
 	"hash/fnv"
 	"log"
+	"os"
 	. "slogger"
 )
 
@@ -83,4 +84,19 @@ func (node *Node) GetAddressOfLatestTS(sdfsfilename string) (string, int) {
 		}
 	}
 	return max_address, max_timestamp
+}
+
+func (node *Node) DeleteRedundantFile() {
+	prev_four_nodes := node.MbList.GetPrevKNodes(node.Id, 4)
+	if len(prev_four_nodes) == 4 {
+		prev_4 := prev_four_nodes[3]
+		toDelete := node.FileList.DeleteFileInfosOutOfRange(prev_4.Id, node.Id)
+		for _, path := range toDelete {
+			err := os.Remove(path)
+			if err != nil {
+				SLOG.Printf("Fail to remove file %s", path)
+				SLOG.Panicln(err)
+			}
+		}
+	}
 }
