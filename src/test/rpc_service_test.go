@@ -98,7 +98,7 @@ func TestLs(t *testing.T) {
 	node2.Join(coordinator.IP + ":" + coordinator.Port)
 	node3.Join(coordinator.IP + ":" + coordinator.Port)
 	go coordinator.StartRPCFileService()
-	time.Sleep(50 * time.Millisecond)
+	time.Sleep(500 * time.Millisecond)
 	address := "0.0.0.0:9401"
 	sdfsfilename := "testFilename"
 	addrs := node.CallLs(address, sdfsfilename)

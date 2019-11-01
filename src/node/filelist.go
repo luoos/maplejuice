@@ -15,7 +15,7 @@ type FileInfo struct {
 
 type FileList struct {
 	ID      int
-	FileMap map[int]map[string]*FileInfo
+	FileMap map[string]*FileInfo
 }
 
 func CreateFileInfo(hashID int,
@@ -34,7 +34,7 @@ func CreateFileInfo(hashID int,
 }
 
 func CreateFileList(selfID int) *FileList {
-	return &FileList{ID: selfID, FileMap: make(map[int]map[string]*FileInfo)}
+	return &FileList{ID: selfID, FileMap: make(map[string]*FileInfo)}
 }
 
 // PutFileInfoObject is used For testing
@@ -42,11 +42,7 @@ func (fl *FileList) PutFileInfoObject(sdfsfilename string, fi *FileInfo) {
 	if fl.GetFileInfo(sdfsfilename) != nil {
 		SLOG.Printf("%s already exist, updating all metainfo", sdfsfilename)
 	}
-	hashid := getHashID(sdfsfilename)
-	if fl.FileMap[hashid] == nil {
-		fl.FileMap[hashid] = make(map[string]*FileInfo)
-	}
-	fl.FileMap[hashid][sdfsfilename] = fi
+	fl.FileMap[sdfsfilename] = fi
 }
 
 func (fl *FileList) PutFileInfo(
@@ -58,10 +54,7 @@ func (fl *FileList) PutFileInfo(
 		SLOG.Printf("%s already exist, updating all metainfo", sdfsfilename)
 	}
 	hashid := getHashID(sdfsfilename)
-	if fl.FileMap[hashid] == nil {
-		fl.FileMap[hashid] = make(map[string]*FileInfo)
-	}
-	fl.FileMap[hashid][sdfsfilename] = &FileInfo{
+	fl.FileMap[sdfsfilename] = &FileInfo{
 		HashID:       hashid,
 		Sdfsfilename: sdfsfilename,
 		Localpath:    localpath + "/" + sdfsfilename,
@@ -74,42 +67,34 @@ func (fl *FileList) DeleteFileInfo(sdfsfilename string) bool {
 	if fl.GetFileInfo(sdfsfilename) == nil {
 		log.Fatal("File not found")
 	}
-	hashid := getHashID(sdfsfilename)
-	delete(fl.FileMap[hashid], sdfsfilename)
+	delete(fl.FileMap, sdfsfilename)
 	return true
 }
 
 func (fl *FileList) GetFileInfo(sdfsfilename string) *FileInfo {
-	hashid := getHashID(sdfsfilename)
-	if fl.FileMap[hashid] == nil {
-		return nil
-	}
-	return fl.FileMap[hashid][sdfsfilename]
+	return fl.FileMap[sdfsfilename]
 }
 
-func (fl *FileList) GetAllFileInfo() []*FileInfo {
-	res := make([]*FileInfo, 0)
-	for _, innerMap := range fl.FileMap {
-		for _, fileinfo := range innerMap {
-			res = append(res, fileinfo)
-		}
-	}
-	return res
-}
+// func (fl *FileList) GetAllFileInfo() []*FileInfo {
+// 	res := make([]*FileInfo, 0)
+// 	for _, innerMap := range fl.FileMap {
+// 		for _, fileinfo := range innerMap {
+// 			res = append(res, fileinfo)
+// 		}
+// 	}
+// 	return res
+// }
 
 func (fl *FileList) GetTimeStamp(sdfsfilename string) int {
-	hashid := getHashID(sdfsfilename)
-	if fl.FileMap[hashid] == nil {
-		return -1
-	} else if fl.FileMap[hashid][sdfsfilename] == nil {
+	if fl.FileMap[sdfsfilename] == nil {
 		return -1
 	}
-	return fl.FileMap[hashid][sdfsfilename].Timestamp
+	return fl.FileMap[sdfsfilename].Timestamp
 }
 
 func (fl *FileList) GetResponsibleFileWithID(startID, endID int) []string {
 	res := []string{}
-	for _, fi := range fl.GetAllFileInfo() {
+	for _, fi := range fl.FileMap {
 		if IsInCircleRange(fi.HashID, startID+1, endID) {
 			res = append(res, fi.Sdfsfilename)
 		}

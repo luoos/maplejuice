@@ -100,16 +100,16 @@ func TestGetTimeStamp(t *testing.T) {
 	}
 }
 
-func TestGetAllFileInfo(t *testing.T) {
-	fl := node.CreateFileList(1)
-	fl.PutFileInfo("testFilename", "/app/fs", 10, 128)
-	fl.PutFileInfo("testFilename1", "/app/fs", 10, 128)
-	fl.PutFileInfo("testFilename2", "/app/fs", 10, 128)
-	fl.PutFileInfo("testFilename3", "/app/fs", 10, 128)
-	fl.PutFileInfo("testFilename4", "/app/fs", 10, 128)
-	flList := fl.GetAllFileInfo()
-	flList[0].MasterNodeID = 0
-	filename := flList[0].Sdfsfilename
-	fileInfo := fl.GetFileInfo(filename)
-	assert(fileInfo.MasterNodeID == 0, "wrong id")
-}
+// func TestGetAllFileInfo(t *testing.T) {
+// 	fl := node.CreateFileList(1)
+// 	fl.PutFileInfo("testFilename", "/app/fs", 10, 128)
+// 	fl.PutFileInfo("testFilename1", "/app/fs", 10, 128)
+// 	fl.PutFileInfo("testFilename2", "/app/fs", 10, 128)
+// 	fl.PutFileInfo("testFilename3", "/app/fs", 10, 128)
+// 	fl.PutFileInfo("testFilename4", "/app/fs", 10, 128)
+// 	flList := fl.GetAllFileInfo()
+// 	flList[0].MasterNodeID = 0
+// 	filename := flList[0].Sdfsfilename
+// 	fileInfo := fl.GetFileInfo(filename)
+// 	assert(fileInfo.MasterNodeID == 0, "wrong id")
+// }
