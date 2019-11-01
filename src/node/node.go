@@ -20,6 +20,7 @@ type Node struct {
 	FileList           *FileList
 	exit               bool
 	File_dir           string
+	file_service_on    bool
 }
 
 type Packet struct {
@@ -189,12 +190,15 @@ func (node *Node) handlePacket(packet Packet) {
 		node.MbList.InsertNode(packet.Id, packet.IP, packet.Port, packet.RPC_Port, GetMillisecond())
 		node.monitorIfNecessary(packet.Id)
 
-		prev_node_id := node.MbList.GetNode(packet.Id).GetPrevNode().Id
-		node.FileList.UpdateMasterID(packet.Id, func(fileInfo *FileInfo) bool {
-			return IsInCircleRange(fileInfo.HashID, prev_node_id+1, packet.Id)
-		})
+		if node.file_service_on {
+			prev_node_id := node.MbList.GetNode(packet.Id).GetPrevNode().Id
+			node.FileList.UpdateMasterID(packet.Id, func(fileInfo *FileInfo) bool {
+				return IsInCircleRange(fileInfo.HashID, prev_node_id+1, packet.Id)
+			})
 
-		node.DeleteRedundantFile()
+			node.DeleteRedundantFile()
+			go node.DuplicateReplica() // TODO: check condition
+		}
 	case ACTION_DELETE_NODE:
 		SLOG.Printf("[Node %d] Received ACTION_DELETE_NODE (%d), source: %s, port: %s", node.Id, packet.Id, packet.IP, packet.Port)
 
@@ -219,6 +223,9 @@ func (node *Node) handlePacket(packet Packet) {
 					node.monitorIfNecessary(item.Id)
 				}
 			}
+		}
+		if node.file_service_on {
+			go node.DuplicateReplica() // TODO: Check condition
 		}
 	case ACTION_JOIN:
 		reply_address := packet.IP + ":" + packet.Port
@@ -247,6 +254,10 @@ func (node *Node) handlePacket(packet Packet) {
 		node.Broadcast(newNodePacket)
 		node.MbList.InsertNode(new_id, packet.IP, packet.Port, packet.RPC_Port, GetMillisecond())
 		node.monitorIfNecessary(new_id)
+
+		if node.file_service_on {
+			go node.DuplicateReplica() // TODO: check condition
+		}
 	case ACTION_REPLY_JOIN:
 		node.MbList = CreateMemberList(packet.Id, MAX_CAPACITY)
 		SLOG.Printf("[Node %d] Received ACTION_REPLY_JOIN assigned, member cnt: %d", node.Id, len(packet.Map.Member_map))

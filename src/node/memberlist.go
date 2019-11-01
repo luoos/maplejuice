@@ -217,6 +217,15 @@ func (mbList MemberList) GetTimeOutNodes(deadline, id, k int) []MemberNode {
 	return nil
 }
 
+func (mbList MemberList) GetRPCAddressesForNextKNodes(start, k int) []string {
+	next_k_nodes := mbList.GetNextKNodes(start, k)
+	addresses := make([]string, 0)
+	for _, n := range next_k_nodes {
+		addresses = append(addresses, mbList.GetRPCAddress(n.Id))
+	}
+	return addresses
+}
+
 func (mbList *MemberList) ToJson() []byte {
 	bytes, _ := json.Marshal(mbList)
 	return bytes

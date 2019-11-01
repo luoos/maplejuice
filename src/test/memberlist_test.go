@@ -239,3 +239,16 @@ func TestDumpToTmpFile(t *testing.T) {
 	// 	t.Fatal(err)
 	// }
 }
+
+func TestGetAddressesForNextKNodes(t *testing.T) {
+	mbList := node.CreateMemberList(0, 10)
+	mbList.InsertNode(0, "192.169.163.111", "91", "", 1)
+	mbList.InsertNode(1, "0.2.0.0", "92", "1", rand.Intn(100))
+	mbList.InsertNode(2, "0.0.3.0", "93", "1", 100)
+	mbList.InsertNode(3, "0.0.0.4", "94", "1", 1)
+	mbList.InsertNode(4, "0.0.0.7", "95", "1", int(time.Now().UnixNano()/1000000))
+	addresses := mbList.GetRPCAddressesForNextKNodes(0, 3)
+	assert(len(addresses) == 3, "wrong len")
+	assert(addresses[0] == "0.2.0.0:1" &&
+		addresses[2] == "0.0.0.4:1", "wrong address")
+}

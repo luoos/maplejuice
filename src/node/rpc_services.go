@@ -81,6 +81,7 @@ func (node *Node) StartRPCFileService() {
 	if err != nil {
 		log.Fatal("ListenTCP error:", err)
 	}
+	node.file_service_on = true
 	for {
 		conn, err := listener.Accept()
 		if err != nil {

@@ -394,3 +394,20 @@ func TestInCircleRange(t *testing.T) {
 	assert(!node.IsInCircleRange(5, 6, 10), "wrong")
 	assert(!node.IsInCircleRange(11, 0, 10), "wrong")
 }
+
+func TestPassRPCPort(t *testing.T) {
+	node1 := node.CreateNode("0.0.0.0", "9110", "9111")
+	node2 := node.CreateNode("0.0.0.0", "9120", "9121")
+	node3 := node.CreateNode("0.0.0.0", "9130", "9131")
+	node1.InitMemberList()
+	go node1.MonitorInputPacket()
+	go node2.MonitorInputPacket()
+	go node3.MonitorInputPacket()
+	node2.Join(node1.IP + ":" + node1.Port)
+	node3.Join(node1.IP + ":" + node1.Port)
+	node2_get := node1.MbList.GetNode(node2.Id)
+	assert(node2_get.RPC_Port == "9121", "wrong rpc port")
+	time.Sleep(50 * time.Millisecond)
+	node3_get := node2.MbList.GetNode(node3.Id)
+	assert(node3_get.RPC_Port == "9131", "wrong rpc port")
+}

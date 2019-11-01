@@ -2,9 +2,11 @@ package node
 
 import (
 	"hash/fnv"
+	"io/ioutil"
 	"log"
 	"os"
 	. "slogger"
+	"time"
 )
 
 const DEBUG = false
@@ -107,6 +109,39 @@ func (node *Node) DeleteRedundantFile() {
 				SLOG.Printf("Fail to remove file %s", path)
 				SLOG.Panicln(err)
 			}
+		}
+	}
+}
+
+func (node *Node) DuplicateReplica() {
+	ownedFileInfos := node.FileList.GetOwnedFileInfos(node.Id)
+	targetsRPCAddr := node.MbList.GetRPCAddressesForNextKNodes(node.Id, DUPLICATE_CNT-1)
+	for _, info := range ownedFileInfos {
+		node.SendFileIfNecessary(info, targetsRPCAddr)
+	}
+}
+
+func (node *Node) SendFileIfNecessary(info FileInfo, targetRPCAddr []string) {
+	L := len(targetRPCAddr)
+	c := make(chan Pair, L) // TODO: rename Pair to TsPair
+	for _, addr := range targetRPCAddr {
+		go CallGetTimeStamp(addr, info.Sdfsfilename, c)
+	}
+
+	data, err := ioutil.ReadFile(info.Localpath)
+	if err != nil {
+		SLOG.Printf("[Node %d] Fail to read file: %s", node.Id, info.Localpath)
+		return
+	}
+	dummy_chan := make(chan int, L)
+	for i := 0; i < L; i++ {
+		select {
+		case p := <-c:
+			if p.Ts < info.Timestamp {
+				go PutFile(info.MasterNodeID, info.Timestamp, p.Address, info.Sdfsfilename, data, dummy_chan)
+			}
+		case <-time.After(1 * time.Second):
+			SLOG.Printf("[Node %d] Timeout when trying to get timestamp", node.Id)
 		}
 	}
 }

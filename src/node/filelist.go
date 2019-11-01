@@ -164,3 +164,13 @@ func (fl *FileList) UpdateMasterID(new_master_id int, needUpdate func(fileInfo *
 		}
 	}
 }
+
+func (fl *FileList) GetOwnedFileInfos(masterId int) []FileInfo {
+	res := make([]FileInfo, 0)
+	for _, fileInfo := range fl.FileMap {
+		if fileInfo.MasterNodeID == masterId {
+			res = append(res, *fileInfo)
+		}
+	}
+	return res
+}
