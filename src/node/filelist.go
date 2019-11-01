@@ -87,6 +87,16 @@ func (fl *FileList) GetFileInfo(sdfsfilename string) *FileInfo {
 	return fl.FileMap[hashid][sdfsfilename]
 }
 
+func (fl *FileList) GetAllFileInfo() []*FileInfo {
+	res := make([]*FileInfo, 0)
+	for _, innerMap := range fl.FileMap {
+		for _, fileinfo := range innerMap {
+			res = append(res, fileinfo)
+		}
+	}
+	return res
+}
+
 func (fl *FileList) GetTimeStamp(sdfsfilename string) int {
 	hashid := getHashID(sdfsfilename)
 	if fl.FileMap[hashid] == nil {
@@ -97,13 +107,11 @@ func (fl *FileList) GetTimeStamp(sdfsfilename string) int {
 	return fl.FileMap[hashid][sdfsfilename].Timestamp
 }
 
-func (fl *FileList) GetResponsibleFileWithID(prevID, curID int) []string {
+func (fl *FileList) GetResponsibleFileWithID(startID, endID int) []string {
 	res := []string{}
-	for id := prevID + 1; id <= curID; id++ {
-		if fl.FileMap[id] != nil {
-			for filename := range fl.FileMap[id] {
-				res = append(res, filename)
-			}
+	for _, fi := range fl.GetAllFileInfo() {
+		if IsInCircleRange(fi.HashID, startID+1, endID) {
+			res = append(res, fi.Sdfsfilename)
 		}
 	}
 	return res

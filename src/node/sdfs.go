@@ -15,10 +15,10 @@ func getHashID(s string) int {
 	return int(h.Sum32()) % MAX_CAPACITY
 }
 
-// func (node *Node) sendFileTCP(sdfsfilename string, content string) {
-// 	fileHashID := getHashID(sdfsfilename)
-
-// }
+func IsInCircleRange(id, start, end int) bool {
+	return (start < end && start <= id && id <= end) ||
+		(start > end && (start <= id || id <= end))
+}
 
 func (node *Node) GetMasterID(sdfsfilename string) int {
 	fileHashID := getHashID(sdfsfilename)
@@ -27,15 +27,7 @@ func (node *Node) GetMasterID(sdfsfilename string) int {
 		prevId = node.MbList.GetNode(curId).GetPrevNode().Id
 		if prevId == curId {
 			return curId
-		} else if prevId < fileHashID && fileHashID <= curId {
-			if DEBUG {
-				log.Printf("first case: prevId %d, fileHashID %d, curId %d", prevId, fileHashID, curId)
-			}
-			return curId
-		} else if prevId > curId && (fileHashID > prevId || fileHashID <= curId) {
-			if DEBUG {
-				log.Printf("second case: prevId %d, fileHashID %d, curId %d", prevId, fileHashID, curId)
-			}
+		} else if IsInCircleRange(fileHashID, prevId+1, curId) {
 			return curId
 		}
 	}
@@ -84,7 +76,6 @@ func (node *Node) GetAddressOfLatestTS(sdfsfilename string) (string, int) {
 		timestamp := pair.Ts
 		if timestamp == -1 {
 			SLOG.Print("FileNotExists in FileInfo")
-			log.Print("FileNotExists in FileInfo")
 		}
 		if timestamp > max_timestamp {
 			max_timestamp = timestamp
@@ -92,4 +83,9 @@ func (node *Node) GetAddressOfLatestTS(sdfsfilename string) (string, int) {
 		}
 	}
 	return max_address, max_timestamp
+}
+
+func (node *Node) UpdateMasterID(joiner_id int) {
+	// prev_id := node.MbList.GetNode(joiner_id).PrevNode().Id
+	// return
 }

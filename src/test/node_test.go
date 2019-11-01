@@ -181,6 +181,7 @@ func TestHeartbeat(t *testing.T) {
 
 // *** this is for passive monitoring
 func TestCheckFailure(t *testing.T) {
+	t.SkipNow()
 	SLOG.Print("Staring TestCheckFailure.")
 	node1 := node.CreateNode("0.0.0.0", "9040", "")
 	node2 := node.CreateNode("0.0.0.0", "9041", "")
@@ -371,16 +372,24 @@ func TestGetKReplica(t *testing.T) {
 	go node3.MonitorInputPacket()
 	node2.Join(node1.IP + ":" + node1.Port)
 	node3.Join(node1.IP + ":" + node1.Port)
-	node1.MbList.NicePrint()
+	// node1.MbList.NicePrint()
 	hashID := getHashID("testname1")
-	log.Print(hashID)
+	// log.Print(hashID)
 	IDs := node1.GetFirstKReplicaNodeID("testname1", 3)
 	assert(hashID == 917 &&
 		node1.Id == 555 &&
 		node2.Id == 152 &&
 		node3.Id == 337, "wrong setup")
-	log.Print(IDs)
+	// log.Print(IDs)
 	assert(IDs[0] == 152, "wrong algorithm")
 	assert(IDs[1] == 337, "wrong algorithm")
 	assert(IDs[2] == 555, "wrong algorithm")
+}
+
+func TestInCircleRange(t *testing.T) {
+	assert(!node.IsInCircleRange(5, 50, 0), "wrong")
+	assert(node.IsInCircleRange(5, 50, 10), "wrong")
+	assert(node.IsInCircleRange(5, 0, 10), "wrong")
+	assert(!node.IsInCircleRange(5, 6, 10), "wrong")
+	assert(!node.IsInCircleRange(11, 0, 10), "wrong")
 }
