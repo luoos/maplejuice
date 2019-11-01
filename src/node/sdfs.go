@@ -84,8 +84,3 @@ func (node *Node) GetAddressOfLatestTS(sdfsfilename string) (string, int) {
 	}
 	return max_address, max_timestamp
 }
-
-func (node *Node) UpdateMasterID(joiner_id int) {
-	// prev_id := node.MbList.GetNode(joiner_id).PrevNode().Id
-	// return
-}

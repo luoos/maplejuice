@@ -113,3 +113,21 @@ func TestGetTimeStamp(t *testing.T) {
 // 	fileInfo := fl.GetFileInfo(filename)
 // 	assert(fileInfo.MasterNodeID == 0, "wrong id")
 // }
+
+func TestUpdateMasterId(t *testing.T) {
+	fl := node.CreateFileList(1)
+	fl.PutFileInfo("testFilename", "/app/fs", 1, 2)
+	fl.PutFileInfo("testFilename1", "/app/fs", 4, 3)
+	fl.PutFileInfo("testFilename2", "/app/fs", 6, 40)
+	fl.PutFileInfo("testFilename3", "/app/fs", 10, 40)
+	fl.PutFileInfo("testFilename4", "/app/fs", 20, 128)
+	fl.UpdateMasterID(10, func(fileInfo *node.FileInfo) bool {
+		return node.IsInCircleRange(fileInfo.MasterNodeID, 0, 3)
+	})
+	assert(fl.GetFileInfo("testFilename").MasterNodeID == 10, "wrong1")
+	assert(fl.GetFileInfo("testFilename1").MasterNodeID == 10, "wrong2")
+	fl.UpdateMasterID(50, func(fileInfo *node.FileInfo) bool {
+		return fileInfo.Timestamp == 20
+	})
+	assert(fl.GetFileInfo("testFilename4").MasterNodeID == 50, "wrong4")
+}

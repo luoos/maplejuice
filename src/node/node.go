@@ -184,6 +184,11 @@ func (node *Node) handlePacket(packet Packet) {
 		SLOG.Printf("[Node %d] Received ACTION_NEW_NODE (%d, %s:%s)", node.Id, packet.Id, packet.IP, packet.Port)
 		node.MbList.InsertNode(packet.Id, packet.IP, packet.Port, packet.RPC_Port, GetMillisecond())
 		node.monitorIfNecessary(packet.Id)
+
+		prev_node_id := node.MbList.GetNode(packet.Id).GetPrevNode().Id
+		node.FileList.UpdateMasterID(packet.Id, func(fileInfo *FileInfo) bool {
+			return IsInCircleRange(fileInfo.HashID, prev_node_id+1, packet.Id)
+		})
 	case ACTION_DELETE_NODE:
 		SLOG.Printf("[Node %d] Received ACTION_DELETE_NODE (%d), source: %s", node.Id, packet.Id, packet.IP)
 		lose_heartbeat := node.isPrevKNodes(packet.Id)
@@ -196,6 +201,11 @@ func (node *Node) handlePacket(packet Packet) {
 				}
 			}
 		}
+
+		next_node_id := node.MbList.GetNode(packet.Id).GetNextNode().Id
+		node.FileList.UpdateMasterID(next_node_id, func(fileInfo *FileInfo) bool {
+			return fileInfo.MasterNodeID == packet.Id
+		})
 	case ACTION_JOIN:
 		reply_address := packet.IP + ":" + packet.Port
 		new_id := packet.Id

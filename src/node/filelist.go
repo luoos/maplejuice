@@ -101,3 +101,11 @@ func (fl *FileList) GetResponsibleFileWithID(startID, endID int) []string {
 	}
 	return res
 }
+
+func (fl *FileList) UpdateMasterID(new_master_id int, needUpdate func(fileInfo *FileInfo) bool) {
+	for _, fileInfo := range fl.FileMap {
+		if needUpdate(fileInfo) {
+			fileInfo.MasterNodeID = new_master_id
+		}
+	}
+}
