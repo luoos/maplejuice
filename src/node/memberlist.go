@@ -136,21 +136,21 @@ func (mbList *MemberList) UpdateNodeHeartbeat(id, heartbeat_t int) {
 	mbList.DumpToTmpFile()
 }
 
-func (mbList MemberList) GetNode(id int) *MemberNode {
+func (mbList *MemberList) GetNode(id int) *MemberNode {
 	return mbList.Member_map[id]
 }
 
-func (mbList MemberList) GetAddress(id int) string {
+func (mbList *MemberList) GetAddress(id int) string {
 	n := mbList.GetNode(id)
 	return n.Ip + ":" + n.Port
 }
 
-func (mbList MemberList) GetRPCAddress(id int) string {
+func (mbList *MemberList) GetRPCAddress(id int) string {
 	n := mbList.GetNode(id)
 	return n.Ip + ":" + n.RPC_Port
 }
 
-func (mbList MemberList) GetAllAddressesExcludeSelf() []string {
+func (mbList *MemberList) GetAllAddressesExcludeSelf() []string {
 	mbList.lock.Lock()
 	defer mbList.lock.Unlock()
 	res := []string{}
@@ -163,12 +163,12 @@ func (mbList MemberList) GetAllAddressesExcludeSelf() []string {
 	return res
 }
 
-func (mbList MemberList) GetIP(id int) string {
+func (mbList *MemberList) GetIP(id int) string {
 	n := mbList.GetNode(id)
 	return n.Ip
 }
 
-func (mbList MemberList) GetPrevKNodes(id, k int) []MemberNode {
+func (mbList *MemberList) GetPrevKNodes(id, k int) []MemberNode {
 	mbList.lock.Lock()
 	defer mbList.lock.Unlock()
 	node := mbList.GetNode(id)
@@ -185,7 +185,7 @@ func (mbList MemberList) GetPrevKNodes(id, k int) []MemberNode {
 	return arr
 }
 
-func (mbList MemberList) GetNextKNodes(id, k int) []MemberNode {
+func (mbList *MemberList) GetNextKNodes(id, k int) []MemberNode {
 	mbList.lock.Lock()
 	defer mbList.lock.Unlock()
 	node := mbList.GetNode(id)
@@ -203,7 +203,7 @@ func (mbList MemberList) GetNextKNodes(id, k int) []MemberNode {
 }
 
 // *** this is for passive monitoring
-func (mbList MemberList) NodeTimeOut(deadline, id int) bool {
+func (mbList *MemberList) NodeTimeOut(deadline, id int) bool {
 	mbList.lock.Lock()
 	defer mbList.lock.Unlock()
 	node := mbList.GetNode(id)
@@ -216,7 +216,7 @@ func (mbList MemberList) NodeTimeOut(deadline, id int) bool {
 	return node.Heartbeat_t < deadline
 }
 
-func (mbList MemberList) GetTimeOutNodes(deadline, id, k int) []MemberNode {
+func (mbList *MemberList) GetTimeOutNodes(deadline, id, k int) []MemberNode {
 	// Check if previous k nodes (start from id) are timeout
 	previousNodes := mbList.GetPrevKNodes(id, k)
 	timeOutNodes := make([]MemberNode, 0)
@@ -231,7 +231,7 @@ func (mbList MemberList) GetTimeOutNodes(deadline, id, k int) []MemberNode {
 	return nil
 }
 
-func (mbList MemberList) GetRPCAddressesForNextKNodes(start, k int) []string {
+func (mbList *MemberList) GetRPCAddressesForNextKNodes(start, k int) []string {
 	next_k_nodes := mbList.GetNextKNodes(start, k)
 	addresses := make([]string, 0)
 	for _, n := range next_k_nodes {
@@ -260,13 +260,13 @@ func ConstructFromTmpFile() MemberList {
 	}
 	dat, err := ioutil.ReadFile(MEMBER_LIST_FILE)
 	checkErrorFatal(err)
-	var new_mbList MemberList
+	var new_mbList *MemberList
 	err = json.Unmarshal(dat, &new_mbList)
 	checkErrorFatal(err)
 	return new_mbList
 }
 
-func (mblist MemberList) NicePrint() {
+func (mbList *MemberList) NicePrint() {
 	w := tabwriter.NewWriter(os.Stdout, 10, 0, 4, ' ', 0)
 	var keys []int
 	for k, _ := range mblist.Member_map {
