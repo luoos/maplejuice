@@ -1,6 +1,7 @@
 package node
 
 import (
+	"io/ioutil"
 	"log"
 	. "slogger"
 )
@@ -46,36 +47,60 @@ func (fl *FileList) PutFileInfoObject(sdfsfilename string, fi *FileInfo) {
 }
 
 func (fl *FileList) PutFileInfo(
-	sdfsfilename string,
-	localpath string,
+	sdfsName string,
+	filePath string,
 	timestamp int,
 	masterNodeID int) {
-	if fl.GetFileInfo(sdfsfilename) != nil {
-		SLOG.Printf("%s already exist, updating all metainfo", sdfsfilename)
+	if fl.GetFileInfo(sdfsName) != nil {
+		SLOG.Printf("%s already exist, updating all metainfo", sdfsName)
 	}
-	hashid := getHashID(sdfsfilename)
-	fl.FileMap[sdfsfilename] = &FileInfo{
-		HashID:       hashid,
-		Sdfsfilename: sdfsfilename,
-		Localpath:    localpath + "/" + sdfsfilename,
-		Timestamp:    timestamp,
-		MasterNodeID: masterNodeID,
-	}
+	hashid := getHashID(sdfsName)
+	fl.PutFileInfoBase(hashid, sdfsName, filePath, timestamp, masterNodeID)
 }
 
-func (fl *FileList) PutFileInfoTest(
+func (fl *FileList) PutFileInfoBase(
 	hashId int,
 	sdfsfilename string,
-	localpath string,
+	filepath string,
 	timestamp int,
 	masterNodeID int) {
 	fl.FileMap[sdfsfilename] = &FileInfo{
 		HashID:       hashId,
 		Sdfsfilename: sdfsfilename,
-		Localpath:    localpath + "/" + sdfsfilename,
+		Localpath:    filepath,
 		Timestamp:    timestamp,
 		MasterNodeID: masterNodeID,
 	}
+}
+
+func (fl *FileList) StoreFile(
+	sdfsName string,
+	file_dir string,
+	timestamp int,
+	masterNodeID int,
+	data []byte) error {
+
+	hashId := getHashID(sdfsName)
+	return fl.StoreFileBase(hashId, sdfsName, file_dir, timestamp, masterNodeID, data)
+}
+
+// This should only be used in test
+func (fl *FileList) StoreFileBase(
+	hashId int,
+	sdfsName string,
+	file_dir string,
+	timestamp int,
+	masterNodeID int,
+	data []byte) error {
+
+	filepath := file_dir + "/" + sdfsName
+	err := ioutil.WriteFile(filepath, data, 0777)
+	if err != nil {
+		SLOG.Printf("Fail to write file: %s", filepath)
+		return err
+	}
+	fl.PutFileInfoBase(hashId, sdfsName, filepath, timestamp, masterNodeID)
+	return nil
 }
 
 func (fl *FileList) DeleteFileInfo(sdfsfilename string) bool {

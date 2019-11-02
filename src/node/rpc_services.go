@@ -173,15 +173,14 @@ func (fileService *FileService) GetTimeStamp(sdfsFileName string, timestamp *int
 }
 
 func (fileService *FileService) StoreFileToLocal(args StoreFileArgs, result *RPCResultType) error {
-	filePath := fileService.node.File_dir + "/" + args.SdfsName
-	fileService.node.FileList.PutFileInfo(args.SdfsName, fileService.node.File_dir, args.Ts, args.masterNodeId)
-	content_bytes := args.Content
-	err := ioutil.WriteFile(filePath, content_bytes, 0777)
+	err := fileService.node.FileList.StoreFile(args.SdfsName, fileService.node.File_dir, args.Ts, args.masterNodeId, args.Content)
 	if err != nil {
 		SLOG.Println(err)
+		*result = RPC_FAIL
+	} else {
+		*result = RPC_SUCCESS
 	}
-	*result = RPC_SUCCESS
-	return nil
+	return err
 }
 
 func (fileService *FileService) ServeLocalFile(sdfsfilename string, result *[]byte) error {

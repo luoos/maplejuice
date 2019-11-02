@@ -36,15 +36,15 @@ func createDummyFile() (string, *node.FileInfo) {
 func TestAddFileInfo(t *testing.T) {
 	fl := node.CreateFileList(1)
 	sdfsfilename := "testFilename"
-	localpath := "/app/fs"
+	filepath := "/app/files/1"
 	timestamp := 100
 	masterNodeID := 128
-	fl.PutFileInfo(sdfsfilename, localpath, timestamp, masterNodeID)
+	fl.PutFileInfo(sdfsfilename, filepath, timestamp, masterNodeID)
 	fi := fl.GetFileInfo(sdfsfilename)
 	if fi == nil {
 		t.Fatalf("not added")
 	}
-	if fi.Localpath != localpath+"/"+sdfsfilename {
+	if fi.Localpath != filepath {
 		t.Fatalf("unmatched")
 	}
 	if fi.Timestamp != timestamp {
@@ -134,11 +134,11 @@ func TestUpdateMasterId(t *testing.T) {
 
 func TestDeleteFileInfosOutOfRange(t *testing.T) {
 	fl := node.CreateFileList(1)
-	fl.PutFileInfoTest(1, "testFilename1", "/app/fs", 1, 2)
-	fl.PutFileInfoTest(2, "testFilename2", "/app/fs", 4, 3)
-	fl.PutFileInfoTest(3, "testFilename3", "/app/fs", 6, 40)
-	fl.PutFileInfoTest(4, "testFilename4", "/app/fs", 10, 40)
-	fl.PutFileInfoTest(5, "testFilename5", "/app/fs", 20, 128)
+	fl.PutFileInfoBase(1, "testFilename1", "/app/fs", 1, 2)
+	fl.PutFileInfoBase(2, "testFilename2", "/app/fs/1", 4, 3)
+	fl.PutFileInfoBase(3, "testFilename3", "/app/fs/2", 6, 40)
+	fl.PutFileInfoBase(4, "testFilename4", "/app/fs/3", 10, 40)
+	fl.PutFileInfoBase(5, "testFilename5", "/app/fs/4", 20, 128)
 	toDelete := fl.DeleteFileInfosOutOfRange(2, 4)
 	assert(len(toDelete) == 3, "wrong len")
 	assert(len(fl.FileMap) == 2, "wrong size")
