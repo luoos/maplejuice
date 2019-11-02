@@ -21,11 +21,13 @@ type Node struct {
 	exit               bool
 	File_dir           string
 	file_service_on    bool
+	Hostname           string
 }
 
 type Packet struct {
 	Action   ActionType
 	Id       int
+	Hostname string
 	IP       string
 	Port     string
 	RPC_Port string
@@ -69,10 +71,14 @@ func CreateNode(ip, port, rpc_port string) *Node {
 	return node
 }
 
+func (node *Node) UpdateHostname(name string) {
+	node.Hostname = name
+}
+
 func (node *Node) InitMemberList() {
 	SLOG.Printf("[Node %d] Init Membership List", node.Id)
 	node.MbList = CreateMemberList(node.Id, MAX_CAPACITY)
-	node.MbList.InsertNode(node.Id, node.IP, node.Port, node.RPC_Port, GetMillisecond())
+	node.MbList.InsertNode(node.Id, node.IP, node.Port, node.RPC_Port, GetMillisecond(), node.Hostname)
 }
 
 func (node *Node) ScanIntroducer(addresses []string) (string, bool) {
@@ -81,6 +87,7 @@ func (node *Node) ScanIntroducer(addresses []string) (string, bool) {
 		IP:       node.IP,
 		Port:     node.Port,
 		RPC_Port: node.RPC_Port,
+		Hostname: node.Hostname,
 	}
 	for _, introAddr := range addresses {
 		go sendPacketUDP(introAddr, pingPacket)
@@ -111,9 +118,9 @@ func (node *Node) Join(address string) bool {
 	select {
 	case mblistPacket := <-ACK_JOIN:
 		for _, item := range mblistPacket.Map.Member_map {
-			node.MbList.InsertNode(item.Id, item.Ip, item.Port, item.RPC_Port, GetMillisecond())
+			node.MbList.InsertNode(item.Id, item.Ip, item.Port, item.RPC_Port, GetMillisecond(), item.Hostname)
 		}
-		node.MbList.InsertNode(node.Id, node.IP, node.Port, node.RPC_Port, GetMillisecond())
+		node.MbList.InsertNode(node.Id, node.IP, node.Port, node.RPC_Port, GetMillisecond(), node.Hostname)
 		for _, prevNode := range node.MbList.GetPrevKNodes(node.Id, NUM_MONITORS) {
 			node.monitorIfNecessary(prevNode.Id)
 		}
@@ -186,7 +193,7 @@ func (node *Node) handlePacket(packet Packet) {
 	switch packet.Action {
 	case ACTION_NEW_NODE:
 		SLOG.Printf("[Node %d] Received ACTION_NEW_NODE (%d, %s:%s)", node.Id, packet.Id, packet.IP, packet.Port)
-		node.MbList.InsertNode(packet.Id, packet.IP, packet.Port, packet.RPC_Port, GetMillisecond())
+		node.MbList.InsertNode(packet.Id, packet.IP, packet.Port, packet.RPC_Port, GetMillisecond(), packet.Hostname)
 		node.monitorIfNecessary(packet.Id)
 
 		if node.file_service_on {
@@ -249,9 +256,10 @@ func (node *Node) handlePacket(packet Packet) {
 			IP:       packet.IP,
 			Port:     packet.Port,
 			RPC_Port: packet.RPC_Port,
+			Hostname: packet.Hostname,
 		}
 		node.Broadcast(newNodePacket)
-		node.MbList.InsertNode(new_id, packet.IP, packet.Port, packet.RPC_Port, GetMillisecond())
+		node.MbList.InsertNode(new_id, packet.IP, packet.Port, packet.RPC_Port, GetMillisecond(), packet.Hostname)
 		node.monitorIfNecessary(new_id)
 
 		if node.file_service_on {

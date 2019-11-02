@@ -48,7 +48,7 @@ func TestInitNode(t *testing.T) {
 }
 
 func TestBroadCast(t *testing.T) {
-	t.SkipNow()
+	cleanChannel()
 	SLOG.Println("Start TestBroadCast1")
 	node1 := node.CreateNode("0.0.0.0", "9010", "19010")
 	node2 := node.CreateNode("0.0.0.0", "9011", "19011")
@@ -137,6 +137,7 @@ func TestLeaveAndRejoin(t *testing.T) {
 
 func TestHeartbeat(t *testing.T) {
 	SLOG.Print("Staring TESTHEARTBEAT20")
+	cleanChannel()
 	node1 := node.CreateNode("0.0.0.0", "9030", "")
 	node2 := node.CreateNode("0.0.0.0", "9031", "")
 	node3 := node.CreateNode("0.0.0.0", "9032", "")
@@ -189,7 +190,7 @@ func TestHeartbeat(t *testing.T) {
 
 // *** this is for passive monitoring
 func TestCheckFailure(t *testing.T) {
-	t.SkipNow()
+	cleanChannel()
 	SLOG.Print("Staring TestCheckFailure.")
 	node1 := node.CreateNode("0.0.0.0", "9040", "")
 	node2 := node.CreateNode("0.0.0.0", "9041", "")

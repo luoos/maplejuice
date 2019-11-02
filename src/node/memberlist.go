@@ -20,6 +20,7 @@ type MemberNode struct {
 	Id          int
 	Heartbeat_t int
 	JoinTime    string
+	Hostname    string
 	Ip          string
 	Port        string
 	RPC_Port    string
@@ -27,9 +28,9 @@ type MemberNode struct {
 	next        *MemberNode
 }
 
-func CreateMemberNode(id int, ip, port, rpc_port string, heartbeat_t int) *MemberNode {
+func CreateMemberNode(id int, ip, port, rpc_port string, heartbeat_t int, hostname string) *MemberNode {
 	timestamp := time.Now().Format("2006.01.02 15:04:05")
-	new_node := &MemberNode{Id: id, Ip: ip, Port: port, RPC_Port: rpc_port, Heartbeat_t: heartbeat_t, JoinTime: timestamp}
+	new_node := &MemberNode{Id: id, Ip: ip, Port: port, RPC_Port: rpc_port, Heartbeat_t: heartbeat_t, JoinTime: timestamp, Hostname: hostname}
 	new_node.prev = new_node
 	new_node.next = new_node
 	return new_node
@@ -58,14 +59,14 @@ func CreateMemberList(selfId, capacity int) *MemberList {
 	return memberList
 }
 
-func (mbList *MemberList) InsertNode(id int, ip, port, rpc_port string, heartbeat_t int) {
+func (mbList *MemberList) InsertNode(id int, ip, port, rpc_port string, heartbeat_t int, hostname string) {
 	mbList.lock.Lock()
 	defer mbList.lock.Unlock()
 	if _, exist := mbList.Member_map[id]; exist {
 		SLOG.Printf("[MembershipList %d] trying to insert an existed id: %d", mbList.SelfId, id)
 		return
 	}
-	new_node := CreateMemberNode(id, ip, port, rpc_port, heartbeat_t)
+	new_node := CreateMemberNode(id, ip, port, rpc_port, heartbeat_t, hostname)
 	SLOG.Printf("[MembershipList %d] Inserted node (%d, %s:%s, %d)", mbList.SelfId, id, ip, port, heartbeat_t)
 	mbList.Member_map[id] = new_node
 	mbList.Size++
@@ -272,12 +273,12 @@ func (mblist MemberList) NicePrint() {
 		keys = append(keys, k)
 	}
 	sort.Ints(keys)
-	fmt.Fprintln(w, "ID\tIP\tPORT\tHeartbeat\tJoin Time")
+	fmt.Fprintln(w, "ID\tHostname\tIP\tPORT\tHeartbeat\tJoin Time")
 	for _, k := range keys {
 		node := mblist.Member_map[k]
 		ts := time.Unix(int64(node.Heartbeat_t/1000), 0).Format("2006.01.02 15:04:05")
-		fmt.Fprintf(w, "%d\t%s\t%s\t%s\t%s\n",
-			node.Id, node.Ip, node.Port, ts, node.JoinTime)
+		fmt.Fprintf(w, "%d\t%s\t%s\t%s\t%s\t%s\n",
+			node.Id, node.Hostname, node.Ip, node.Port, ts, node.JoinTime)
 	}
 	fmt.Fprintln(w)
 	fmt.Fprintf(w, "Self ID: %d\tSize: %d\tCapacity: %d\n",

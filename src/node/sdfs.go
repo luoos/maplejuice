@@ -75,6 +75,16 @@ func (node *Node) GetResponsibleAddresses(sdfsfilename string) []string {
 	return node.GetAddressesWithIds(ids)
 }
 
+func (node *Node) GetResponsibleHostname(sdfsName string) []string {
+	ids := node.GetFirstKReplicaNodeID(sdfsName, DUPLICATE_CNT)
+	res := []string{}
+	for _, id := range ids {
+		hostname := node.MbList.GetNode(id).Hostname
+		res = append(res, hostname)
+	}
+	return res
+}
+
 func (node *Node) GetAddressOfLatestTS(sdfsfilename string) (string, int) {
 	addressList := node.GetResponsibleAddresses(sdfsfilename)
 	c := make(chan Pair, 4)

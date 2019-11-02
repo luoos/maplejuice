@@ -187,7 +187,7 @@ func (fileService *FileService) DeleteFileRequest(sdfsName string, result *RPCRe
 }
 
 func (fileService *FileService) Ls(sdfsfilename string, addrs *[]string) error {
-	*addrs = fileService.node.GetResponsibleAddresses(sdfsfilename)
+	*addrs = fileService.node.GetResponsibleHostname(sdfsfilename)
 	return nil
 }
 
