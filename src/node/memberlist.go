@@ -253,36 +253,36 @@ func (mbList *MemberList) DumpToTmpFile() {
 	}
 }
 
-func ConstructFromTmpFile() MemberList {
+func ConstructFromTmpFile() *MemberList {
 	_, e := os.Stat(MEMBER_LIST_FILE)
 	if os.IsNotExist(e) {
 		log.Fatalf("Membership list file (%s) doesn't exist\n", MEMBER_LIST_FILE)
 	}
 	dat, err := ioutil.ReadFile(MEMBER_LIST_FILE)
 	checkErrorFatal(err)
-	var new_mbList *MemberList
+	var new_mbList MemberList
 	err = json.Unmarshal(dat, &new_mbList)
 	checkErrorFatal(err)
-	return new_mbList
+	return &new_mbList
 }
 
 func (mbList *MemberList) NicePrint() {
 	w := tabwriter.NewWriter(os.Stdout, 10, 0, 4, ' ', 0)
 	var keys []int
-	for k, _ := range mblist.Member_map {
+	for k, _ := range mbList.Member_map {
 		keys = append(keys, k)
 	}
 	sort.Ints(keys)
 	fmt.Fprintln(w, "ID\tHostname\tIP\tPORT\tHeartbeat\tJoin Time")
 	for _, k := range keys {
-		node := mblist.Member_map[k]
+		node := mbList.Member_map[k]
 		ts := time.Unix(int64(node.Heartbeat_t/1000), 0).Format("2006.01.02 15:04:05")
 		fmt.Fprintf(w, "%d\t%s\t%s\t%s\t%s\t%s\n",
 			node.Id, node.Hostname, node.Ip, node.Port, ts, node.JoinTime)
 	}
 	fmt.Fprintln(w)
 	fmt.Fprintf(w, "Self ID: %d\tSize: %d\tCapacity: %d\n",
-		mblist.SelfId, mblist.Size, mblist.Capacity)
+		mbList.SelfId, mbList.Size, mbList.Capacity)
 	w.Flush()
 }
 
