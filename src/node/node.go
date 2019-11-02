@@ -68,6 +68,7 @@ func CreateNode(ip, port, rpc_port string) *Node {
 	node := &Node{IP: ip, Port: port, RPC_Port: rpc_port, mapLock: &sync.Mutex{}, timerMap: timer_map, FileList: fileList}
 	node.Id = ID
 	node.File_dir = LOCAL_PATH_ROOT
+	node.Hostname = ip
 	return node
 }
 
@@ -211,6 +212,7 @@ func (node *Node) handlePacket(packet Packet) {
 
 		to_delete_node := node.MbList.GetNode(packet.Id)
 		if to_delete_node == nil {
+			SLOG.Println("no node to be delete")
 			break
 		} else if to_delete_node.Id == node.Id {
 			SLOG.Println("Going to delete self, exiting...")
@@ -231,6 +233,7 @@ func (node *Node) handlePacket(packet Packet) {
 				}
 			}
 		}
+		SLOG.Printf("is file service on: %t", node.file_service_on)
 		if node.file_service_on {
 			go node.DuplicateReplica() // TODO: Check condition
 		}

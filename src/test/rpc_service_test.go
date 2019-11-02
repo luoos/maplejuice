@@ -86,9 +86,13 @@ func TestPutAndGetFileRPC(t *testing.T) {
 
 func TestLs(t *testing.T) {
 	coordinator := node.CreateNode("0.0.0.0", "9400", "9401")
+	coordinator.UpdateHostname("000")
 	node1 := node.CreateNode("0.0.0.0", "9410", "9411")
+	node1.UpdateHostname("123")
 	node2 := node.CreateNode("0.0.0.0", "9420", "9421")
+	node2.UpdateHostname("456")
 	node3 := node.CreateNode("0.0.0.0", "9430", "9431")
+	node3.UpdateHostname("789")
 	coordinator.InitMemberList()
 	go coordinator.MonitorInputPacket()
 	go node1.MonitorInputPacket()
@@ -106,10 +110,10 @@ func TestLs(t *testing.T) {
 	assert(len(addrs) == 4, "wrong")
 	// 8011 is the default port for FileService
 	assert(hashid == 392 &&
-		addrs[0] == "0.0.0.0:9401" &&
-		addrs[1] == "0.0.0.0:9411" &&
-		addrs[2] == "0.0.0.0:9421" &&
-		addrs[3] == "0.0.0.0:9431", "wrong order")
+		addrs[0] == "000" &&
+		addrs[1] == "123" &&
+		addrs[2] == "456" &&
+		addrs[3] == "789", "wrong order")
 }
 
 func getDcliClient(address string) *rpc.Client {
