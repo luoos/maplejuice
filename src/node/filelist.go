@@ -2,7 +2,6 @@ package node
 
 import (
 	"io/ioutil"
-	"log"
 	"os"
 	. "slogger"
 )
@@ -106,7 +105,8 @@ func (fl *FileList) StoreFileBase(
 
 func (fl *FileList) DeleteFileInfo(sdfsfilename string) bool {
 	if fl.GetFileInfo(sdfsfilename) == nil {
-		log.Fatal("File not found")
+		SLOG.Printf("File not found %s", sdfsfilename)
+		return false
 	}
 	delete(fl.FileMap, sdfsfilename)
 	return true
