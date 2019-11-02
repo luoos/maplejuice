@@ -149,6 +149,19 @@ func (mbList MemberList) GetRPCAddress(id int) string {
 	return n.Ip + ":" + n.RPC_Port
 }
 
+func (mbList MemberList) GetAllAddressesExcludeSelf() []string {
+	mbList.lock.Lock()
+	defer mbList.lock.Unlock()
+	res := []string{}
+	for id, member := range mbList.Member_map {
+		if id == mbList.SelfId {
+			continue
+		}
+		res = append(res, member.Ip+":"+member.Port)
+	}
+	return res
+}
+
 func (mbList MemberList) GetIP(id int) string {
 	n := mbList.GetNode(id)
 	return n.Ip

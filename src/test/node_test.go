@@ -82,6 +82,7 @@ func TestBroadCast(t *testing.T) {
 }
 
 func TestLeaveAndRejoin(t *testing.T) {
+	cleanChannel()
 	node1 := node.CreateNode("0.0.0.0", "9020", "19020")
 	node2 := node.CreateNode("0.0.0.0", "9021", "19020")
 	node3 := node.CreateNode("0.0.0.0", "9022", "")

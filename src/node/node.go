@@ -176,12 +176,9 @@ func sendPacketUDP(address string, packet *Packet) error {
 }
 
 func (node *Node) Broadcast(packet *Packet) {
-	for id, member := range node.MbList.Member_map {
-		if id == node.Id {
-			continue
-		}
-		address := member.Ip + ":" + member.Port
-		sendPacketUDP(address, packet)
+	addresses := node.MbList.GetAllAddressesExcludeSelf()
+	for _, addr := range addresses {
+		sendPacketUDP(addr, packet)
 	}
 }
 
