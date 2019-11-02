@@ -3,6 +3,7 @@ package test
 import (
 	"math/rand"
 	"node"
+	"os"
 	"testing"
 )
 
@@ -158,4 +159,16 @@ func TestGetOwnedFileInfos(t *testing.T) {
 	assert(res[0].HashID == 3 &&
 		res[1].HashID == 4, "wrong id")
 	assert(res[0].MasterNodeID == 40, "wrong master Id")
+}
+
+func TestDeleteFileAndInfo(t *testing.T) {
+	fl := node.CreateFileList(1)
+	fl.StoreFile("testFilename1", "/tmp", 1, 2, []byte("hello world"))
+	info := fl.GetFileInfo("testFilename1")
+	assert(info != nil, "inf should exist")
+	_, err := os.Stat(info.Localpath)
+	assert(err == nil, "file should exist")
+	fl.DeleteFileAndInfo("testFilename1")
+	_, err = os.Stat(info.Localpath)
+	assert(os.IsNotExist(err), "file should not exist")
 }

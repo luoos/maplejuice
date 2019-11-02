@@ -3,6 +3,7 @@ package node
 import (
 	"io/ioutil"
 	"log"
+	"os"
 	. "slogger"
 )
 
@@ -108,6 +109,21 @@ func (fl *FileList) DeleteFileInfo(sdfsfilename string) bool {
 		log.Fatal("File not found")
 	}
 	delete(fl.FileMap, sdfsfilename)
+	return true
+}
+
+func (fl *FileList) DeleteFileAndInfo(sdfsName string) bool {
+	info := fl.GetFileInfo(sdfsName)
+	if info == nil {
+		SLOG.Printf("trying to delete a non-exist sdfa file: %s", sdfsName)
+		return false
+	}
+	err := os.Remove(info.Localpath)
+	fl.DeleteFileInfo(sdfsName)
+	if err != nil {
+		SLOG.Printf("Fail to delete local file: %s", info.Localpath)
+		return false
+	}
 	return true
 }
 

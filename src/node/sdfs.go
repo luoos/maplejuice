@@ -99,10 +99,10 @@ func (node *Node) GetAddressOfLatestTS(sdfsfilename string) (string, int) {
 }
 
 func (node *Node) DeleteRedundantFile() {
-	prev_four_nodes := node.MbList.GetPrevKNodes(node.Id, 4)
-	if len(prev_four_nodes) == 4 {
-		prev_4 := prev_four_nodes[3]
-		toDelete := node.FileList.DeleteFileInfosOutOfRange(prev_4.Id, node.Id)
+	prev_k_nodes := node.MbList.GetPrevKNodes(node.Id, DUPLICATE_CNT)
+	if len(prev_k_nodes) == DUPLICATE_CNT {
+		prev_k := prev_k_nodes[DUPLICATE_CNT-1]
+		toDelete := node.FileList.DeleteFileInfosOutOfRange(prev_k.Id, node.Id)
 		for _, path := range toDelete {
 			err := os.Remove(path)
 			if err != nil {

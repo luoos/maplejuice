@@ -209,3 +209,13 @@ func CallGetFileRequest(sdfsName, localPath string) error {
 	err := client.Call(node.FileServiceName+address+".GetFileRequest", []string{sdfsName, localPath}, &result)
 	return err
 }
+
+func CallDeleteFileRequest(sdfsName string) error {
+	client, address := dialLocalNode()
+	var result node.RPCResultType
+	err := client.Call(node.FileServiceName+address+".DeleteFileRequest", sdfsName, &result)
+	if result != node.RPC_SUCCESS {
+		fmt.Printf("Fail to delete file, check SLOG output in %s\n", LOG_FILE)
+	}
+	return err
+}

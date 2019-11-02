@@ -123,7 +123,7 @@ func (fileService *FileService) PutFileRequest(args PutFileArgs, result *RPCResu
 		*result = RPC_FAIL
 		return err
 	}
-	c := make(chan int, 4)
+	c := make(chan int, DUPLICATE_CNT)
 	for _, addr := range targetAddresses {
 		go PutFile(masterId, ts, addr, args.SdfsName, data, c)
 	}
@@ -163,6 +163,29 @@ func (fileService *FileService) GetFileRequest(args []string, result *RPCResultT
 	return nil
 }
 
+func (fileService *FileService) DeleteFileRequest(sdfsName string, result *RPCResultType) error {
+	targetAddresses := fileService.node.GetResponsibleAddresses(sdfsName)
+	c := make(chan string, DUPLICATE_CNT)
+	for _, addr := range targetAddresses {
+		go DeleteFile(addr, sdfsName, c)
+	}
+	received := []string{}
+	for i := 0; i < DUPLICATE_CNT && i < len(targetAddresses); i++ {
+		select {
+		case addr := <-c:
+			received = append(received, addr)
+			continue
+		case <-time.After(5 * time.Second):
+			SLOG.Printf("[WTF] waiting too long when deleting file: %s, responding servers: %v", sdfsName, received)
+			*result = RPC_FAIL
+			return nil
+		}
+	}
+	*result = RPC_SUCCESS
+	return nil
+
+}
+
 func (fileService *FileService) Ls(sdfsfilename string, addrs *[]string) error {
 	*addrs = fileService.node.GetResponsibleAddresses(sdfsfilename)
 	return nil
@@ -189,6 +212,17 @@ func (fileService *FileService) ServeLocalFile(sdfsfilename string, result *[]by
 	data, err := ioutil.ReadFile(fileinfo.Localpath)
 	*result = data
 	return err
+}
+
+func (fileService *FileService) DeleteLocalFile(sdfsName string, result *RPCResultType) error {
+
+	isSuccess := fileService.node.FileList.DeleteFileAndInfo(sdfsName)
+	if isSuccess {
+		*result = RPC_SUCCESS
+	} else {
+		*result = RPC_FAIL
+	}
+	return nil
 }
 
 /* Callee end */
@@ -225,6 +259,18 @@ func GetFile(address, sdfsfilename string, data *[]byte) error {
 		log.Fatal("send_err:", send_err)
 	}
 	return send_err
+}
+
+func DeleteFile(address, sdfsName string, c chan string) error {
+	client := DialFileService(address)
+	var result RPCResultType
+	err := client.Call(FileServiceName+address+".DeleteLocalFile", sdfsName, &result)
+	if err != nil {
+		SLOG.Printf("Delete File Failure, address: %s, sdfsName: %s", address, sdfsName)
+		return err
+	}
+	c <- address
+	return err
 }
 
 func CallGetTimeStamp(address, sdfsFileName string, c chan Pair) {
