@@ -109,6 +109,7 @@ func (node *Node) Join(address string) bool {
 		Port:     node.Port,
 		Id:       node.Id,
 		RPC_Port: node.RPC_Port,
+		Hostname: node.Hostname,
 	}
 	SLOG.Printf("Sending Join packet, source %s:%s, destination %s", node.IP, node.Port, address)
 	err := sendPacketUDP(address, packet)
