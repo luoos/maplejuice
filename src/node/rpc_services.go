@@ -39,7 +39,7 @@ type PutFileArgs struct {
 }
 
 type StoreFileArgs struct {
-	masterNodeId int
+	MasterNodeId int
 	SdfsName     string
 	Ts           int
 	Content      []byte
@@ -197,7 +197,7 @@ func (fileService *FileService) GetTimeStamp(sdfsFileName string, timestamp *int
 }
 
 func (fileService *FileService) StoreFileToLocal(args StoreFileArgs, result *RPCResultType) error {
-	err := fileService.node.FileList.StoreFile(args.SdfsName, fileService.node.File_dir, args.Ts, args.masterNodeId, args.Content)
+	err := fileService.node.FileList.StoreFile(args.SdfsName, fileService.node.File_dir, args.Ts, args.MasterNodeId, args.Content)
 	if err != nil {
 		SLOG.Println(err)
 		*result = RPC_FAIL
