@@ -124,11 +124,8 @@ func (node *Node) DeleteRedundantFile() {
 }
 
 func (node *Node) DuplicateReplica() {
-	SLOG.Println("Tring to duplicate replica")
 	ownedFileInfos := node.FileList.GetOwnedFileInfos(node.Id)
-	SLOG.Printf("owned fileinfo %v", ownedFileInfos)
 	targetsRPCAddr := node.MbList.GetRPCAddressesForNextKNodes(node.Id, DUPLICATE_CNT-1)
-	SLOG.Printf("target RPC address %v", ownedFileInfos)
 	for _, info := range ownedFileInfos {
 		node.SendFileIfNecessary(info, targetsRPCAddr)
 	}
@@ -138,7 +135,6 @@ func (node *Node) SendFileIfNecessary(info FileInfo, targetRPCAddr []string) {
 	L := len(targetRPCAddr)
 	c := make(chan Pair, L) // TODO: rename Pair to TsPair
 	for _, addr := range targetRPCAddr {
-		SLOG.Printf("Getting file timestamp %s to %s", info.Sdfsfilename, addr)
 		go CallGetTimeStamp(addr, info.Sdfsfilename, c)
 	}
 

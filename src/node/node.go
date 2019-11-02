@@ -233,7 +233,6 @@ func (node *Node) handlePacket(packet Packet) {
 				}
 			}
 		}
-		SLOG.Printf("is file service on: %t", node.file_service_on)
 		if node.file_service_on {
 			go node.DuplicateReplica() // TODO: Check condition
 		}
