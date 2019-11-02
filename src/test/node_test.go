@@ -21,6 +21,12 @@ func assert(condition bool, mesg string) {
 		log.Fatal(mesg)
 	}
 }
+
+func cleanChannel() {
+	node.ACK_INTRO = make(chan string, 20)
+	node.ACK_JOIN = make(chan node.Packet, 20)
+}
+
 func TestInitNode(t *testing.T) {
 	node1 := node.CreateNode("0.0.0.0", "9000", "19000")
 	node2 := node.CreateNode("0.0.0.0", "9001", "19001")
@@ -225,6 +231,7 @@ func TestCheckFailure(t *testing.T) {
 
 func TestFindIntroducer(t *testing.T) {
 	SLOG.Print("Staring TEST introducer")
+	cleanChannel()
 	node1 := node.CreateNode("0.0.0.0", "9050", "")
 	node2 := node.CreateNode("0.0.0.0", "9051", "")
 	node1.InitMemberList()
@@ -232,13 +239,13 @@ func TestFindIntroducer(t *testing.T) {
 	go node2.MonitorInputPacket()
 	introducer, success := node2.ScanIntroducer([]string{"0.0.0.0:9050"})
 	if !success || introducer != "0.0.0.0:9050" {
-		t.Fatal("wrong")
+		t.Fatal("wrong1")
 	}
 	node3 := node.CreateNode("0.0.0.0", "9052", "")
 	go node3.MonitorInputPacket()
 	introducer, success = node3.ScanIntroducer([]string{"0.0.0.0:9055"})
 	if success {
-		t.Fatal("wrong")
+		t.Fatal("wrong2")
 	}
 	node2.Join("0.0.0.0:9050")
 	time.Sleep(500 * time.Millisecond)
@@ -246,7 +253,7 @@ func TestFindIntroducer(t *testing.T) {
 	go node4.MonitorInputPacket()
 	introducer, success = node4.ScanIntroducer([]string{"0.0.0.0:9050", "0.0.0.0:9051"})
 	if !success {
-		t.Fatal("wrong")
+		t.Fatal("wrong3")
 	}
 	node4.Join(introducer)
 	time.Sleep(500 * time.Millisecond)
@@ -256,23 +263,24 @@ func TestFindIntroducer(t *testing.T) {
 }
 
 func TestPingSelf(t *testing.T) {
+	cleanChannel()
 	node1 := node.CreateNode("0.0.0.0", "9060", "")
 	node1.InitMemberList()
 	go node1.MonitorInputPacket()
 	_, success := node1.ScanIntroducer([]string{"0.0.0.0:9060"})
 	if success {
-		t.Fatal("should no find introducer")
+		t.Fatal("should no find introducer1")
 	}
 	node2 := node.CreateNode("0.0.0.0", "9061", "")
 	go node2.MonitorInputPacket()
 	_, success = node1.ScanIntroducer([]string{"0.0.0.0:9061"})
 	if success {
-		t.Fatal("should no find introducer")
+		t.Fatal("should no find introducer2")
 	}
 	node2.InitMemberList()
 	_, success = node1.ScanIntroducer([]string{"0.0.0.0:9061"})
 	if !success {
-		t.Fatal("should find introducer")
+		t.Fatal("should find introducer3")
 	}
 
 }

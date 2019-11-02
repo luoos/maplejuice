@@ -54,8 +54,8 @@ const (
 	TIMEOUT_THRESHOLD      = 4 * time.Second
 )
 
-var ACK_INTRO = make(chan string)
-var ACK_JOIN = make(chan Packet)
+var ACK_INTRO = make(chan string, 20)
+var ACK_JOIN = make(chan Packet, 20)
 
 var HEARTBEAT_LOG_FLAG = false // debug
 
@@ -83,13 +83,14 @@ func (node *Node) ScanIntroducer(addresses []string) (string, bool) {
 		RPC_Port: node.RPC_Port,
 	}
 	for _, introAddr := range addresses {
-		sendPacketUDP(introAddr, pingPacket)
-		select {
-		case res := <-ACK_INTRO:
-			return res, true
-		case <-time.After(time.Second):
-			break
-		}
+		go sendPacketUDP(introAddr, pingPacket)
+	}
+	select {
+	case res := <-ACK_INTRO:
+		SLOG.Print(res)
+		return res, true
+	case <-time.After(500 * time.Millisecond):
+		break
 	}
 	return "", false
 }
