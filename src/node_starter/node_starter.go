@@ -6,6 +6,7 @@ import (
 	"node"
 	"os"
 	"os/signal"
+	"path/filepath"
 	. "slogger"
 	"syscall"
 )
@@ -27,6 +28,20 @@ var SERVER_LIST = []string{
 	"fa19-cs425-g17-10.cs.illinois.edu:" + PORT,
 }
 
+func clearDir(dir string) error {
+	files, err := filepath.Glob(filepath.Join(dir, "*"))
+	if err != nil {
+		SLOG.Fatal(err)
+	}
+	for _, file := range files {
+		err = os.RemoveAll(file)
+		if err != nil {
+			SLOG.Fatal(err)
+		}
+	}
+	return nil
+}
+
 func main() {
 	sigCh := make(chan os.Signal, 1)
 	done := make(chan bool, 1)
@@ -38,6 +53,7 @@ func main() {
 	addr := fmt.Sprintf("%s", addr_raw[0])
 	SLOG.Printf("Hostname: %s", addr)
 	node := node.CreateNode(addr, PORT, node.FILE_SERVICE_DEFAULT_PORT)
+	clearDir(node.File_dir)
 	node.UpdateHostname(hostname)
 	go node.MonitorInputPacket()
 	go node.StartRPCFileService()
