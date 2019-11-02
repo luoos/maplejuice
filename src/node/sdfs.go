@@ -16,6 +16,16 @@ func getHashID(s string) int {
 	return int(h.Sum32()) % MAX_CAPACITY
 }
 
+func (node *Node) SetFileDir(dir string) {
+	node.File_dir = dir
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		os.Mkdir(dir, 0777)
+	} else if err != nil {
+		SLOG.Printf("Failed to create folder: %s", dir)
+		os.Exit(1)
+	}
+}
+
 func IsInCircleRange(id, start, end int) bool {
 	return (start < end && start <= id && id <= end) ||
 		(start > end && (start <= id || id <= end))

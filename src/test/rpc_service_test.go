@@ -159,6 +159,6 @@ func TestPutFileFromClient(t *testing.T) {
 	client := getDcliClient(coorFsAddress)
 	var reply node.RPCResultType
 	client.Call(node.FileServiceName+coorFsAddress+".PutFileRequest", node.PutFileArgs{src, dest, false}, &reply)
-	data, _ := ioutil.ReadFile(node.LOCAL_PATH_ROOT + "/" + dest)
+	data, _ := ioutil.ReadFile(coordinator.File_dir + "/" + dest)
 	assert(string(data) == content, "wrong")
 }

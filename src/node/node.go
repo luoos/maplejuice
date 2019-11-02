@@ -19,6 +19,7 @@ type Node struct {
 	mapLock            *sync.Mutex
 	FileList           *FileList
 	exit               bool
+	File_dir           string
 }
 
 type Packet struct {
@@ -63,6 +64,7 @@ func CreateNode(ip, port, rpc_port string) *Node {
 	fileList := CreateFileList(ID)
 	node := &Node{IP: ip, Port: port, RPC_Port: rpc_port, mapLock: &sync.Mutex{}, timerMap: timer_map, FileList: fileList}
 	node.Id = ID
+	node.File_dir = LOCAL_PATH_ROOT
 	return node
 }
 
