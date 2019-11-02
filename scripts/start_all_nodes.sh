@@ -1,2 +1,2 @@
 #!/bin/bash
-for h in `cat scripts/servers`; do sleep 1 && ssh $h systemctl start dnode; done
+for h in `cat scripts/servers`; do sleep 1 && echo $h && ssh $h systemctl start dnode; done
