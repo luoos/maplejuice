@@ -22,6 +22,7 @@ type Node struct {
 	File_dir           string
 	file_service_on    bool
 	Hostname           string
+	memberLock         *sync.Mutex
 }
 
 type Packet struct {
@@ -66,6 +67,7 @@ func CreateNode(ip, port, rpc_port string) *Node {
 	timer_map := make(map[int]*time.Timer)
 	fileList := CreateFileList(ID)
 	node := &Node{IP: ip, Port: port, RPC_Port: rpc_port, mapLock: &sync.Mutex{}, timerMap: timer_map, FileList: fileList}
+	node.memberLock = &sync.Mutex{}
 	node.Id = ID
 	node.File_dir = LOCAL_PATH_ROOT
 	node.Hostname = ip
@@ -210,32 +212,13 @@ func (node *Node) handlePacket(packet Packet) {
 	case ACTION_DELETE_NODE:
 		SLOG.Printf("[Node %d] Received ACTION_DELETE_NODE (%d), source: %s, port: %s", node.Id, packet.Id, packet.IP, packet.Port)
 
-		to_delete_node := node.MbList.GetNode(packet.Id)
-		if to_delete_node == nil {
-			SLOG.Println("no node to be delete")
-			break
-		} else if to_delete_node.Id == node.Id {
+		if packet.Id == node.Id {
 			SLOG.Println("Going to delete self, exiting...")
 			node.exit = true
+			break
 		}
-		next_node_id := to_delete_node.GetNextNode().Id
-		node.FileList.UpdateMasterID(next_node_id, func(fileInfo *FileInfo) bool {
-			return fileInfo.MasterNodeID == packet.Id
-		})
-
 		lose_heartbeat := node.isPrevKNodes(packet.Id)
-		node.MbList.DeleteNode(packet.Id)
-		if lose_heartbeat {
-			// add other node to receive heartbeat
-			for _, item := range node.MbList.GetPrevKNodes(node.Id, NUM_MONITORS) {
-				if _, ok := node.timerMap[item.Id]; !ok {
-					node.monitorIfNecessary(item.Id)
-				}
-			}
-		}
-		if node.file_service_on {
-			go node.DuplicateReplica() // TODO: Check condition
-		}
+		node.LostNode(packet.Id, lose_heartbeat)
 	case ACTION_JOIN:
 		reply_address := packet.IP + ":" + packet.Port
 		new_id := packet.Id
@@ -369,9 +352,35 @@ func (node *Node) nodeTimeOut(id int) {
 		Port:   node.Port,
 	}
 	node.Broadcast(deleteNodePacket)
-	node.MbList.DeleteNode(id)
+	node.LostNode(id, true)
 }
 
 func GetMillisecond() int {
 	return int(time.Now().UnixNano() / 1000000)
+}
+
+func (node *Node) LostNode(id int, lose_heartbeat bool) {
+	node.memberLock.Lock()
+	to_delete_node := node.MbList.GetNode(id)
+	if to_delete_node == nil {
+		SLOG.Printf("[Node %d] No node (%d) to be deleted", node.Id, id)
+		node.memberLock.Unlock()
+		return
+	}
+	next_node_id := to_delete_node.GetNextNode().Id
+	node.MbList.DeleteNode(id)
+	node.memberLock.Unlock()
+	if node.file_service_on {
+		node.FileList.UpdateMasterID(next_node_id, func(fileInfo *FileInfo) bool {
+			return fileInfo.MasterNodeID == id
+		})
+		go node.DuplicateReplica()
+	}
+	if lose_heartbeat {
+		for _, item := range node.MbList.GetPrevKNodes(node.Id, NUM_MONITORS) {
+			if _, ok := node.timerMap[item.Id]; !ok {
+				node.monitorIfNecessary(item.Id)
+			}
+		}
+	}
 }
