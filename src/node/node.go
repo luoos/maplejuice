@@ -70,6 +70,7 @@ func CreateNode(ip, port, rpc_port string) *Node {
 }
 
 func (node *Node) InitMemberList() {
+	SLOG.Printf("[Node %d] Init Membership List", node.Id)
 	node.MbList = CreateMemberList(node.Id, MAX_CAPACITY)
 	node.MbList.InsertNode(node.Id, node.IP, node.Port, node.RPC_Port, GetMillisecond())
 }
@@ -259,7 +260,7 @@ func (node *Node) handlePacket(packet Packet) {
 			go node.DuplicateReplica() // TODO: check condition
 		}
 	case ACTION_REPLY_JOIN:
-		node.MbList = CreateMemberList(packet.Id, MAX_CAPACITY)
+		node.MbList = CreateMemberList(node.Id, MAX_CAPACITY)
 		SLOG.Printf("[Node %d] Received ACTION_REPLY_JOIN assigned, member cnt: %d", node.Id, len(packet.Map.Member_map))
 		ACK_JOIN <- packet
 	case ACTION_HEARTBEAT:
