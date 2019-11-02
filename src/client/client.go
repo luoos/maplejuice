@@ -11,7 +11,6 @@ import (
 	"node"
 	"os"
 	"path/filepath"
-	. "slogger"
 	"strconv"
 	"strings"
 	"sync"
@@ -197,7 +196,7 @@ func CallPutFileRequest(src, dest string, forceUpdate bool) node.RPCResultType {
 	var reply node.RPCResultType
 	err := client.Call(node.FileServiceName+address+".PutFileRequest", node.PutFileArgs{src, dest, forceUpdate}, &reply)
 	if err != nil {
-		SLOG.Fatal(err)
+		log.Fatal(err)
 	}
 	return reply
 }
@@ -215,7 +214,7 @@ func CallDeleteFileRequest(sdfsName string) error {
 	var result node.RPCResultType
 	err := client.Call(node.FileServiceName+address+".DeleteFileRequest", sdfsName, &result)
 	if result != node.RPC_SUCCESS {
-		fmt.Printf("Fail to delete file, check SLOG output in %s\n", LOG_FILE)
+		fmt.Println("Fail to delete file, check SLOG output")
 	}
 	return err
 }
