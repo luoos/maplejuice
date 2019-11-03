@@ -1,3 +1,28 @@
+# Distributed File System - MP3
+
+Group members:
+1. Ruochen Shen   rs20
+2. Jun Luo        junluo2
+
+## Setup
+modify any code file and then run:
+1. `cd` to project root folder
+2. `./scripts/deploy_nodes.sh`
+> we used systemctl so you will need root privalege to do it.
+
+## Command
+In any of our vms, Use `dcli` to see available commands:
+1. `exec "<command>"` - execute command on all servers
+2. `dump` - dump local host membership list
+3. `ls <sdfsfilename>` - list all machine addresses where this file is currently being stored
+4. `store` - list all files currently being stored at this machine
+5. `put <localfilename> <sdfsfilename>` - Insert or update a local file to the distributed file system
+6. `put <localdirname>` - Insert or update all local files in a directory
+7. `get <sdfsfilename> <localfilename>` - Get the file from the distributed file system, and store it to <localfilename>
+8. `delete <sdfsfilename>` - Delete a file from the distributed file system`
+
+
+
 # Distributed Node System - MP2
 
 Group members:
@@ -56,7 +81,7 @@ Usage:
 $ log_client "grep <pattern> -c /usr/logs/<your log pattern>"
 ```
 
-#### Example 
+#### Example
 
 ```bash
 $ log_client "grep -HcE '^[0-9]*[a-z]{5}' /usr/logs/vm*" |sort | awk -F '/' '{print $4}'
@@ -98,15 +123,15 @@ Build server and client, you will get two bin, `server` and `client`, under proj
 
 ## Test
 
-1. To send logs to 10 vms, `/usr/logs/`, run 
+1. To send logs to 10 vms, `/usr/logs/`, run
 ```bash
 [distributed_log_querier]$ sh scripts/deploy_test_log.sh
 ```
-2. To run test, 
+2. To run test,
 ```bash
 [distributed_log_querier]$ go test -v ./.../test
 ```
 
-the test function included 6 tests:  
+the test function included 6 tests:
 - grep Rare/Frequent/SomewhatFrequent word is efficient
 - grep pattern that appears in only one file, some files, or all files, determine if result is expeted
