@@ -114,7 +114,18 @@ func listLocalFiles() {
 
 func putFileToSystem(localName, sdfsName string) {
 	localAbsPath, _ := filepath.Abs(localName)
-	CallPutFileRequest(localAbsPath, sdfsName, true)
+	reply := CallPutFileRequest(localAbsPath, sdfsName, false)
+	if reply == node.RPC_PROMPT {
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Print("Last update was in 1 minute, type \"yes\" to confirm update: ")
+		text, _ := reader.ReadString('\n')
+		text = strings.TrimSuffix(text, "\n")
+		if text == "yes" {
+			CallPutFileRequest(localAbsPath, sdfsName, true)
+		} else {
+			fmt.Println("Abort")
+		}
+	}
 }
 
 func getFileFromSystem(sdfsName, localName string) {

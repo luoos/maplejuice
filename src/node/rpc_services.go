@@ -49,6 +49,7 @@ const (
 	RPC_SUCCESS     RPCResultType = 1 << 0
 	RPC_DUMMY       RPCResultType = 1 << 1
 	RPC_FAIL        RPCResultType = 1 << 2
+	RPC_PROMPT      RPCResultType = 1 << 3
 	LOCAL_PATH_ROOT               = "/apps/files"
 )
 
@@ -105,9 +106,14 @@ func (fileService *FileService) PutFileRequest(args PutFileArgs, result *RPCResu
 	// if GetMillisecond-file_ts < MIN_UPDATE_INTERVAL {
 	// TODO:	promp to user
 	// }
+	_, ts := fileService.node.GetAddressOfLatestTS(args.SdfsName)
+	if !args.ForceUpdate && ((GetMillisecond() - ts) < MIN_UPDATE_INTERVAL) {
+		*result = RPC_PROMPT
+		return nil
+	}
 	targetAddresses := fileService.node.GetResponsibleAddresses(args.SdfsName)
 	masterId := fileService.node.GetMasterID(args.SdfsName)
-	ts := GetMillisecond()
+	ts = GetMillisecond()
 	data, err := ioutil.ReadFile(args.LocalName)
 	if err != nil {
 		SLOG.Println(err)
