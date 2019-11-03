@@ -12,7 +12,6 @@ package node
 
 import (
 	"io/ioutil"
-	"log"
 	"net"
 	"net/rpc"
 	"os"
@@ -72,13 +71,13 @@ func (node *Node) StartRPCFileService() {
 	node.RegisterFileService(node.IP+":"+node.RPC_Port, &FileService{node: node})
 	listener, err := net.Listen("tcp", "0.0.0.0:"+node.RPC_Port)
 	if err != nil {
-		log.Fatal("ListenTCP error:", err)
+		SLOG.Fatal("ListenTCP error:", err)
 	}
 	node.file_service_on = true
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			log.Fatal("Accept error:", err)
+			SLOG.Fatal("Accept error:", err)
 		}
 
 		go rpc.ServeConn(conn)
@@ -243,7 +242,7 @@ func PutFile(masterNodeID int, timestamp int, address, sdfsfilename string, cont
 	args := StoreFileArgs{masterNodeID, sdfsfilename, timestamp, content}
 	send_err := client.Call(FileServiceName+address+".StoreFileToLocal", args, &reply)
 	if send_err != nil {
-		log.Fatal("send_err:", send_err)
+		SLOG.Panic("send_err:", send_err)
 	}
 	SLOG.Printf("[PutFile] destination: %s, filename: %s", address, sdfsfilename)
 	c <- 1
@@ -256,7 +255,7 @@ func GetFile(address, sdfsfilename string, data *[]byte) error {
 	}
 	send_err := client.Call(FileServiceName+address+".ServeLocalFile", sdfsfilename, data)
 	if send_err != nil {
-		log.Fatal("send_err:", send_err)
+		SLOG.Panic("send_err:", send_err)
 	}
 	return send_err
 }

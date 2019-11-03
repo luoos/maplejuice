@@ -3,7 +3,6 @@ package node
 import (
 	"hash/fnv"
 	"io/ioutil"
-	"log"
 	"os"
 	. "slogger"
 	"time"
@@ -44,7 +43,7 @@ func (node *Node) GetMasterID(sdfsfilename string) int {
 			return curId
 		}
 	}
-	log.Fatal("should never reach here")
+	SLOG.Fatal("[Fatal] Fail to get master id")
 	return -1
 }
 

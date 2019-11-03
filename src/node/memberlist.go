@@ -190,7 +190,7 @@ func (mbList *MemberList) GetNextKNodes(id, k int) []MemberNode {
 	defer mbList.lock.Unlock()
 	node := mbList.GetNode(id)
 	if node == nil {
-		log.Panic("start id doesn't exit in node")
+		SLOG.Panic("start id doesn't exit in node")
 		return nil
 	}
 	arr := make([]MemberNode, 0)
@@ -208,7 +208,7 @@ func (mbList *MemberList) NodeTimeOut(deadline, id int) bool {
 	defer mbList.lock.Unlock()
 	node := mbList.GetNode(id)
 	if node == nil {
-		log.Panic("NodeTimeOut: this node id does not exist!")
+		SLOG.Panic("NodeTimeOut: this node id does not exist!")
 	}
 	if node.Heartbeat_t < deadline {
 		SLOG.Printf("[MembershipList %d] found TIMEOUT node, id: %d last heartbeat_t: %d, deadline: %d", mbList.SelfId, id, node.Heartbeat_t, deadline)
@@ -249,7 +249,7 @@ func (mbList *MemberList) DumpToTmpFile() {
 	bytes := mbList.ToJson()
 	err := ioutil.WriteFile(MEMBER_LIST_FILE, bytes, 0644)
 	if err != nil {
-		log.Fatal(err)
+		SLOG.Panic(err)
 	}
 }
 
