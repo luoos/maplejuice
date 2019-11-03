@@ -15,6 +15,7 @@ import (
 	"log"
 	"net"
 	"net/rpc"
+	"os"
 	. "slogger"
 	"time"
 )
@@ -86,35 +87,39 @@ func (node *Node) StartRPCFileService() {
 
 /* Callee begin */
 func (fileService *FileService) PutFileRequest(args PutFileArgs, result *RPCResultType) error {
-	// args should have three elements: [localFilePath, sdfsFileName, forceUpdate]
-	// _, sdfsFileName := args[0], args[1] // TODO: use localFilePath, (args[0])
-	// _, err := strconv.ParseBool("true") // TODO: use forceUpdate
-	// if err != nil {
-	// 	SLOG.Fatal(err)
-	// }
-	// addressList := fileService.node.GetAddressWithSDFSFileName(sdfsFileName)
+	fstat, err := os.Stat(args.localName)
+	if err != nil {
+		SLOG.Print(err)
+	}
+	file_paths := []string{}
+	if fstat.IsDir() {
+		files, err := ioutil.ReadDir(".")
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	// filePath, sdfsFileName := args[0], args[1]
-	// filename := filepath.Base(filePath)
-	// hashId := getHashID(filename)
-	/*TODO:
-	1. find machines responsible for this file
-	2. collect timestamp from above machines through RPC
-		2.1 if timestamp is not nil and and last update is within 60s, return RPC_CAUTION
-		2.2 otherwise transfer the file to responsible machines and wait for 3 ACK, return RPC_SUCCESS
-	*/
-	// if GetMillisecond-file_ts < MIN_UPDATE_INTERVAL {
-	// TODO:	promp to user
-	// }
-	_, ts := fileService.node.GetAddressOfLatestTS(args.SdfsName)
+		for _, file := range files {
+			localAndSdfsFilename := file_paths, args.localName + "/" + file.Name()
+			err := fileService.IndividualPutFileRequest(localAndSdfsFilename, localAndSdfsFilename)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	} else {
+		return fileService.IndividualPutFileRequest(args.SdfsName, args.LocalName)
+	}
+}
+func (fileService *FileService) IndividualPutFileRequest(sdfsName, localName string) error {
+	_, ts := fileService.node.GetAddressOfLatestTS(sdfsName)
 	if !args.ForceUpdate && ((GetMillisecond() - ts) < MIN_UPDATE_INTERVAL) {
 		*result = RPC_PROMPT
 		return nil
 	}
-	targetAddresses := fileService.node.GetResponsibleAddresses(args.SdfsName)
-	masterId := fileService.node.GetMasterID(args.SdfsName)
+	targetAddresses := fileService.node.GetResponsibleAddresses(sdfsName)
+	masterId := fileService.node.GetMasterID(sdfsName)
 	ts = GetMillisecond()
-	data, err := ioutil.ReadFile(args.LocalName)
+	data, err := ioutil.ReadFile(localName)
 	if err != nil {
 		SLOG.Println(err)
 		*result = RPC_FAIL
@@ -122,7 +127,7 @@ func (fileService *FileService) PutFileRequest(args PutFileArgs, result *RPCResu
 	}
 	c := make(chan int, DUPLICATE_CNT)
 	for _, addr := range targetAddresses {
-		go PutFile(masterId, ts, addr, args.SdfsName, data, c)
+		go PutFile(masterId, ts, addr, sdfsName, data, c)
 	}
 
 	for i := 0; i < WRITE_QUORUM && i < len(targetAddresses); i++ {
@@ -130,7 +135,7 @@ func (fileService *FileService) PutFileRequest(args PutFileArgs, result *RPCResu
 		case <-c:
 			continue
 		case <-time.After(10 * time.Second):
-			SLOG.Printf("[WTF] waiting too long when putting file: %s", args.LocalName)
+			SLOG.Printf("[WTF] waiting too long when putting file: %s", localName)
 			*result = RPC_FAIL
 			return err
 		}
