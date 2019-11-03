@@ -189,8 +189,25 @@ func (fileService *FileService) DeleteFileRequest(sdfsName string, result *RPCRe
 
 }
 
-func (fileService *FileService) Ls(sdfsfilename string, addrs *[]string) error {
-	*addrs = fileService.node.GetResponsibleHostname(sdfsfilename)
+func (fileService *FileService) Ls(sdfsfilename string, hostnames *[]string) error {
+	addressList := fileService.node.GetResponsibleAddresses(sdfsfilename)
+	c := make(chan Pair, 4)
+	for _, address := range addressList {
+		CallGetTimeStamp(address, sdfsfilename, c)
+	}
+	ids_contains_file := []int{}
+	for i := 0; i < len(addressList); i++ {
+		pair := <-c
+		if pair.Ts > -1 {
+			ids_contains_file = append(ids_contains_file, getHashID(pair.Address))
+		}
+	}
+	hostList := []string{}
+	for _, id := range ids_contains_file {
+		hostname := fileService.node.MbList.GetNode(id).Hostname
+		hostList = append(hostList, hostname)
+	}
+	*hostnames = hostList
 	return nil
 }
 
@@ -256,8 +273,9 @@ func GetFile(address, sdfsfilename string, data *[]byte) error {
 	send_err := client.Call(FileServiceName+address+".ServeLocalFile", sdfsfilename, data)
 	if send_err != nil {
 		SLOG.Panic("send_err:", send_err)
+		return send_err
 	}
-	return send_err
+	return nil
 }
 
 func DeleteFile(address, sdfsName string, c chan string) error {
