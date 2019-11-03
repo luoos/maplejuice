@@ -87,6 +87,7 @@ func TestLeaveAndRejoin(t *testing.T) {
 	go node1.MonitorInputPacket()
 	go node2.MonitorInputPacket()
 	go node3.MonitorInputPacket()
+	time.Sleep(50 * time.Millisecond)
 	node2.Join(node1.IP + ":" + node1.Port)
 	if node1.MbList.Size != 2 {
 		t.Fatal("wrong2")
@@ -101,31 +102,31 @@ func TestLeaveAndRejoin(t *testing.T) {
 		t.Fatal("wrong4")
 	}
 	if node3.MbList.Size != 3 {
-		t.Fatal("wrong")
+		t.Fatal("wrong5")
 	}
 
 	node2.Leave()
 	time.Sleep(1 * time.Second)
 
 	if node1.MbList.Size != 2 {
-		t.Fatal("wrong4")
+		t.Fatal("wrong6")
 	}
 	if node2.MbList.Size != 2 {
-		t.Fatal("wrong4")
+		t.Fatal("wrong7")
 	}
 	if node3.MbList.Size != 2 {
-		t.Fatal("wrong")
+		t.Fatal("wrong8")
 	}
 
 	node2.Join(node1.IP + ":" + node1.Port)
 	if node1.MbList.Size != 3 {
-		t.Fatal("wrong4")
+		t.Fatal("wrong9")
 	}
 	if node2.MbList.Size != 3 {
-		t.Fatal("wrong4")
+		t.Fatal("wrong10")
 	}
 	if node3.MbList.Size != 3 {
-		t.Fatal("wrong")
+		t.Fatal("wrong11")
 	}
 }
 
@@ -191,6 +192,7 @@ func TestCheckFailure(t *testing.T) {
 	go node1.MonitorInputPacket()
 	go node2.MonitorInputPacket()
 	go node3.MonitorInputPacket()
+	time.Sleep(50 * time.Millisecond)
 	node2.Join(node1.IP + ":" + node1.Port)
 	node3.Join(node1.IP + ":" + node1.Port)
 	node1.SendHeartbeat()

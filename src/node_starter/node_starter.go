@@ -44,7 +44,7 @@ func clearDir(dir string) error {
 
 func main() {
 	sigCh := make(chan os.Signal, 1)
-	done := make(chan bool, 1)
+	done := make(chan bool, 2)
 	hostname, _ := os.Hostname()
 	addr_raw, err := net.LookupIP(hostname)
 	if err != nil {

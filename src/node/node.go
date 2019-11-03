@@ -17,13 +17,13 @@ type Node struct {
 	timerMap           map[int]*time.Timer
 	mapLock            *sync.Mutex
 	FileList           *FileList
-	exit               bool
 	File_dir           string
 	file_service_on    bool
 	Hostname           string
 	memberLock         *sync.Mutex
 	chan_introducer    chan string
 	chan_packet        chan Packet
+	active             bool
 }
 
 type Packet struct {
@@ -71,6 +71,7 @@ func CreateNode(ip, port, rpc_port string) *Node {
 	node.Hostname = ip
 	node.chan_introducer = make(chan string, 20)
 	node.chan_packet = make(chan Packet, 20)
+	node.active = true
 	return node
 }
 
@@ -85,6 +86,7 @@ func (node *Node) InitMemberList() {
 }
 
 func (node *Node) ScanIntroducer(addresses []string) (string, bool) {
+	node.active = true
 	pingPacket := &Packet{
 		Action:   ACTION_PING,
 		IP:       node.IP,
@@ -93,7 +95,7 @@ func (node *Node) ScanIntroducer(addresses []string) (string, bool) {
 		Hostname: node.Hostname,
 	}
 	for _, introAddr := range addresses {
-		go sendPacketUDP(introAddr, pingPacket)
+		go node.sendPacketUDP(introAddr, pingPacket)
 	}
 	select {
 	case res := <-node.chan_introducer:
@@ -106,6 +108,7 @@ func (node *Node) ScanIntroducer(addresses []string) (string, bool) {
 }
 
 func (node *Node) Join(address string) bool {
+	node.active = true
 	packet := &Packet{
 		Action:   ACTION_JOIN,
 		IP:       node.IP,
@@ -115,7 +118,7 @@ func (node *Node) Join(address string) bool {
 		Hostname: node.Hostname,
 	}
 	SLOG.Printf("Sending Join packet, source %s:%s, destination %s", node.IP, node.Port, address)
-	err := sendPacketUDP(address, packet)
+	err := node.sendPacketUDP(address, packet)
 	if err != nil {
 		SLOG.Panic(err)
 	}
@@ -142,7 +145,7 @@ func (node *Node) Leave() {
 	}
 	node.MbList.DeleteNode(node.Id)
 	node.Broadcast(deleteNodePacket)
-	node.exit = true
+	node.active = false
 }
 
 func (node *Node) SendHeartbeat() {
@@ -155,12 +158,15 @@ func (node *Node) SendHeartbeat() {
 		if HEARTBEAT_LOG_FLAG {
 			SLOG.Printf("[Node %d] Sending ACTION_HEARTBEAT to %s", node.Id, address)
 		}
-		sendPacketUDP(address, heartbeatPacket)
+		node.sendPacketUDP(address, heartbeatPacket)
 	}
 }
 
 func (node *Node) SendHeartbeatRoutine() {
 	for {
+		if !node.active {
+			break
+		}
 		if rand.Float64() >= LOSS_RATE { // simulate loss packet
 			node.SendHeartbeat()
 		}
@@ -168,7 +174,10 @@ func (node *Node) SendHeartbeatRoutine() {
 	}
 }
 
-func sendPacketUDP(address string, packet *Packet) error {
+func (node *Node) sendPacketUDP(address string, packet *Packet) error {
+	if !node.active {
+		SLOG.Printf("[Node %d] is no longer active. Stop sending packet to address: ", node.Id, address)
+	}
 	data, err := json.Marshal(packet)
 	if err != nil {
 		SLOG.Print(err)
@@ -189,7 +198,7 @@ func sendPacketUDP(address string, packet *Packet) error {
 func (node *Node) Broadcast(packet *Packet) {
 	addresses := node.MbList.GetAllAddressesExcludeSelf()
 	for _, addr := range addresses {
-		sendPacketUDP(addr, packet)
+		node.sendPacketUDP(addr, packet)
 	}
 }
 
@@ -202,8 +211,8 @@ func (node *Node) handlePacket(packet Packet) {
 		SLOG.Printf("[Node %d] Received ACTION_DELETE_NODE (%d), source: %s, port: %s", node.Id, packet.Id, packet.IP, packet.Port)
 
 		if packet.Id == node.Id {
-			SLOG.Println("Going to delete self, exiting...")
-			node.exit = true
+			SLOG.Println("Going to delete self")
+			node.active = false
 			break
 		}
 		lose_heartbeat := node.isPrevKNodes(packet.Id)
@@ -221,7 +230,7 @@ func (node *Node) handlePacket(packet Packet) {
 			Action: ACTION_REPLY_JOIN,
 			Map:    node.MbList,
 		}
-		err := sendPacketUDP(reply_address, sendMemberListPacket)
+		err := node.sendPacketUDP(reply_address, sendMemberListPacket)
 		if err != nil {
 			SLOG.Println("Error in sending memberlist packet", err)
 		}
@@ -259,7 +268,7 @@ func (node *Node) handlePacket(packet Packet) {
 			IP:     node.IP,
 			Port:   node.Port,
 		}
-		sendPacketUDP(address, ackPacket)
+		node.sendPacketUDP(address, ackPacket)
 	case ACTION_ACK:
 		SLOG.Printf("[Node x] Received ACTION_ACK from %s:%s", packet.IP, packet.Port)
 		address := packet.IP + ":" + packet.Port
@@ -275,9 +284,6 @@ func (node *Node) MonitorInputPacket() {
 	}
 	defer conn.Close()
 	for {
-		if node.exit {
-			break
-		}
 		buf := make([]byte, 4096)
 		length, _, err := conn.ReadFrom(buf)
 		if err != nil {
@@ -325,7 +331,7 @@ func (node *Node) isPrevKNodes(id int) bool {
 }
 
 func (node *Node) nodeTimeOut(id int) {
-	if !node.isPrevKNodes(id) {
+	if !node.isPrevKNodes(id) || !node.active {
 		return
 	}
 	SLOG.Printf("[Node %d] found failure node id: %d\n", node.Id, id)
