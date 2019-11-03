@@ -259,7 +259,7 @@ func PutFile(masterNodeID int, timestamp int, address, sdfsfilename string, cont
 	args := StoreFileArgs{masterNodeID, sdfsfilename, timestamp, content}
 	send_err := client.Call(FileServiceName+address+".StoreFileToLocal", args, &reply)
 	if send_err != nil {
-		SLOG.Panic("send_err:", send_err)
+		SLOG.Println("send_err:", send_err)
 	}
 	SLOG.Printf("[PutFile] destination: %s, filename: %s", address, sdfsfilename)
 	c <- 1
@@ -272,10 +272,9 @@ func GetFile(address, sdfsfilename string, data *[]byte) error {
 	}
 	send_err := client.Call(FileServiceName+address+".ServeLocalFile", sdfsfilename, data)
 	if send_err != nil {
-		SLOG.Panic("send_err:", send_err)
-		return send_err
+		SLOG.Println("send_err:", send_err)
 	}
-	return nil
+	return send_err
 }
 
 func DeleteFile(address, sdfsName string, c chan string) error {
