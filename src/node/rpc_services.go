@@ -11,6 +11,7 @@ Includes:
 package node
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/rpc"
@@ -191,23 +192,14 @@ func (fileService *FileService) DeleteFileRequest(sdfsName string, result *RPCRe
 
 func (fileService *FileService) Ls(sdfsfilename string, hostnames *[]string) error {
 	addressList := fileService.node.GetResponsibleAddresses(sdfsfilename)
-	c := make(chan Pair, 4)
-	for _, address := range addressList {
-		CallGetTimeStamp(address, sdfsfilename, c)
-	}
-	ids_contains_file := []int{}
-	for i := 0; i < len(addressList); i++ {
-		pair := <-c
-		if pair.Ts > -1 {
-			ids_contains_file = append(ids_contains_file, getHashID(pair.Address))
+	hosts := []string{}
+	for _, addr := range addressList {
+		host := CheckFile(sdfsfilename, addr)
+		if host != "" {
+			hosts = append(hosts, host)
 		}
 	}
-	hostList := []string{}
-	for _, id := range ids_contains_file {
-		hostname := fileService.node.MbList.GetNode(id).Hostname
-		hostList = append(hostList, hostname)
-	}
-	*hostnames = hostList
+	*hostnames = hosts
 	return nil
 }
 
@@ -225,6 +217,14 @@ func (fileService *FileService) StoreFileToLocal(args StoreFileArgs, result *RPC
 		*result = RPC_SUCCESS
 	}
 	return err
+}
+
+func (fileService *FileService) CheckFileExists(sdfsfilename string, hostname *string) error {
+	if fileService.node.FileList.GetFileInfo(sdfsfilename) != nil {
+		*hostname = fileService.node.Hostname
+		return nil
+	}
+	return fmt.Errorf("file not exitst in CheckFileExists")
 }
 
 func (fileService *FileService) ServeLocalFile(sdfsfilename string, result *[]byte) error {
@@ -263,6 +263,21 @@ func PutFile(masterNodeID int, timestamp int, address, sdfsfilename string, cont
 	}
 	SLOG.Printf("[PutFile] destination: %s, filename: %s", address, sdfsfilename)
 	c <- 1
+}
+
+func CheckFile(sdfsfilename, address string) string {
+	client, err := rpc.Dial("tcp", address)
+	if err != nil {
+		SLOG.Printf("[CheckFile] Dial failed, address: %s", address)
+		return ""
+	}
+	var hostname string
+	err = client.Call(FileServiceName+address+".CheckFileExists", sdfsfilename, &hostname)
+	if err != nil {
+		SLOG.Println("Call CHECK FILE EXITS err: ", err)
+		return ""
+	}
+	return hostname
 }
 
 func GetFile(address, sdfsfilename string, data *[]byte) error {
