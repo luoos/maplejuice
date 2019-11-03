@@ -1,0 +1,4 @@
+#!/bin/bash
+pushd /root/distributed_log_querier
+./scripts/deploy_dnode.sh
+popd
