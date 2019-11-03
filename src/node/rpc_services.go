@@ -87,37 +87,40 @@ func (node *Node) StartRPCFileService() {
 
 /* Callee begin */
 func (fileService *FileService) PutFileRequest(args PutFileArgs, result *RPCResultType) error {
-	fstat, err := os.Stat(args.localName)
+	fstat, err := os.Stat(args.LocalName)
 	if err != nil {
 		SLOG.Print(err)
+		return err
 	}
-	file_paths := []string{}
 	if fstat.IsDir() {
-		files, err := ioutil.ReadDir(".")
+		files, err := ioutil.ReadDir(args.LocalName)
 		if err != nil {
-			log.Fatal(err)
+			SLOG.Printf("err ReadDir: ", args.LocalName)
+			return err
 		}
-
 		for _, file := range files {
-			localAndSdfsFilename := file_paths, args.localName + "/" + file.Name()
-			err := fileService.IndividualPutFileRequest(localAndSdfsFilename, localAndSdfsFilename)
+			localFilename := args.LocalName + "/" + file.Name()
+			sdfsFileName := file.Name()
+			err := fileService.individualPutFileRequest(sdfsFileName, localFilename, true, result)
 			if err != nil {
+				SLOG.Printf("err individual put")
 				return err
 			}
 		}
 		return nil
 	} else {
-		return fileService.IndividualPutFileRequest(args.SdfsName, args.LocalName)
+		return fileService.individualPutFileRequest(args.SdfsName, args.LocalName, args.ForceUpdate, result)
 	}
 }
-func (fileService *FileService) IndividualPutFileRequest(sdfsName, localName string) error {
+func (fileService *FileService) individualPutFileRequest(sdfsName, localName string, forceUpdate bool, result *RPCResultType) error {
 	_, ts := fileService.node.GetAddressOfLatestTS(sdfsName)
-	if !args.ForceUpdate && ((GetMillisecond() - ts) < MIN_UPDATE_INTERVAL) {
+	if !forceUpdate && ((GetMillisecond() - ts) < MIN_UPDATE_INTERVAL) {
 		*result = RPC_PROMPT
 		return nil
 	}
 	targetAddresses := fileService.node.GetResponsibleAddresses(sdfsName)
 	masterId := fileService.node.GetMasterID(sdfsName)
+
 	ts = GetMillisecond()
 	data, err := ioutil.ReadFile(localName)
 	if err != nil {
@@ -129,7 +132,6 @@ func (fileService *FileService) IndividualPutFileRequest(sdfsName, localName str
 	for _, addr := range targetAddresses {
 		go PutFile(masterId, ts, addr, sdfsName, data, c)
 	}
-
 	for i := 0; i < WRITE_QUORUM && i < len(targetAddresses); i++ {
 		select {
 		case <-c:

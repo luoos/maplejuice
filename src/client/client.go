@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/fatih/color"
 )
@@ -24,7 +25,8 @@ const usage_prompt = `Client commands:
 2. dump - dump local host membership list
 3. ls <sdfsfilename> - list all machine addresses where this file is currently being stored
 4. store - list all files currently being stored at this machine
-5. put <localfilename> <sdfsfilename> - Insert or update a local file to the distributed file system
+5.1 put <localfilename> <sdfsfilename> - Insert or update a local file to the distributed file system
+5.2 put <localdirname> - Insert or update all local files in a directory
 6. get <sdfsfilename> <localfilename> - Get the file from the distributed file system, and store it to <localfilename>
 7. delete <sdfsfilename> - Delete a file from the distributed file system`
 
@@ -58,7 +60,22 @@ func parseCommand() {
 		listLocalFiles()
 	case "put":
 		source := os.Args[2]
-		destination := os.Args[3]
+		fstat, err := os.Stat(source)
+		if err != nil {
+			log.Fatal(err)
+		}
+		var destination string
+		if len(os.Args) == 4 {
+			if fstat.IsDir() {
+				log.Fatal("this is not a regular file")
+			}
+			destination = os.Args[3]
+		} else {
+			if !fstat.IsDir() {
+				log.Fatal("this is not a directory")
+			}
+			destination = source
+		}
 		putFileToSystem(source, destination)
 	case "get":
 		source := os.Args[2]
@@ -112,18 +129,31 @@ func listLocalFiles() {
 	fmt.Printf("\n%d files.\n", cnt)
 }
 
+func prompRoutine(c chan string) {
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("Last update was in 1 minute, type \"yes\" to confirm update: ")
+	text, err := reader.ReadString('\n')
+	if err != nil {
+		log.Fatal(err)
+	}
+	c <- text
+}
 func putFileToSystem(localName, sdfsName string) {
 	localAbsPath, _ := filepath.Abs(localName)
 	reply := CallPutFileRequest(localAbsPath, sdfsName, false)
 	if reply == node.RPC_PROMPT {
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Print("Last update was in 1 minute, type \"yes\" to confirm update: ")
-		text, _ := reader.ReadString('\n')
-		text = strings.TrimSuffix(text, "\n")
-		if text == "yes" {
-			CallPutFileRequest(localAbsPath, sdfsName, true)
-		} else {
-			fmt.Println("Abort")
+		c := make(chan string)
+		go prompRoutine(c)
+		select {
+		case text := <-c:
+			text = strings.TrimSuffix(text, "\n")
+			if text == "yes" {
+				CallPutFileRequest(localAbsPath, sdfsName, true)
+			} else {
+				fmt.Println("Abort")
+			}
+		case <-time.After(10 * time.Second):
+			fmt.Printf("\nAbort\n")
 		}
 	}
 }
@@ -186,7 +216,7 @@ func request_cmd(host string, port int, cmd string) {
 		lines := strings.Split(strings.TrimRight(output, "\n"), "\n")
 		colorCyan := color.New(color.FgCyan)
 		for _, l := range lines {
-			colorCyan.Print(host + ":") // print with color for vm name
+			colorCyan.Print(host + ": ") // print with color for vm name
 			fmt.Println(l)
 		}
 	}
@@ -207,6 +237,7 @@ func CallPutFileRequest(src, dest string, forceUpdate bool) node.RPCResultType {
 	var reply node.RPCResultType
 	err := client.Call(node.FileServiceName+address+".PutFileRequest", node.PutFileArgs{src, dest, forceUpdate}, &reply)
 	if err != nil {
+		log.Printf("call PutFileRequest return err")
 		log.Fatal(err)
 	}
 	return reply
