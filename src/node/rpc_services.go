@@ -62,15 +62,6 @@ type FileServiceInterface = interface {
 	StoreFileToLocal(args StoreFileArgs, result *RPCResultType) error
 }
 
-func DialFileService(address string) *rpc.Client {
-	// address: IP + Port, such as "0.0.0.0:8011"
-	c, err := rpc.Dial("tcp", address)
-	if err != nil {
-		SLOG.Fatal(err)
-	}
-	return c
-}
-
 func (node *Node) RegisterFileService(address string, svc FileServiceInterface) error {
 	return rpc.RegisterName(FileServiceName+address, svc)
 }
@@ -229,19 +220,12 @@ func (fileService *FileService) DeleteLocalFile(sdfsName string, result *RPCResu
 
 /* Caller begin */
 
-func CallLs(address, sdfsfilename string) []string {
-	clien := DialFileService(address)
-	var addresses []string
-	err := clien.Call(FileServiceName+address+".Ls", sdfsfilename, &addresses)
-	if err != nil {
-		SLOG.Fatal(err)
-	}
-	return addresses
-}
-
-/** from coordinator **/
 func PutFile(masterNodeID int, timestamp int, address, sdfsfilename string, content []byte, c chan int) {
-	client := DialFileService(address)
+	client, err := rpc.Dial("tcp", address)
+	if err != nil {
+		SLOG.Printf("[PutFile] Dial failed, address: %s", address)
+		return
+	}
 	var reply RPCResultType
 	args := StoreFileArgs{masterNodeID, sdfsfilename, timestamp, content}
 	send_err := client.Call(FileServiceName+address+".StoreFileToLocal", args, &reply)
@@ -253,8 +237,11 @@ func PutFile(masterNodeID int, timestamp int, address, sdfsfilename string, cont
 }
 
 func GetFile(address, sdfsfilename string, data *[]byte) error {
-	sender := DialFileService(address)
-	send_err := sender.Call(FileServiceName+address+".ServeLocalFile", sdfsfilename, data)
+	client, err := rpc.Dial("tcp", address)
+	if err != nil {
+		return err
+	}
+	send_err := client.Call(FileServiceName+address+".ServeLocalFile", sdfsfilename, data)
 	if send_err != nil {
 		log.Fatal("send_err:", send_err)
 	}
@@ -262,9 +249,12 @@ func GetFile(address, sdfsfilename string, data *[]byte) error {
 }
 
 func DeleteFile(address, sdfsName string, c chan string) error {
-	client := DialFileService(address)
+	client, err := rpc.Dial("tcp", address)
+	if err != nil {
+		return err
+	}
 	var result RPCResultType
-	err := client.Call(FileServiceName+address+".DeleteLocalFile", sdfsName, &result)
+	err = client.Call(FileServiceName+address+".DeleteLocalFile", sdfsName, &result)
 	if err != nil {
 		SLOG.Printf("Delete File Failure, address: %s, sdfsName: %s", address, sdfsName)
 		return err
@@ -274,9 +264,12 @@ func DeleteFile(address, sdfsName string, c chan string) error {
 }
 
 func CallGetTimeStamp(address, sdfsFileName string, c chan Pair) {
-	sender := DialFileService(address)
+	client, err := rpc.Dial("tcp", address)
+	if err != nil {
+		SLOG.Printf("[CallGetTimeStamp] fail to dial %s", address)
+	}
 	var timestamp int
-	err := sender.Call(FileServiceName+address+".GetTimeStamp", sdfsFileName, &timestamp)
+	err = client.Call(FileServiceName+address+".GetTimeStamp", sdfsFileName, &timestamp)
 	if err != nil {
 		SLOG.Fatal(err)
 	}
