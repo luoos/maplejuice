@@ -198,18 +198,7 @@ func (node *Node) handlePacket(packet Packet) {
 	switch packet.Action {
 	case ACTION_NEW_NODE:
 		SLOG.Printf("[Node %d] Received ACTION_NEW_NODE (%d, %s:%s)", node.Id, packet.Id, packet.IP, packet.Port)
-		node.MbList.InsertNode(packet.Id, packet.IP, packet.Port, packet.RPC_Port, GetMillisecond(), packet.Hostname)
-		node.monitorIfNecessary(packet.Id)
-
-		if node.file_service_on {
-			prev_node_id := node.MbList.GetNode(packet.Id).GetPrevNode().Id
-			node.FileList.UpdateMasterID(packet.Id, func(fileInfo *FileInfo) bool {
-				return IsInCircleRange(fileInfo.HashID, prev_node_id+1, packet.Id)
-			})
-
-			node.DeleteRedundantFile()
-			go node.DuplicateReplica() // TODO: check condition
-		}
+		node.JoinNode(packet)
 	case ACTION_DELETE_NODE:
 		SLOG.Printf("[Node %d] Received ACTION_DELETE_NODE (%d), source: %s, port: %s", node.Id, packet.Id, packet.IP, packet.Port)
 
@@ -246,12 +235,7 @@ func (node *Node) handlePacket(packet Packet) {
 			Hostname: packet.Hostname,
 		}
 		node.Broadcast(newNodePacket)
-		node.MbList.InsertNode(new_id, packet.IP, packet.Port, packet.RPC_Port, GetMillisecond(), packet.Hostname)
-		node.monitorIfNecessary(new_id)
-
-		if node.file_service_on {
-			go node.DuplicateReplica() // TODO: check condition
-		}
+		node.JoinNode(packet)
 	case ACTION_REPLY_JOIN:
 		node.MbList = CreateMemberList(node.Id, MAX_CAPACITY)
 		SLOG.Printf("[Node %d] Received ACTION_REPLY_JOIN assigned, member cnt: %d", node.Id, len(packet.Map.Member_map))
@@ -383,5 +367,25 @@ func (node *Node) LostNode(id int, lose_heartbeat bool) {
 				node.monitorIfNecessary(item.Id)
 			}
 		}
+	}
+}
+
+func (node *Node) JoinNode(packet Packet) {
+	node.MbList.InsertNode(packet.Id, packet.IP, packet.Port, packet.RPC_Port, GetMillisecond(), packet.Hostname)
+	node.monitorIfNecessary(packet.Id)
+
+	if node.file_service_on {
+		new_node := node.MbList.GetNode(packet.Id)
+		prev_node_id := new_node.GetPrevNode().Id
+		next_node_id := new_node.GetNextNode().Id
+		node.FileList.UpdateMasterID(packet.Id, func(fileInfo *FileInfo) bool {
+			return IsInCircleRange(fileInfo.HashID, prev_node_id+1, packet.Id)
+		})
+		if next_node_id == node.Id {
+			node.TransferOwnership(new_node.Id)
+		}
+
+		node.DeleteRedundantFile()
+		go node.DuplicateReplica() // TODO: check condition
 	}
 }

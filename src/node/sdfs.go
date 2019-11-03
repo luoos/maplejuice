@@ -160,3 +160,12 @@ func (node *Node) SendFileIfNecessary(info FileInfo, targetRPCAddr []string) {
 		}
 	}
 }
+
+func (node *Node) TransferOwnership(newMasterId int) {
+	ownedFileInfos := node.FileList.GetOwnedFileInfos(newMasterId)
+	newMasterRPCAddress := node.MbList.GetRPCAddress(newMasterId)
+	address := []string{newMasterRPCAddress}
+	for _, info := range ownedFileInfos {
+		node.SendFileIfNecessary(info, address)
+	}
+}
