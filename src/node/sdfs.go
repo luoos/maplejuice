@@ -93,17 +93,22 @@ func (node *Node) GetAddressOfLatestTS(sdfsfilename string) (string, int) {
 	}
 	max_timestamp := -1
 	max_address := ""
-	for i := 0; i < READ_QUORUM; i++ {
-		pair := <-c
-		address := pair.Address
-		timestamp := pair.Ts
-		if timestamp == -1 {
-			SLOG.Print("FileNotExists in FileInfo")
+	for i := 0; i < READ_QUORUM && i < len(addressList); i++ {
+		select {
+		case pair := <-c:
+			address := pair.Address
+			timestamp := pair.Ts
+			if timestamp == -1 {
+				SLOG.Print("FileNotExists in FileInfo")
+			}
+			if timestamp > max_timestamp {
+				max_timestamp = timestamp
+				max_address = address
+			}
+		case <-time.After(2 * time.Second):
+			continue
 		}
-		if timestamp > max_timestamp {
-			max_timestamp = timestamp
-			max_address = address
-		}
+
 	}
 	return max_address, max_timestamp
 }

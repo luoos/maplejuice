@@ -92,6 +92,7 @@ func TestDuplicateReplica(t *testing.T) {
 	go node2.StartRPCFileService()
 	go node3.StartRPCFileService()
 	go node4.StartRPCFileService()
+	time.Sleep(50 * time.Millisecond)
 	node1.Join(node0.IP + ":" + node0.Port)
 	node2.Join(node0.IP + ":" + node0.Port)
 	node3.Join(node0.IP + ":" + node0.Port)
