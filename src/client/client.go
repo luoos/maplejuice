@@ -127,7 +127,7 @@ func getFileFromSystem(sdfsName, localName string) {
 }
 
 func deleteFileFromSystem(sdfsName string) {
-
+	CallDeleteFileRequest(sdfsName)
 }
 
 func dumpMembershipList() {
@@ -215,6 +215,7 @@ func CallDeleteFileRequest(sdfsName string) error {
 	err := client.Call(node.FileServiceName+address+".DeleteFileRequest", sdfsName, &result)
 	if result != node.RPC_SUCCESS {
 		fmt.Println("Fail to delete file, check SLOG output")
+		fmt.Println(err)
 	}
 	return err
 }
