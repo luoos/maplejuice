@@ -2,7 +2,6 @@ package node
 
 import (
 	"encoding/json"
-	"log"
 	"math/rand"
 	"net"
 	"os"
@@ -224,7 +223,7 @@ func (node *Node) handlePacket(packet Packet) {
 		}
 		err := sendPacketUDP(reply_address, sendMemberListPacket)
 		if err != nil {
-			log.Println(err)
+			SLOG.Println("Error in sending memberlist packet", err)
 		}
 		newNodePacket := &Packet{
 			Action:   ACTION_NEW_NODE,
@@ -272,7 +271,7 @@ func (node *Node) handlePacket(packet Packet) {
 func (node *Node) MonitorInputPacket() {
 	conn, err := net.ListenPacket("udp", node.IP+":"+node.Port)
 	if err != nil {
-		log.Fatal(err)
+		SLOG.Fatal("[Fatal] error in starting listenPacket", err)
 	}
 	defer conn.Close()
 	for {
@@ -282,7 +281,7 @@ func (node *Node) MonitorInputPacket() {
 		buf := make([]byte, 4096)
 		length, _, err := conn.ReadFrom(buf)
 		if err != nil {
-			log.Println(err)
+			SLOG.Println("Error in MonitorInputPacket:", err)
 		}
 		var rec_packet Packet
 		json.Unmarshal(buf[:length], &rec_packet)
