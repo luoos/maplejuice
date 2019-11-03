@@ -151,13 +151,12 @@ func TestGetOwnedFileInfos(t *testing.T) {
 	fl := node.CreateFileList(1)
 	fl.PutFileInfoBase(1, "testFilename1", "/app/fs", 1, 2)
 	fl.PutFileInfoBase(2, "testFilename2", "/app/fs", 4, 3)
-	fl.PutFileInfoBase(3, "testFilename3", "/app/fs", 6, 40)
+	fl.PutFileInfoBase(3, "testFilename3", "/app/fs", 6, 39)
 	fl.PutFileInfoBase(4, "testFilename4", "/app/fs", 10, 40)
 	fl.PutFileInfoBase(5, "testFilename5", "/app/fs", 20, 128)
 	res := fl.GetOwnedFileInfos(40)
-	assert(len(res) == 2, "wrong len")
-	assert(res[0].HashID == 3 &&
-		res[1].HashID == 4, "wrong id")
+	assert(len(res) == 1, "wrong len")
+	assert(res[0].HashID == 4, "wrong id")
 	assert(res[0].MasterNodeID == 40, "wrong master Id")
 }
 

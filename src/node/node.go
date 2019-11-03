@@ -24,6 +24,7 @@ type Node struct {
 	chan_introducer    chan string
 	chan_packet        chan Packet
 	active             bool
+	DisableMonitorHB   bool // Disalbe monitor heartbeat, for test
 }
 
 type Packet struct {
@@ -72,6 +73,7 @@ func CreateNode(ip, port, rpc_port string) *Node {
 	node.chan_introducer = make(chan string, 20)
 	node.chan_packet = make(chan Packet, 20)
 	node.active = true
+	node.DisableMonitorHB = false
 	return node
 }
 
@@ -83,6 +85,10 @@ func (node *Node) InitMemberList() {
 	SLOG.Printf("[Node %d] Init Membership List", node.Id)
 	node.MbList = CreateMemberList(node.Id, MAX_CAPACITY)
 	node.MbList.InsertNode(node.Id, node.IP, node.Port, node.RPC_Port, GetMillisecond(), node.Hostname)
+}
+
+func (node *Node) IsAlive() bool {
+	return node.active
 }
 
 func (node *Node) ScanIntroducer(addresses []string) (string, bool) {
@@ -122,6 +128,7 @@ func (node *Node) Join(address string) bool {
 	if err != nil {
 		SLOG.Panic(err)
 	}
+	node.MbList = CreateMemberList(node.Id, MAX_CAPACITY)
 	select {
 	case mblistPacket := <-node.chan_packet:
 		for _, item := range mblistPacket.Map.Member_map {
@@ -176,7 +183,7 @@ func (node *Node) SendHeartbeatRoutine() {
 
 func (node *Node) sendPacketUDP(address string, packet *Packet) error {
 	if !node.active {
-		SLOG.Printf("[Node %d] is no longer active. Stop sending packet to address: ", node.Id, address)
+		SLOG.Printf("[Node %d] is no longer active. Stop sending packet to address: %s", node.Id, address)
 	}
 	data, err := json.Marshal(packet)
 	if err != nil {
@@ -245,7 +252,6 @@ func (node *Node) handlePacket(packet Packet) {
 		node.Broadcast(newNodePacket)
 		node.JoinNode(packet)
 	case ACTION_REPLY_JOIN:
-		node.MbList = CreateMemberList(node.Id, MAX_CAPACITY)
 		SLOG.Printf("[Node %d] Received ACTION_REPLY_JOIN assigned, member cnt: %d", node.Id, len(packet.Map.Member_map))
 		node.chan_packet <- packet
 	case ACTION_HEARTBEAT:
@@ -307,7 +313,7 @@ func (node *Node) resetTimer(id int) {
 }
 
 func (node *Node) monitorIfNecessary(id int) {
-	if !node.isPrevKNodes(id) {
+	if !node.isPrevKNodes(id) || node.DisableMonitorHB {
 		return
 	}
 	node.mapLock.Lock()

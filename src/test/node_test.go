@@ -413,3 +413,34 @@ func TestPassRPCPort(t *testing.T) {
 	node3_get := node2.MbList.GetNode(node3.Id)
 	assert(node3_get.RPC_Port == "9131", "wrong rpc port")
 }
+
+func TestDisableHeartbeat(t *testing.T) {
+	node1 := node.CreateNode("0.0.0.0", "9140", "9141")
+	node2 := node.CreateNode("0.0.0.0", "9150", "9151")
+	node1.InitMemberList()
+	go node1.MonitorInputPacket()
+	go node2.MonitorInputPacket()
+	time.Sleep(50 * time.Millisecond)
+	node2.Join(node1.IP + ":" + node1.Port)
+	time.Sleep(1 * time.Second)
+	node1.SendHeartbeat()
+	assert(node1.MbList.Size == 2, "wrong size")
+	time.Sleep(1 * time.Second)
+	node1.SendHeartbeat()
+	time.Sleep(3 * time.Second)
+	assert(!node2.IsAlive(), "wrong status")
+	assert(node1.MbList.Size == 1, "wrong size")
+	node1.DisableMonitorHB = true
+	node2.DisableMonitorHB = true
+	node2.Join(node1.IP + ":" + node1.Port)
+	time.Sleep(50 * time.Millisecond)
+	assert(node2.IsAlive(), "wrong status")
+	assert(node1.MbList.Size == 2, "wrong size")
+	assert(node2.MbList.Size == 2, "wrong size")
+	time.Sleep(5 * time.Millisecond)
+	assert(node1.IsAlive(), "wrong status")
+	assert(node2.IsAlive(), "wrong status")
+	assert(node1.MbList.Size == 2, "wrong size")
+	assert(node2.MbList.Size == 2, "wrong size")
+
+}
