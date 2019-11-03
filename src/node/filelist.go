@@ -6,6 +6,8 @@ import (
 	. "slogger"
 )
 
+const FILE_LIST_FILE = "/tmp/file.list"
+
 type FileInfo struct {
 	HashID       int
 	Sdfsfilename string
@@ -190,3 +192,16 @@ func (fl *FileList) GetOwnedFileInfos(masterId int) []FileInfo {
 	}
 	return res
 }
+
+// func ConstructFListFromTmpFile() FileList {
+// 	_, e := os.Stat(FILE_LIST_FILE)
+// 	if os.IsNotExist(e) {
+// 		log.Fatalf("File list file (%s) doesn't exist\n", FILE_LIST_FILE)
+// 	}
+// 	dat, err := ioutil.ReadFile(FILE_LIST_FILE)
+// 	checkErrorFatal(err)
+// 	var new_fList FileList
+// 	err = json.Unmarshal(dat, &new_fList)
+// 	checkErrorFatal(err)
+// 	return new_fList
+// }
