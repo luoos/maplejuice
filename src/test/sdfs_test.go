@@ -47,6 +47,7 @@ func TestSendFileIfNecessary(t *testing.T) {
 	go node0.StartRPCFileService()
 	go node1.StartRPCFileService()
 	go node2.StartRPCFileService()
+	time.Sleep(50 * time.Millisecond)
 	node1.Join(node0.IP + ":" + node0.Port)
 	node2.Join(node0.IP + ":" + node0.Port)
 	time.Sleep(50 * time.Millisecond)

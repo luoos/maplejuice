@@ -22,11 +22,6 @@ func assert(condition bool, mesg string) {
 	}
 }
 
-func cleanChannel() {
-	node.ACK_INTRO = make(chan string, 20)
-	node.ACK_JOIN = make(chan node.Packet, 20)
-}
-
 func TestInitNode(t *testing.T) {
 	node1 := node.CreateNode("0.0.0.0", "9000", "19000")
 	node2 := node.CreateNode("0.0.0.0", "9001", "19001")
@@ -48,7 +43,6 @@ func TestInitNode(t *testing.T) {
 }
 
 func TestBroadCast(t *testing.T) {
-	cleanChannel()
 	SLOG.Println("Start TestBroadCast1")
 	node1 := node.CreateNode("0.0.0.0", "9010", "19010")
 	node2 := node.CreateNode("0.0.0.0", "9011", "19011")
@@ -60,6 +54,7 @@ func TestBroadCast(t *testing.T) {
 	go node1.MonitorInputPacket()
 	go node2.MonitorInputPacket()
 	go node3.MonitorInputPacket()
+	time.Sleep(50 * time.Millisecond)
 	node2.Join(node1.IP + ":" + node1.Port)
 	if node1.MbList.Size != 2 {
 		t.Fatal("wrong22")
@@ -82,7 +77,6 @@ func TestBroadCast(t *testing.T) {
 }
 
 func TestLeaveAndRejoin(t *testing.T) {
-	cleanChannel()
 	node1 := node.CreateNode("0.0.0.0", "9020", "19020")
 	node2 := node.CreateNode("0.0.0.0", "9021", "19020")
 	node3 := node.CreateNode("0.0.0.0", "9022", "")
@@ -137,7 +131,6 @@ func TestLeaveAndRejoin(t *testing.T) {
 
 func TestHeartbeat(t *testing.T) {
 	SLOG.Print("Staring TESTHEARTBEAT20")
-	cleanChannel()
 	node1 := node.CreateNode("0.0.0.0", "9030", "")
 	node2 := node.CreateNode("0.0.0.0", "9031", "")
 	node3 := node.CreateNode("0.0.0.0", "9032", "")
@@ -190,7 +183,6 @@ func TestHeartbeat(t *testing.T) {
 
 // *** this is for passive monitoring
 func TestCheckFailure(t *testing.T) {
-	cleanChannel()
 	SLOG.Print("Staring TestCheckFailure.")
 	node1 := node.CreateNode("0.0.0.0", "9040", "")
 	node2 := node.CreateNode("0.0.0.0", "9041", "")
@@ -233,7 +225,6 @@ func TestCheckFailure(t *testing.T) {
 
 func TestFindIntroducer(t *testing.T) {
 	SLOG.Print("Staring TEST introducer")
-	cleanChannel()
 	node1 := node.CreateNode("0.0.0.0", "9050", "")
 	node2 := node.CreateNode("0.0.0.0", "9051", "")
 	node1.InitMemberList()
@@ -265,7 +256,6 @@ func TestFindIntroducer(t *testing.T) {
 }
 
 func TestPingSelf(t *testing.T) {
-	cleanChannel()
 	node1 := node.CreateNode("0.0.0.0", "9060", "")
 	node1.InitMemberList()
 	go node1.MonitorInputPacket()

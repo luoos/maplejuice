@@ -23,6 +23,8 @@ type Node struct {
 	file_service_on    bool
 	Hostname           string
 	memberLock         *sync.Mutex
+	chan_introducer    chan string
+	chan_packet        chan Packet
 }
 
 type Packet struct {
@@ -57,9 +59,6 @@ const (
 	TIMEOUT_THRESHOLD      = 4 * time.Second
 )
 
-var ACK_INTRO = make(chan string, 20)
-var ACK_JOIN = make(chan Packet, 20)
-
 var HEARTBEAT_LOG_FLAG = false // debug
 
 func CreateNode(ip, port, rpc_port string) *Node {
@@ -71,6 +70,8 @@ func CreateNode(ip, port, rpc_port string) *Node {
 	node.Id = ID
 	node.File_dir = LOCAL_PATH_ROOT
 	node.Hostname = ip
+	node.chan_introducer = make(chan string, 20)
+	node.chan_packet = make(chan Packet, 20)
 	return node
 }
 
@@ -96,7 +97,7 @@ func (node *Node) ScanIntroducer(addresses []string) (string, bool) {
 		go sendPacketUDP(introAddr, pingPacket)
 	}
 	select {
-	case res := <-ACK_INTRO:
+	case res := <-node.chan_introducer:
 		SLOG.Print(res)
 		return res, true
 	case <-time.After(500 * time.Millisecond):
@@ -120,7 +121,7 @@ func (node *Node) Join(address string) bool {
 		SLOG.Panic(err)
 	}
 	select {
-	case mblistPacket := <-ACK_JOIN:
+	case mblistPacket := <-node.chan_packet:
 		for _, item := range mblistPacket.Map.Member_map {
 			node.MbList.InsertNode(item.Id, item.Ip, item.Port, item.RPC_Port, GetMillisecond(), item.Hostname)
 		}
@@ -254,7 +255,7 @@ func (node *Node) handlePacket(packet Packet) {
 	case ACTION_REPLY_JOIN:
 		node.MbList = CreateMemberList(node.Id, MAX_CAPACITY)
 		SLOG.Printf("[Node %d] Received ACTION_REPLY_JOIN assigned, member cnt: %d", node.Id, len(packet.Map.Member_map))
-		ACK_JOIN <- packet
+		node.chan_packet <- packet
 	case ACTION_HEARTBEAT:
 		if HEARTBEAT_LOG_FLAG {
 			SLOG.Printf("[Node %d] Received ACTION_HEARTBEAT id: %d", node.Id, packet.Id)
@@ -279,7 +280,7 @@ func (node *Node) handlePacket(packet Packet) {
 	case ACTION_ACK:
 		SLOG.Printf("[Node x] Received ACTION_ACK from %s:%s", packet.IP, packet.Port)
 		address := packet.IP + ":" + packet.Port
-		ACK_INTRO <- address
+		node.chan_introducer <- address
 	}
 
 }

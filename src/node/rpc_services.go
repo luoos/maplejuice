@@ -267,6 +267,7 @@ func CallGetTimeStamp(address, sdfsFileName string, c chan Pair) {
 	client, err := rpc.Dial("tcp", address)
 	if err != nil {
 		SLOG.Printf("[CallGetTimeStamp] fail to dial %s", address)
+		return
 	}
 	var timestamp int
 	err = client.Call(FileServiceName+address+".GetTimeStamp", sdfsFileName, &timestamp)
