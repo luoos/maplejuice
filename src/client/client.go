@@ -163,7 +163,6 @@ func getFileFromSystem(sdfsName, localName string) {
 	err := CallGetFileRequest(sdfsName, localAbsPath)
 	if err != nil {
 		fmt.Printf("Failed to get file %s\n", sdfsName)
-		fmt.Println(err)
 	}
 }
 
