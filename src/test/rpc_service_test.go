@@ -78,10 +78,12 @@ func TestPutAndGetFileRPC(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 	sdfsfilename := "testFilename"
 	content := []byte("this is my file content")
-	node.PutFile(master.Id, 1, "0.0.0.0:9321", sdfsfilename, content, make(chan int, 4))
+	args := node.StoreFileArgs{master.Id, sdfsfilename, 1, content}
+	node.PutFile("0.0.0.0:9321", &args, make(chan int, 4))
 	var data []byte
 	node.GetFile("0.0.0.0:9321", sdfsfilename, &data)
-	assert(string(data) == string(content), "wrong")
+	assert(string(data) == string(content), "wrong1")
+	os.Remove(master.File_dir + "/" + sdfsfilename)
 }
 
 func getDcliClient(address string) *rpc.Client {
@@ -105,7 +107,8 @@ func TestGetFileFromClient(t *testing.T) {
 	coorFsAddress := "0.0.0.0:19510"
 	sdfsfilename := "testFilename"
 	content := []byte("this is my file content")
-	node.PutFile(coordinator.Id, 1, coorFsAddress, sdfsfilename, content, make(chan int, 4))
+	args := node.StoreFileArgs{coordinator.Id, sdfsfilename, 1, content}
+	node.PutFile(coorFsAddress, &args, make(chan int, 4))
 	client := getDcliClient(coorFsAddress)
 	var res node.RPCResultType
 	localpath := "/tmp/gotTestFile"
@@ -113,6 +116,7 @@ func TestGetFileFromClient(t *testing.T) {
 	assert(err == nil, "err")
 	data, _ := ioutil.ReadFile(localpath)
 	assert(string(data) == string(content), "wrong data")
+	os.Remove(coordinator.File_dir + "/" + sdfsfilename)
 }
 
 func TestPutFileFromClient(t *testing.T) {

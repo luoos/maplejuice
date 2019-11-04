@@ -128,9 +128,10 @@ func (fileService *FileService) individualPutFileRequest(sdfsName, localName str
 		*result = RPC_FAIL
 		return err
 	}
+	args := StoreFileArgs{masterId, sdfsName, ts, data}
 	c := make(chan int, DUPLICATE_CNT)
 	for _, addr := range targetAddresses {
-		go PutFile(masterId, ts, addr, sdfsName, data, c)
+		go PutFile(addr, &args, c)
 	}
 	for i := 0; i < WRITE_QUORUM && i < len(targetAddresses); i++ {
 		select {
@@ -249,19 +250,18 @@ func (fileService *FileService) DeleteLocalFile(sdfsName string, result *RPCResu
 
 /* Caller begin */
 
-func PutFile(masterNodeID int, timestamp int, address, sdfsfilename string, content []byte, c chan int) {
+func PutFile(address string, args *StoreFileArgs, c chan int) {
 	client, err := rpc.Dial("tcp", address)
 	if err != nil {
 		SLOG.Printf("[PutFile] Dial failed, address: %s", address)
 		return
 	}
 	var reply RPCResultType
-	args := StoreFileArgs{masterNodeID, sdfsfilename, timestamp, content}
 	send_err := client.Call(FileServiceName+address+".StoreFileToLocal", args, &reply)
 	if send_err != nil {
 		SLOG.Println("send_err:", send_err)
 	}
-	SLOG.Printf("[PutFile] destination: %s, filename: %s", address, sdfsfilename)
+	SLOG.Printf("[PutFile] destination: %s, filename: %s", address, args.SdfsName)
 	c <- 1
 }
 

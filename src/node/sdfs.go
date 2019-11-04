@@ -147,12 +147,13 @@ func (node *Node) SendFileIfNecessary(info FileInfo, targetRPCAddr []string) {
 		SLOG.Printf("[Node %d] Fail to read file: %s", node.Id, info.Localpath)
 		return
 	}
+	args := StoreFileArgs{info.MasterNodeID, info.Sdfsfilename, info.Timestamp, data}
 	dummy_chan := make(chan int, L)
 	for i := 0; i < L; i++ {
 		select {
 		case p := <-c:
 			if p.Ts < info.Timestamp {
-				go PutFile(info.MasterNodeID, info.Timestamp, p.Address, info.Sdfsfilename, data, dummy_chan)
+				go PutFile(p.Address, &args, dummy_chan)
 			}
 		case <-time.After(1 * time.Second):
 			SLOG.Printf("[Node %d] Timeout when trying to get timestamp", node.Id)

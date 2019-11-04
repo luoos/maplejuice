@@ -139,6 +139,7 @@ func TestHeartbeat(t *testing.T) {
 	go node1.MonitorInputPacket()
 	go node2.MonitorInputPacket()
 	go node3.MonitorInputPacket()
+	time.Sleep(50 * time.Millisecond)
 	node2.Join(node1.IP + ":" + node1.Port)
 	node3.Join(node1.IP + ":" + node1.Port)
 
@@ -152,7 +153,7 @@ func TestHeartbeat(t *testing.T) {
 		t.Fatalf("wrong2 %d and %d", oldHeartBeat2, newHeartBeat2)
 	}
 	if oldHeartBeat3 >= newHeartBeat3 {
-		t.Fatal("wrong5", oldHeartBeat3, newHeartBeat3)
+		t.Fatal("wrong3", oldHeartBeat3, newHeartBeat3)
 	}
 
 	oldHeartBeat1 := node1.MbList.GetNode(node2.Id).Heartbeat_t
@@ -162,10 +163,10 @@ func TestHeartbeat(t *testing.T) {
 	newHeartBeat1 := node1.MbList.GetNode(node2.Id).Heartbeat_t
 	newHeartBeat3 = node3.MbList.GetNode(node2.Id).Heartbeat_t
 	if oldHeartBeat1 >= newHeartBeat1 {
-		t.Fatalf("wrong1 %d and %d", oldHeartBeat1, newHeartBeat1)
+		t.Fatalf("wrong4 %d and %d", oldHeartBeat1, newHeartBeat1)
 	}
 	if oldHeartBeat3 >= newHeartBeat3 {
-		t.Fatal("wrong3")
+		t.Fatal("wrong5")
 	}
 
 	oldHeartBeat1 = node1.MbList.GetNode(node3.Id).Heartbeat_t
@@ -175,10 +176,10 @@ func TestHeartbeat(t *testing.T) {
 	newHeartBeat1 = node1.MbList.GetNode(node3.Id).Heartbeat_t
 	newHeartBeat2 = node2.MbList.GetNode(node3.Id).Heartbeat_t
 	if oldHeartBeat1 >= newHeartBeat1 {
-		t.Fatal("wrong1")
+		t.Fatal("wrong6")
 	}
 	if oldHeartBeat2 >= newHeartBeat2 {
-		t.Fatal("wrong2")
+		t.Fatal("wrong7")
 	}
 }
 
