@@ -106,6 +106,7 @@ func dialLocalNode() (*rpc.Client, string) {
 }
 func listHostsForFile(sdfsName string) {
 	client, address := dialLocalNode()
+	defer client.Close()
 	var addrs []string
 	err := client.Call(node.FileServiceName+address+".Ls", sdfsName, &addrs)
 	if err != nil {
@@ -196,7 +197,7 @@ func execCommand(cmd string) {
 func request_cmd(host string, port int, cmd string) {
 	dest := host + ":" + strconv.Itoa(port)
 	conn, err := rpc.Dial("tcp", dest)
-
+	defer conn.Close()
 	defer wg.Done()
 	if err != nil {
 		if _, t := err.(*net.OpError); t {
@@ -233,6 +234,7 @@ func CallPutFileRequest(src, dest string, forceUpdate bool) node.RPCResultType {
 		os.Exit(1)
 	}
 	client, address := dialLocalNode()
+	defer client.Close()
 	var reply node.RPCResultType
 	err := client.Call(node.FileServiceName+address+".PutFileRequest", node.PutFileArgs{src, dest, forceUpdate}, &reply)
 	if err != nil {
@@ -245,6 +247,7 @@ func CallPutFileRequest(src, dest string, forceUpdate bool) node.RPCResultType {
 func CallGetFileRequest(sdfsName, localPath string) error {
 	// localPath should be absolute path
 	client, address := dialLocalNode()
+	defer client.Close()
 	var result node.RPCResultType
 	err := client.Call(node.FileServiceName+address+".GetFileRequest", []string{sdfsName, localPath}, &result)
 	return err
@@ -252,6 +255,7 @@ func CallGetFileRequest(sdfsName, localPath string) error {
 
 func CallDeleteFileRequest(sdfsName string) error {
 	client, address := dialLocalNode()
+	defer client.Close()
 	var result node.RPCResultType
 	err := client.Call(node.FileServiceName+address+".DeleteFileRequest", sdfsName, &result)
 	if result != node.RPC_SUCCESS {
