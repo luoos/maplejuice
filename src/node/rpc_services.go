@@ -58,35 +58,36 @@ type FileService struct {
 	node *Node
 }
 
-type FileServiceInterface = interface {
-	PutFileRequest(args PutFileArgs, code *RPCResultType) error
-	GetTimeStamp(sdfsFileName string, timestamp *int) error
-	StoreFileToLocal(args StoreFileArgs, result *RPCResultType) error
-}
+// type FileServiceInterface = interface {
+// 	PutFileRequest(args *PutFileArgs, code *RPCResultType) error
+// 	GetTimeStamp(sdfsFileName string, timestamp *int) error
+// 	StoreFileToLocal(args *StoreFileArgs, result *RPCResultType) error
+// }
 
-func (node *Node) RegisterFileService(address string, svc FileServiceInterface) error {
-	return rpc.RegisterName(FileServiceName+address, svc)
+func (node *Node) RegisterFileService(address string) error {
+	return rpc.RegisterName(FileServiceName+address, &FileService{node: node})
 }
 
 func (node *Node) StartRPCFileService() {
-	node.RegisterFileService(node.IP+":"+node.RPC_Port, &FileService{node: node})
+	node.RegisterFileService(node.IP + ":" + node.RPC_Port)
 	listener, err := net.Listen("tcp", "0.0.0.0:"+node.RPC_Port)
 	if err != nil {
 		SLOG.Fatal("ListenTCP error:", err)
 	}
 	node.file_service_on = true
-	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			SLOG.Fatal("Accept error:", err)
-		}
+	// for {
+	rpc.Accept(listener)
+	// conn, err := listener.Accept()
+	// if err != nil {
+	// 	SLOG.Fatal("Accept error:", err)
+	// }
 
-		go rpc.ServeConn(conn)
-	}
+	// go rpc.ServeConn(conn)
+	// }
 }
 
 /* Callee begin */
-func (fileService *FileService) PutFileRequest(args PutFileArgs, result *RPCResultType) error {
+func (fileService *FileService) PutFileRequest(args *PutFileArgs, result *RPCResultType) error {
 	fstat, err := os.Stat(args.LocalName)
 	if err != nil {
 		SLOG.Print(err)
@@ -128,10 +129,10 @@ func (fileService *FileService) individualPutFileRequest(sdfsName, localName str
 		*result = RPC_FAIL
 		return err
 	}
-	args := StoreFileArgs{masterId, sdfsName, ts, data}
+	args := &StoreFileArgs{masterId, sdfsName, ts, data}
 	c := make(chan int, DUPLICATE_CNT)
 	for _, addr := range targetAddresses {
-		go PutFile(addr, &args, c)
+		PutFile(addr, args, c)
 	}
 	for i := 0; i < WRITE_QUORUM && i < len(targetAddresses); i++ {
 		select {
@@ -209,7 +210,7 @@ func (fileService *FileService) GetTimeStamp(sdfsFileName string, timestamp *int
 	return nil
 }
 
-func (fileService *FileService) StoreFileToLocal(args StoreFileArgs, result *RPCResultType) error {
+func (fileService *FileService) StoreFileToLocal(args *StoreFileArgs, result *RPCResultType) error {
 	err := fileService.node.FileList.StoreFile(args.SdfsName, fileService.node.File_dir, args.Ts, args.MasterNodeId, args.Content)
 	if err != nil {
 		SLOG.Println(err)
@@ -256,6 +257,7 @@ func PutFile(address string, args *StoreFileArgs, c chan int) {
 		SLOG.Printf("[PutFile] Dial failed, address: %s", address)
 		return
 	}
+	defer client.Close()
 	var reply RPCResultType
 	send_err := client.Call(FileServiceName+address+".StoreFileToLocal", args, &reply)
 	if send_err != nil {
@@ -271,6 +273,7 @@ func CheckFile(sdfsfilename, address string) string {
 		SLOG.Printf("[CheckFile] Dial failed, address: %s", address)
 		return ""
 	}
+	defer client.Close()
 	var hostname string
 	err = client.Call(FileServiceName+address+".CheckFileExists", sdfsfilename, &hostname)
 	if err != nil {
@@ -285,6 +288,7 @@ func GetFile(address, sdfsfilename string, data *[]byte) error {
 	if err != nil {
 		return err
 	}
+	defer client.Close()
 	send_err := client.Call(FileServiceName+address+".ServeLocalFile", sdfsfilename, data)
 	if send_err != nil {
 		SLOG.Println("send_err:", send_err)
@@ -297,6 +301,7 @@ func DeleteFile(address, sdfsName string, c chan string) error {
 	if err != nil {
 		return err
 	}
+	defer client.Close()
 	var result RPCResultType
 	err = client.Call(FileServiceName+address+".DeleteLocalFile", sdfsName, &result)
 	if err != nil {
@@ -313,6 +318,7 @@ func CallGetTimeStamp(address, sdfsFileName string, c chan Pair) {
 		SLOG.Printf("[CallGetTimeStamp] fail to dial %s", address)
 		return
 	}
+	defer client.Close()
 	var timestamp int
 	err = client.Call(FileServiceName+address+".GetTimeStamp", sdfsFileName, &timestamp)
 	if err != nil {
