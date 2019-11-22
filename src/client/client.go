@@ -25,10 +25,11 @@ const usage_prompt = `Client commands:
 2. dump - dump local host membership list
 3. ls <sdfsfilename> - list all machine addresses where this file is currently being stored
 4. store - list all files currently being stored at this machine
-5.1 put <localfilename> <sdfsfilename> - Insert or update a local file to the distributed file system
-5.2 put <localdirname> - Insert or update all local files in a directory
-6. get <sdfsfilename> <localfilename> - Get the file from the distributed file system, and store it to <localfilename>
-7. delete <sdfsfilename> - Delete a file from the distributed file system`
+5.1 put <localfilepath> <sdfsfilepath> - Insert or update a local file to the distributed file system
+5.2 put <localdirpath> <sdfsfilepath> - Insert or update all local files in a directory
+6. append <localfilepath> <sdfsfilepath> append a local file to the distributed file system
+7. get <sdfsfilename> <localfilename> - Get the file from the distributed file system, and store it to <localfilename>
+8. delete <sdfsfilename> - Delete a file from the distributed file system`
 
 var port = flag.Int("port", 8000, "The port to connect to; defaults to 8000.")
 var dump = flag.Bool("dump", false, "Dump membership list")
@@ -65,6 +66,13 @@ func parseCommand() {
 		source := os.Args[2]
 		destination := os.Args[3]
 		putFileToSystem(source, destination)
+	case "append":
+		if len(os.Args) != 4 {
+			log.Fatal("Need More Arguments!")
+		}
+		source := os.Args[2]
+		destination := os.Args[3]
+		appendFileToSystem(source, destination)
 	case "get":
 		source := os.Args[2]
 		destination := os.Args[3]
@@ -127,9 +135,10 @@ func prompRoutine(c chan string) {
 	}
 	c <- text
 }
+
 func putFileToSystem(localName, sdfsName string) {
 	localAbsPath, _ := filepath.Abs(localName)
-	reply := CallPutFileRequest(localAbsPath, sdfsName, false)
+	reply := CallPutFileRequest(localAbsPath, sdfsName, false, false)
 	if reply == node.RPC_PROMPT {
 		c := make(chan string)
 		go prompRoutine(c)
@@ -137,7 +146,7 @@ func putFileToSystem(localName, sdfsName string) {
 		case text := <-c:
 			text = strings.TrimSuffix(text, "\n")
 			if text == "yes" {
-				CallPutFileRequest(localAbsPath, sdfsName, true)
+				CallPutFileRequest(localAbsPath, sdfsName, true, false)
 			} else {
 				fmt.Println("Abort")
 			}
@@ -145,6 +154,11 @@ func putFileToSystem(localName, sdfsName string) {
 			fmt.Printf("\nAbort\n")
 		}
 	}
+}
+
+func appendFileToSystem(localName, sdfsName string) {
+	localAbsPath, _ := filepath.Abs(localName)
+	CallPutFileRequest(localAbsPath, sdfsName, true, true)
 }
 
 func getFileFromSystem(sdfsName, localName string) {
@@ -210,7 +224,7 @@ func request_cmd(host string, port int, cmd string) {
 	}
 }
 
-func CallPutFileRequest(src, dest string, forceUpdate bool) node.RPCResultType {
+func CallPutFileRequest(src, dest string, forceUpdate, appending bool) node.RPCResultType {
 	// src is absolute path.
 	// dest is sdfs filename
 	if !filepath.IsAbs(src) {
@@ -224,7 +238,7 @@ func CallPutFileRequest(src, dest string, forceUpdate bool) node.RPCResultType {
 	client, address := dialLocalNode()
 	defer client.Close()
 	var reply node.RPCResultType
-	err := client.Call(node.FileServiceName+address+".PutFileRequest", node.PutFileArgs{src, dest, forceUpdate}, &reply)
+	err := client.Call(node.FileServiceName+address+".PutFileRequest", node.PutFileArgs{src, dest, forceUpdate, appending}, &reply)
 	if err != nil {
 		log.Printf("call PutFileRequest return err")
 		log.Fatal(err)
