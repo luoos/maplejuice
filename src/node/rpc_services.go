@@ -16,6 +16,7 @@ import (
 	"net"
 	"net/rpc"
 	"os"
+	"path/filepath"
 	. "slogger"
 	"time"
 )
@@ -100,8 +101,8 @@ func (fileService *FileService) PutFileRequest(args *PutFileArgs, result *RPCRes
 			return err
 		}
 		for _, file := range files {
-			localFilename := args.LocalName + "/" + file.Name()
-			sdfsFileName := file.Name()
+			localFilename := filepath.Join(args.LocalName, file.Name())
+			sdfsFileName := filepath.Join(args.SdfsName, file.Name()) // Now we need to store a dir in SDFS
 			err := fileService.individualPutFileRequest(sdfsFileName, localFilename, true, result)
 			if err != nil {
 				SLOG.Printf("err individual put")
@@ -211,7 +212,7 @@ func (fileService *FileService) GetTimeStamp(sdfsFileName string, timestamp *int
 }
 
 func (fileService *FileService) StoreFileToLocal(args *StoreFileArgs, result *RPCResultType) error {
-	err := fileService.node.FileList.StoreFile(args.SdfsName, fileService.node.File_dir, args.Ts, args.MasterNodeId, args.Content)
+	err := fileService.node.FileList.StoreFile(args.SdfsName, fileService.node.Root_dir, args.Ts, args.MasterNodeId, args.Content)
 	if err != nil {
 		SLOG.Println(err)
 		*result = RPC_FAIL

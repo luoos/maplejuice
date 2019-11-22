@@ -3,6 +3,7 @@ package node
 import (
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	. "slogger"
 )
 
@@ -48,28 +49,28 @@ func (fl *FileList) PutFileInfoObject(sdfsfilename string, fi *FileInfo) {
 	fl.FileMap[sdfsfilename] = fi
 }
 
-func (fl *FileList) PutFileInfo(
+func (fl *FileList) PutFileInfo( // TODO: looks like it's not used??
 	sdfsName string,
-	filePath string,
+	path string,
 	timestamp int,
 	masterNodeID int) {
 	if fl.GetFileInfo(sdfsName) != nil {
 		SLOG.Printf("%s already exist, updating all metainfo", sdfsName)
 	}
 	hashid := getHashID(sdfsName)
-	fl.PutFileInfoBase(hashid, sdfsName, filePath, timestamp, masterNodeID)
+	fl.PutFileInfoBase(hashid, sdfsName, path, timestamp, masterNodeID)
 }
 
 func (fl *FileList) PutFileInfoBase(
 	hashId int,
 	sdfsfilename string,
-	filepath string,
+	abs_path string,
 	timestamp int,
 	masterNodeID int) {
 	fl.FileMap[sdfsfilename] = &FileInfo{
 		HashID:       hashId,
 		Sdfsfilename: sdfsfilename,
-		Localpath:    filepath,
+		Localpath:    abs_path,
 		Timestamp:    timestamp,
 		MasterNodeID: masterNodeID,
 	}
@@ -77,31 +78,37 @@ func (fl *FileList) PutFileInfoBase(
 
 func (fl *FileList) StoreFile(
 	sdfsName string,
-	file_dir string,
+	root_dir string,
 	timestamp int,
 	masterNodeID int,
 	data []byte) error {
 
 	hashId := getHashID(sdfsName)
-	return fl.StoreFileBase(hashId, sdfsName, file_dir, timestamp, masterNodeID, data)
+	return fl.StoreFileBase(hashId, sdfsName, root_dir, timestamp, masterNodeID, data)
 }
 
 // This should only be used in test
 func (fl *FileList) StoreFileBase(
 	hashId int,
 	sdfsName string,
-	file_dir string,
+	root_dir string,
 	timestamp int,
 	masterNodeID int,
 	data []byte) error {
 
-	filepath := file_dir + "/" + sdfsName
-	err := ioutil.WriteFile(filepath, data, 0777)
+	abs_path := filepath.Join(root_dir, sdfsName)
+	dir, _ := filepath.Split(abs_path)
+	err := os.MkdirAll(dir, 0777)
 	if err != nil {
-		SLOG.Printf("Fail to write file: %s", filepath)
+		SLOG.Printf("Fail to create dir: %s", dir)
 		return err
 	}
-	fl.PutFileInfoBase(hashId, sdfsName, filepath, timestamp, masterNodeID)
+	err = ioutil.WriteFile(path, data, 0777)
+	if err != nil {
+		SLOG.Printf("Fail to write file: %s", abs_path)
+		return err
+	}
+	fl.PutFileInfoBase(hashId, sdfsName, abs_path, timestamp, masterNodeID)
 	return nil
 }
 

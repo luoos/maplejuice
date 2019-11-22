@@ -37,15 +37,15 @@ func createDummyFile() (string, *node.FileInfo) {
 func TestAddFileInfo(t *testing.T) {
 	fl := node.CreateFileList(1)
 	sdfsfilename := "testFilename"
-	filepath := "/app/files/1"
+	path := "/app/files/1"
 	timestamp := 100
 	masterNodeID := 128
-	fl.PutFileInfo(sdfsfilename, filepath, timestamp, masterNodeID)
+	fl.PutFileInfo(sdfsfilename, path, timestamp, masterNodeID)
 	fi := fl.GetFileInfo(sdfsfilename)
 	if fi == nil {
 		t.Fatalf("not added")
 	}
-	if fi.Localpath != filepath {
+	if fi.Localpath != path {
 		t.Fatalf("unmatched")
 	}
 	if fi.Timestamp != timestamp {

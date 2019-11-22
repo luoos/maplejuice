@@ -83,7 +83,7 @@ func TestPutAndGetFileRPC(t *testing.T) {
 	var data []byte
 	node.GetFile("0.0.0.0:9321", sdfsfilename, &data)
 	assert(string(data) == string(content), "wrong1")
-	os.Remove(master.File_dir + "/" + sdfsfilename)
+	os.Remove(master.Root_dir + "/" + sdfsfilename)
 }
 
 func getDcliClient(address string) *rpc.Client {
@@ -116,7 +116,7 @@ func TestGetFileFromClient(t *testing.T) {
 	assert(err == nil, "err")
 	data, _ := ioutil.ReadFile(localpath)
 	assert(string(data) == string(content), "wrong data")
-	os.Remove(coordinator.File_dir + "/" + sdfsfilename)
+	os.Remove(coordinator.Root_dir + "/" + sdfsfilename)
 }
 
 func TestPutFileFromClient(t *testing.T) {
@@ -135,6 +135,6 @@ func TestPutFileFromClient(t *testing.T) {
 	client := getDcliClient(coorFsAddress)
 	var reply node.RPCResultType
 	client.Call(node.FileServiceName+coorFsAddress+".PutFileRequest", node.PutFileArgs{src, dest, false}, &reply)
-	data, _ := ioutil.ReadFile(coordinator.File_dir + "/" + dest)
+	data, _ := ioutil.ReadFile(coordinator.Root_dir + "/" + dest)
 	assert(string(data) == content, "wrong")
 }

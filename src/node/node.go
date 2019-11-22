@@ -17,7 +17,7 @@ type Node struct {
 	timerMap           map[int]*time.Timer
 	mapLock            *sync.Mutex
 	FileList           *FileList
-	File_dir           string
+	Root_dir           string
 	file_service_on    bool
 	Hostname           string
 	memberLock         *sync.Mutex
@@ -68,7 +68,7 @@ func CreateNode(ip, port, rpc_port string) *Node {
 	node := &Node{IP: ip, Port: port, RPC_Port: rpc_port, mapLock: &sync.Mutex{}, timerMap: timer_map, FileList: fileList}
 	node.memberLock = &sync.Mutex{}
 	node.Id = ID
-	node.File_dir = LOCAL_PATH_ROOT
+	node.Root_dir = LOCAL_PATH_ROOT
 	node.Hostname = ip
 	node.chan_introducer = make(chan string, 20)
 	node.chan_packet = make(chan Packet, 20)

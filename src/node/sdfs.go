@@ -18,7 +18,7 @@ func getHashID(s string) int {
 }
 
 func (node *Node) SetFileDir(dir string) {
-	node.File_dir = dir
+	node.Root_dir = dir
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		os.Mkdir(dir, 0777)
 	} else if err != nil {

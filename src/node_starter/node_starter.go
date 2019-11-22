@@ -53,7 +53,7 @@ func main() {
 	addr := fmt.Sprintf("%s", addr_raw[0])
 	SLOG.Printf("Hostname: %s", addr)
 	node := node.CreateNode(addr, PORT, node.FILE_SERVICE_DEFAULT_PORT)
-	clearDir(node.File_dir)
+	clearDir(node.Root_dir)
 	node.UpdateHostname(hostname)
 	go node.MonitorInputPacket()
 	go node.StartRPCFileService()

@@ -59,23 +59,14 @@ func parseCommand() {
 	case "store":
 		listLocalFiles()
 	case "put":
+		if len(os.Args) != 4:
+			log.Fatal("Need More Arguments!")
 		source := os.Args[2]
 		fstat, err := os.Stat(source)
 		if err != nil {
 			log.Fatal(err)
 		}
-		var destination string
-		if len(os.Args) == 4 {
-			if fstat.IsDir() {
-				log.Fatal("this is not a regular file")
-			}
-			destination = os.Args[3]
-		} else {
-			if !fstat.IsDir() {
-				log.Fatal("this is not a directory")
-			}
-			destination = source
-		}
+		destination := os.Args[3]
 		putFileToSystem(source, destination)
 	case "get":
 		source := os.Args[2]
