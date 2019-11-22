@@ -103,7 +103,7 @@ func (fl *FileList) StoreFileBase(
 		SLOG.Printf("Fail to create dir: %s", dir)
 		return err
 	}
-	err = ioutil.WriteFile(path, data, 0777)
+	err = ioutil.WriteFile(abs_path, data, 0777)
 	if err != nil {
 		SLOG.Printf("Fail to write file: %s", abs_path)
 		return err
