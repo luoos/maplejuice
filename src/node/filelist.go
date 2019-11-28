@@ -81,11 +81,21 @@ func (fl *FileList) StoreFile(
 	root_dir string,
 	timestamp int,
 	masterNodeID int,
-	data []byte,
-	appending bool) error {
+	data []byte) error {
 
 	hashId := getHashID(sdfsName)
-	return fl.StoreFileBase(hashId, sdfsName, root_dir, timestamp, masterNodeID, data, appending)
+	return fl.StoreFileBase(hashId, sdfsName, root_dir, timestamp, masterNodeID, data, false)
+}
+
+func (fl *FileList) AppendFile(
+	sdfsName string,
+	root_dir string,
+	timestamp int,
+	masterNodeID int,
+	data []byte) error {
+
+	hashId := getHashID(sdfsName)
+	return fl.StoreFileBase(hashId, sdfsName, root_dir, timestamp, masterNodeID, data, true)
 }
 
 // This should only be used in test
@@ -105,24 +115,24 @@ func (fl *FileList) StoreFileBase(
 		SLOG.Printf("Fail to create dir: %s", dir)
 		return err
 	}
-	if !appending {
+	if appending {
+		f, err := os.OpenFile(abs_path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0777)
+		if err != nil {
+			SLOG.Printf("Fail to open file: %s", abs_path)
+			return err
+		}
+		_, err = f.Write(data)
+		if err != nil {
+			SLOG.Printf("Fail to append file: %s", abs_path)
+			return err
+		}
+		f.Close()
+	} else {
 		err = ioutil.WriteFile(abs_path, data, 0777)
 		if err != nil {
 			SLOG.Printf("Fail to write file: %s", abs_path)
 			return err
 		}
-	} else {
-		f, err := os.OpenFile(abs_path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0777)
-		if err != nil {
-			SLOG.Printf("Fail to write file: %s", abs_path)
-			return err
-		}
-		_, err = f.Write(data)
-		if err != nil {
-			SLOG.Printf("Fail2 to write file: %s", abs_path)
-			return err
-		}
-		f.Close()
 	}
 	fl.PutFileInfoBase(hashId, sdfsName, abs_path, timestamp, masterNodeID)
 	return nil

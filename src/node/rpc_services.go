@@ -38,7 +38,6 @@ type PutFileArgs struct {
 	LocalName   string
 	SdfsName    string
 	ForceUpdate bool
-	Appending   bool
 }
 
 type StoreFileArgs struct {
@@ -105,7 +104,7 @@ func (fileService *FileService) PutFileRequest(args *PutFileArgs, result *RPCRes
 		for _, file := range files {
 			localFilename := filepath.Join(args.LocalName, file.Name())
 			sdfsFileName := filepath.Join(args.SdfsName, file.Name()) // Now we need to store a dir in SDFS
-			err := fileService.individualPutFileRequest(sdfsFileName, localFilename, true, args.Appending, result)
+			err := fileService.individualPutFileRequest(sdfsFileName, localFilename, true, result)
 			if err != nil {
 				SLOG.Printf("err individual put")
 				return err
@@ -113,11 +112,11 @@ func (fileService *FileService) PutFileRequest(args *PutFileArgs, result *RPCRes
 		}
 		return nil
 	} else {
-		return fileService.individualPutFileRequest(args.SdfsName, args.LocalName, args.ForceUpdate, args.Appending, result)
+		return fileService.individualPutFileRequest(args.SdfsName, args.LocalName, args.ForceUpdate, result)
 	}
 }
 
-func (fileService *FileService) individualPutFileRequest(sdfsName, localName string, forceUpdate, appending bool, result *RPCResultType) error {
+func (fileService *FileService) individualPutFileRequest(sdfsName, localName string, forceUpdate bool, result *RPCResultType) error {
 	_, ts := fileService.node.GetAddressOfLatestTS(sdfsName)
 	if !forceUpdate && ((GetMillisecond() - ts) < MIN_UPDATE_INTERVAL) {
 		*result = RPC_PROMPT
@@ -133,7 +132,7 @@ func (fileService *FileService) individualPutFileRequest(sdfsName, localName str
 		*result = RPC_FAIL
 		return err
 	}
-	args := &StoreFileArgs{masterId, sdfsName, ts, data, appending}
+	args := &StoreFileArgs{masterId, sdfsName, ts, data, false}
 	c := make(chan int, DUPLICATE_CNT)
 	for _, addr := range targetAddresses {
 		PutFile(addr, args, c)
@@ -215,7 +214,13 @@ func (fileService *FileService) GetTimeStamp(sdfsFileName string, timestamp *int
 }
 
 func (fileService *FileService) StoreFileToLocal(args *StoreFileArgs, result *RPCResultType) error {
-	err := fileService.node.FileList.StoreFile(args.SdfsName, fileService.node.Root_dir, args.Ts, args.MasterNodeId, args.Content, args.Appending)
+	var err error
+	if args.Appending {
+		err = fileService.node.FileList.AppendFile(args.SdfsName, fileService.node.Root_dir, args.Ts, args.MasterNodeId, args.Content)
+	} else {
+		err = fileService.node.FileList.StoreFile(args.SdfsName, fileService.node.Root_dir, args.Ts, args.MasterNodeId, args.Content)
+	}
+
 	if err != nil {
 		SLOG.Println(err)
 		*result = RPC_FAIL

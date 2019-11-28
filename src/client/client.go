@@ -66,13 +66,6 @@ func parseCommand() {
 		source := os.Args[2]
 		destination := os.Args[3]
 		putFileToSystem(source, destination)
-	case "append":
-		if len(os.Args) != 4 {
-			log.Fatal("Need More Arguments!")
-		}
-		source := os.Args[2]
-		destination := os.Args[3]
-		appendFileToSystem(source, destination)
 	case "get":
 		source := os.Args[2]
 		destination := os.Args[3]
@@ -138,7 +131,7 @@ func prompRoutine(c chan string) {
 
 func putFileToSystem(localName, sdfsName string) {
 	localAbsPath, _ := filepath.Abs(localName)
-	reply := CallPutFileRequest(localAbsPath, sdfsName, false, false)
+	reply := CallPutFileRequest(localAbsPath, sdfsName, false)
 	if reply == node.RPC_PROMPT {
 		c := make(chan string)
 		go prompRoutine(c)
@@ -146,7 +139,7 @@ func putFileToSystem(localName, sdfsName string) {
 		case text := <-c:
 			text = strings.TrimSuffix(text, "\n")
 			if text == "yes" {
-				CallPutFileRequest(localAbsPath, sdfsName, true, false)
+				CallPutFileRequest(localAbsPath, sdfsName, true)
 			} else {
 				fmt.Println("Abort")
 			}
@@ -154,11 +147,6 @@ func putFileToSystem(localName, sdfsName string) {
 			fmt.Printf("\nAbort\n")
 		}
 	}
-}
-
-func appendFileToSystem(localName, sdfsName string) {
-	localAbsPath, _ := filepath.Abs(localName)
-	CallPutFileRequest(localAbsPath, sdfsName, true, true)
 }
 
 func getFileFromSystem(sdfsName, localName string) {

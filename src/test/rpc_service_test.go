@@ -78,7 +78,7 @@ func TestPutAndGetFileRPC(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 	sdfsfilename := "testFilename"
 	content := []byte("this is my file content")
-	args := node.StoreFileArgs{master.Id, sdfsfilename, 1, content}
+	args := node.StoreFileArgs{master.Id, sdfsfilename, 1, content, false}
 	node.PutFile("0.0.0.0:9321", &args, make(chan int, 4))
 	var data []byte
 	node.GetFile("0.0.0.0:9321", sdfsfilename, &data)
@@ -107,7 +107,7 @@ func TestGetFileFromClient(t *testing.T) {
 	coorFsAddress := "0.0.0.0:19510"
 	sdfsfilename := "testFilename"
 	content := []byte("this is my file content")
-	args := node.StoreFileArgs{coordinator.Id, sdfsfilename, 1, content}
+	args := node.StoreFileArgs{coordinator.Id, sdfsfilename, 1, content, false}
 	node.PutFile(coorFsAddress, &args, make(chan int, 4))
 	client := getDcliClient(coorFsAddress)
 	var res node.RPCResultType
