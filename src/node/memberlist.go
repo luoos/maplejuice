@@ -49,12 +49,13 @@ type MemberList struct {
 	Capacity, Size int
 	SelfId         int
 	lock           *sync.Mutex
+	smallestId     int
 }
 
 func CreateMemberList(selfId, capacity int) *MemberList {
 	Member_map := make(map[int]*MemberNode)
 	memberList := &MemberList{SelfId: selfId, Member_map: Member_map, Capacity: capacity,
-		lock: &sync.Mutex{}}
+		lock: &sync.Mutex{}, smallestId: 2147483647}
 	SLOG.Printf("[MembershipList] Created membership list id: %d, capacity: %d", selfId, capacity)
 	return memberList
 }
@@ -70,6 +71,9 @@ func (mbList *MemberList) InsertNode(id int, ip, port, rpc_port string, heartbea
 	SLOG.Printf("[MembershipList %d] Inserted node (%d, %s:%s, %d)", mbList.SelfId, id, ip, port, heartbeat_t)
 	mbList.Member_map[id] = new_node
 	mbList.Size++
+	if id < mbList.smallestId {
+		mbList.smallestId = id
+	}
 	if mbList.Size == 1 {
 		// No other node exists
 		return
@@ -117,6 +121,9 @@ func (mbList *MemberList) DeleteNode(id int) {
 	next := cur_node.next
 	prev.next = next
 	next.prev = prev
+	if mbList.smallestId == id {
+		mbList.smallestId = next.Id
+	}
 	delete(mbList.Member_map, id)
 	mbList.Size--
 	SLOG.Printf("[MembershipList %d] Deleted node %d", mbList.SelfId, id)
@@ -200,6 +207,10 @@ func (mbList *MemberList) GetNextKNodes(id, k int) []MemberNode {
 		next = next.next
 	}
 	return arr
+}
+
+func (mbList *MemberList) GetSmallestNode() *MemberNode {
+	return mbList.GetNode(mbList.smallestId)
 }
 
 // *** this is for passive monitoring

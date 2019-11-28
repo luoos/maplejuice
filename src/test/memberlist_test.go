@@ -252,3 +252,18 @@ func TestGetAddressesForNextKNodes(t *testing.T) {
 	assert(addresses[0] == "0.2.0.0:1" &&
 		addresses[2] == "0.0.0.4:1", "wrong address")
 }
+
+func TestGetSmallestNode(t *testing.T) {
+	mbList := node.CreateMemberList(3, 10)
+	sn := mbList.GetSmallestNode()
+	assert(sn == nil, "wrong node1")
+	mbList.InsertNode(3, "0.0.0.4", "94", "1", 1, "")
+	sn = mbList.GetSmallestNode()
+	assert(sn.Id == 3, "wrong node2")
+	mbList.InsertNode(0, "192.169.163.111", "91", "", 1, "")
+	sn = mbList.GetSmallestNode()
+	assert(sn.Id == 0, "wrong node3")
+	mbList.DeleteNode(0)
+	sn = mbList.GetSmallestNode()
+	assert(sn.Id == 3, "wrong node4")
+}
