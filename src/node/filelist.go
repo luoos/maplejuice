@@ -153,12 +153,12 @@ func (fl *FileList) DeleteFileAndInfo(sdfsName string) bool {
 		SLOG.Printf("trying to delete a non-exist sdfa file: %s", sdfsName)
 		return false
 	}
-	err := os.Remove(info.Localpath)
-	fl.DeleteFileInfo(sdfsName)
+	err := os.RemoveAll(info.Localpath)
 	if err != nil {
 		SLOG.Printf("Fail to delete local file: %s", info.Localpath)
 		return false
 	}
+	fl.DeleteFileInfo(sdfsName)
 	return true
 }
 

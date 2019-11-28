@@ -22,7 +22,7 @@ import (
 )
 
 const FileServiceName = "SimpleFileService"
-const FILE_SERVICE_DEFAULT_PORT = "8011"
+const RPC_DEFAULT_PORT = "8011"
 const READ_QUORUM = 2
 const WRITE_QUORUM = 3
 const MIN_UPDATE_INTERVAL = 60 * 1000
@@ -49,11 +49,11 @@ type StoreFileArgs struct {
 }
 
 const (
-	RPC_SUCCESS     RPCResultType = 1 << 0
-	RPC_DUMMY       RPCResultType = 1 << 1
-	RPC_FAIL        RPCResultType = 1 << 2
-	RPC_PROMPT      RPCResultType = 1 << 3
-	LOCAL_PATH_ROOT               = "/apps/files"
+	RPC_SUCCESS    RPCResultType = 1 << 0
+	RPC_DUMMY      RPCResultType = 1 << 1
+	RPC_FAIL       RPCResultType = 1 << 2
+	RPC_PROMPT     RPCResultType = 1 << 3
+	FILES_ROOT_DIR               = "/apps/files"
 )
 
 type FileService struct {
@@ -313,7 +313,7 @@ func DeleteFile(address, sdfsName string, c chan string) error {
 	defer client.Close()
 	var result RPCResultType
 	err = client.Call(FileServiceName+address+".DeleteLocalFile", sdfsName, &result)
-	if err != nil {
+	if err != nil || result == RPC_FAIL {
 		SLOG.Printf("Delete File Failure, address: %s, sdfsName: %s", address, sdfsName)
 		return err
 	}

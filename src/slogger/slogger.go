@@ -6,6 +6,7 @@ package slogger
 import (
 	"log"
 	"os"
+	"os/user"
 	"strings"
 )
 
@@ -17,7 +18,8 @@ var LOG_FILE = "/apps/logs/node.log"
 
 func init() {
 	if strings.HasSuffix(os.Args[0], ".test") {
-		LOG_FILE = LOG_FILE + "test"
+		usr, _ := user.Current()
+		LOG_FILE = usr.HomeDir + "/apps/logs/node.logtest"
 	}
 
 	if SLOG == nil {

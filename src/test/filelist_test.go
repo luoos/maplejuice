@@ -7,6 +7,8 @@ import (
 	"testing"
 )
 
+const FILES_ROOT_DIR = node.FILES_ROOT_DIR
+
 func randomInt(min, max int) int {
 	return min + rand.Intn(max-min)
 }
@@ -23,7 +25,7 @@ func randomString(len int) string {
 func createDummyFile() (string, *node.FileInfo) {
 	hashID := rand.Intn(1024)
 	sdfsfilename := randomString(10)
-	localpath := "/app/files/" + sdfsfilename
+	localpath := FILES_ROOT_DIR + "/" + sdfsfilename
 	timestamp := rand.Intn(1024)
 	masterNodeID := rand.Intn(1024)
 	return sdfsfilename, &node.FileInfo{
@@ -37,7 +39,7 @@ func createDummyFile() (string, *node.FileInfo) {
 func TestAddFileInfo(t *testing.T) {
 	fl := node.CreateFileList(1)
 	sdfsfilename := "testFilename"
-	path := "/app/files/1"
+	path := FILES_ROOT_DIR + "/1"
 	timestamp := 100
 	masterNodeID := 128
 	fl.PutFileInfo(sdfsfilename, path, timestamp, masterNodeID)
@@ -87,7 +89,7 @@ func TestGetResponsibleFileWithID(t *testing.T) {
 func TestGetTimeStamp(t *testing.T) {
 	fl := node.CreateFileList(1)
 	sdfsfilename := "testFilename"
-	localpath := "/app/fs"
+	localpath := FILES_ROOT_DIR
 	timestamp := 100
 	masterNodeID := 128
 	fl.PutFileInfo(sdfsfilename, localpath, timestamp, masterNodeID)
@@ -101,27 +103,13 @@ func TestGetTimeStamp(t *testing.T) {
 	}
 }
 
-// func TestGetAllFileInfo(t *testing.T) {
-// 	fl := node.CreateFileList(1)
-// 	fl.PutFileInfo("testFilename", "/app/fs", 10, 128)
-// 	fl.PutFileInfo("testFilename1", "/app/fs", 10, 128)
-// 	fl.PutFileInfo("testFilename2", "/app/fs", 10, 128)
-// 	fl.PutFileInfo("testFilename3", "/app/fs", 10, 128)
-// 	fl.PutFileInfo("testFilename4", "/app/fs", 10, 128)
-// 	flList := fl.GetAllFileInfo()
-// 	flList[0].MasterNodeID = 0
-// 	filename := flList[0].Sdfsfilename
-// 	fileInfo := fl.GetFileInfo(filename)
-// 	assert(fileInfo.MasterNodeID == 0, "wrong id")
-// }
-
 func TestUpdateMasterId(t *testing.T) {
 	fl := node.CreateFileList(1)
-	fl.PutFileInfo("testFilename", "/app/fs", 1, 2)
-	fl.PutFileInfo("testFilename1", "/app/fs", 4, 3)
-	fl.PutFileInfo("testFilename2", "/app/fs", 6, 40)
-	fl.PutFileInfo("testFilename3", "/app/fs", 10, 40)
-	fl.PutFileInfo("testFilename4", "/app/fs", 20, 128)
+	fl.PutFileInfo("testFilename", FILES_ROOT_DIR, 1, 2)
+	fl.PutFileInfo("testFilename1", FILES_ROOT_DIR, 4, 3)
+	fl.PutFileInfo("testFilename2", FILES_ROOT_DIR, 6, 40)
+	fl.PutFileInfo("testFilename3", FILES_ROOT_DIR, 10, 40)
+	fl.PutFileInfo("testFilename4", FILES_ROOT_DIR, 20, 128)
 	fl.UpdateMasterID(10, func(fileInfo *node.FileInfo) bool {
 		return node.IsInCircleRange(fileInfo.MasterNodeID, 0, 3)
 	})
@@ -135,11 +123,11 @@ func TestUpdateMasterId(t *testing.T) {
 
 func TestDeleteFileInfosOutOfRange(t *testing.T) {
 	fl := node.CreateFileList(1)
-	fl.PutFileInfoBase(1, "testFilename1", "/app/fs", 1, 2)
-	fl.PutFileInfoBase(2, "testFilename2", "/app/fs/1", 4, 3)
-	fl.PutFileInfoBase(3, "testFilename3", "/app/fs/2", 6, 40)
-	fl.PutFileInfoBase(4, "testFilename4", "/app/fs/3", 10, 40)
-	fl.PutFileInfoBase(5, "testFilename5", "/app/fs/4", 20, 128)
+	fl.PutFileInfoBase(1, "testFilename1", FILES_ROOT_DIR, 1, 2)
+	fl.PutFileInfoBase(2, "testFilename2", FILES_ROOT_DIR+"/1", 4, 3)
+	fl.PutFileInfoBase(3, "testFilename3", FILES_ROOT_DIR+"/2", 6, 40)
+	fl.PutFileInfoBase(4, "testFilename4", FILES_ROOT_DIR+"/3", 10, 40)
+	fl.PutFileInfoBase(5, "testFilename5", FILES_ROOT_DIR+"/4", 20, 128)
 	toDelete := fl.DeleteFileInfosOutOfRange(2, 4)
 	assert(len(toDelete) == 3, "wrong len")
 	assert(len(fl.FileMap) == 2, "wrong size")
@@ -149,11 +137,11 @@ func TestDeleteFileInfosOutOfRange(t *testing.T) {
 
 func TestGetOwnedFileInfos(t *testing.T) {
 	fl := node.CreateFileList(1)
-	fl.PutFileInfoBase(1, "testFilename1", "/app/fs", 1, 2)
-	fl.PutFileInfoBase(2, "testFilename2", "/app/fs", 4, 3)
-	fl.PutFileInfoBase(3, "testFilename3", "/app/fs", 6, 39)
-	fl.PutFileInfoBase(4, "testFilename4", "/app/fs", 10, 40)
-	fl.PutFileInfoBase(5, "testFilename5", "/app/fs", 20, 128)
+	fl.PutFileInfoBase(1, "testFilename1", FILES_ROOT_DIR, 1, 2)
+	fl.PutFileInfoBase(2, "testFilename2", FILES_ROOT_DIR, 4, 3)
+	fl.PutFileInfoBase(3, "testFilename3", FILES_ROOT_DIR, 6, 39)
+	fl.PutFileInfoBase(4, "testFilename4", FILES_ROOT_DIR, 10, 40)
+	fl.PutFileInfoBase(5, "testFilename5", FILES_ROOT_DIR, 20, 128)
 	res := fl.GetOwnedFileInfos(40)
 	assert(len(res) == 1, "wrong len")
 	assert(res[0].HashID == 4, "wrong id")

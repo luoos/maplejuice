@@ -5,7 +5,9 @@ import (
 	"math/rand"
 	"net"
 	"os"
+	"os/user"
 	. "slogger"
+	"strings"
 	"sync"
 	"time"
 )
@@ -68,7 +70,11 @@ func CreateNode(ip, port, rpc_port string) *Node {
 	node := &Node{IP: ip, Port: port, RPC_Port: rpc_port, mapLock: &sync.Mutex{}, timerMap: timer_map, FileList: fileList}
 	node.memberLock = &sync.Mutex{}
 	node.Id = ID
-	node.Root_dir = LOCAL_PATH_ROOT
+	node.Root_dir = FILES_ROOT_DIR
+	if strings.HasSuffix(os.Args[0], ".test") {
+		usr, _ := user.Current()
+		node.Root_dir = usr.HomeDir + "/apps/files"
+	}
 	node.Hostname = ip
 	node.chan_introducer = make(chan string, 20)
 	node.chan_packet = make(chan Packet, 20)

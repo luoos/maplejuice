@@ -86,7 +86,7 @@ func dialLocalNode() (*rpc.Client, string) {
 		fmt.Println("Unknown host")
 	}
 	ip := fmt.Sprintf("%s", addr_raw[0])
-	address := ip + ":" + node.FILE_SERVICE_DEFAULT_PORT
+	address := ip + ":" + node.RPC_DEFAULT_PORT
 	client, err := rpc.Dial("tcp", address)
 	if err != nil {
 		log.Fatal(err)

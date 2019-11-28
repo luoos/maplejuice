@@ -57,7 +57,7 @@ func TestGetTimeStampRPC(t *testing.T) {
 	go node.CallGetTimeStamp("0.0.0.0:9310", sdfsfilename, c)
 	pair := <-c
 	assert(pair.Address == "0.0.0.0:9310" && pair.Ts == -1, "wrong timestamp1")
-	localpath := "/app/fs/testFilename"
+	localpath := FILES_ROOT_DIR + "/testFilename"
 	timestamp := 100
 	masterNodeID := 128
 	node0.FileList.PutFileInfo(sdfsfilename, localpath, timestamp, masterNodeID)
@@ -83,7 +83,8 @@ func TestPutAndGetFileRPC(t *testing.T) {
 	var data []byte
 	node.GetFile("0.0.0.0:9321", sdfsfilename, &data)
 	assert(string(data) == string(content), "wrong1")
-	os.Remove(master.Root_dir + "/" + sdfsfilename)
+	os.Remove(FILES_ROOT_DIR + "/" + sdfsfilename)
+	log.Println("hi")
 }
 
 func getDcliClient(address string) *rpc.Client {
