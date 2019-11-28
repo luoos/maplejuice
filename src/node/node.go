@@ -27,6 +27,7 @@ type Node struct {
 	chan_packet        chan Packet
 	active             bool
 	DisableMonitorHB   bool // Disalbe monitor heartbeat, for test
+	FailureNodeChan    chan int
 }
 
 type Packet struct {
@@ -372,6 +373,7 @@ func (node *Node) LostNode(id int, lose_heartbeat bool) {
 	next_node_id := to_delete_node.GetNextNode().Id
 	node.MbList.DeleteNode(id)
 	node.memberLock.Unlock()
+
 	if node.file_service_on {
 		node.FileList.UpdateMasterID(next_node_id, func(fileInfo *FileInfo) bool {
 			return fileInfo.MasterNodeID == id
@@ -384,6 +386,9 @@ func (node *Node) LostNode(id int, lose_heartbeat bool) {
 				node.monitorIfNecessary(item.Id)
 			}
 		}
+	}
+	if node.FailureNodeChan != nil {
+		node.FailureNodeChan <- id
 	}
 }
 
