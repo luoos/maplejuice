@@ -52,23 +52,25 @@ func main() {
 	}
 	addr := fmt.Sprintf("%s", addr_raw[0])
 	SLOG.Printf("Hostname: %s", addr)
-	node := node.CreateNode(addr, PORT, node.RPC_DEFAULT_PORT)
-	clearDir(node.Root_dir)
-	node.UpdateHostname(hostname)
-	go node.MonitorInputPacket()
-	go node.StartRPCFileService()
-	add, success := node.ScanIntroducer(SERVER_LIST)
+	selfNode := node.CreateNode(addr, PORT, node.RPC_DEFAULT_PORT)
+	mj := &node.MapleJuiceService{TaskQueue: make(chan *node.MapleJuiceTaskArgs, 10), SelfNode: selfNode}
+	clearDir(selfNode.Root_dir)
+	selfNode.UpdateHostname(hostname)
+	go selfNode.MonitorInputPacket()
+	go selfNode.StartRPCFileService()
+	go selfNode.StartRPCMapleJuiceService(mj)
+	add, success := selfNode.ScanIntroducer(SERVER_LIST)
 	if success {
-		node.Join(add)
+		selfNode.Join(add)
 	} else {
-		node.InitMemberList()
+		selfNode.InitMemberList()
 	}
-	go node.SendHeartbeatRoutine()
+	go selfNode.SendHeartbeatRoutine()
 
 	signal.Notify(sigCh, syscall.SIGINT)
 	go func() {
 		sig := <-sigCh
-		node.Leave()
+		selfNode.Leave()
 		SLOG.Print(sig)
 		done <- true
 	}()
