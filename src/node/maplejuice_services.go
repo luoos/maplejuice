@@ -34,8 +34,7 @@ type MapleJuiceTaskArgs struct {
 	NumWorkers int
 	Prefix     string
 	Path       string
-	ClientIP   string
-	ClientPort string
+	ClientAddr string
 }
 
 type MapleArgs struct {
@@ -92,7 +91,8 @@ func (mj *MapleJuiceService) ForwardMapleJuiceRequest(args *MapleJuiceTaskArgs, 
 	if send_err != nil {
 		SLOG.Println("[ForwardMJ] call rpc err:", send_err)
 	}
-	return nil
+	*result = RPC_SUCCESS
+	return err
 }
 
 /*****
@@ -131,8 +131,9 @@ func (mj *MapleJuiceService) dispatchMapleTask(args *MapleJuiceTaskArgs) {
 	if err != nil {
 		SLOG.Fatal(err)
 	}
-	// 3. assign files to machines based on data locality: func AssignFiles(files, num_workers) -> map of {int(node_id):string(files)}
-	worker_and_files := mj.SelfNode.AssignFiles(files, args.NumWorkers)
+	// 3. assign files to machines,func PartitionFiles(files, num_workers) -> map of {int(node_id):string(files)}
+	//    TODO: based on data locality:
+	worker_and_files := mj.SelfNode.PartitionFiles(files, args.NumWorkers, "hash")
 
 	// 4. goroutine each call one worker to start maple task
 	waitChan := make(chan int, args.NumWorkers)
@@ -156,6 +157,7 @@ func (mj *MapleJuiceService) dispatchMapleTask(args *MapleJuiceTaskArgs) {
 	// 6. send success message to client
 }
 
+// TODO: test this
 func (mj *MapleJuiceService) reDispatchMapleTask(failureWorkerID int, worker_and_files map[int][]string, waitChan chan int, args *MapleJuiceTaskArgs) {
 	newWorkerId := -1
 	for nodeId, _ := range mj.SelfNode.MbList.Member_map {
@@ -178,38 +180,62 @@ func (mj *MapleJuiceService) reDispatchMapleTask(failureWorkerID int, worker_and
 }
 
 func CallMapleRequest(workerID int, workerAddress string, files []string, args *MapleJuiceTaskArgs, waitChan chan int) {
-	// mapleArgs := &MapleArgs{args.Exe, args.Prefix, files}
-	// client, err := rpc.Dial("tcp", workerAddress)
-	// if err != nil {
-	// 	SLOG.Printf("[ForwardMJ] Dial failed, address: %s", workerAddress)
-	// 	return
-	// }
-	// defer client.Close()
-	// var reply RPCResultType
-	// sendErr := client.Call(MapleJuiceServiceName+workerAddress+".StartMapleTask", mapleArgs, &reply)
-	// if sendErr != nil {
-	// 	SLOG.Println("[ForwardMJ] call rpc err:", sendErr)
-	// }
+	mapleArgs := &MapleArgs{args.Exe, args.Prefix, files}
+	client, err := rpc.Dial("tcp", workerAddress)
+	if err != nil {
+		SLOG.Printf("[ForwardMJ] Dial failed, address: %s", workerAddress)
+		return
+	}
+	defer client.Close()
+	var reply RPCResultType
+	sendErr := client.Call(MapleJuiceServiceName+workerAddress+".StartMapleTask", mapleArgs, &reply)
+	if sendErr != nil {
+		SLOG.Println("[ForwardMJ] call rpc err:", sendErr)
+	}
 	waitChan <- workerID
 }
 
-func (node *Node) AssignFiles(files []string, numWorkers int) map[int][]string {
-	workerId := node.MbList.GetNode(node.Id).next.Id
+func (node *Node) PartitionFiles(files []string, numWorkers int, partitionMethod string) map[int][]string {
 	workerMap := make(map[int][]string)
-	for i := 0; i < numWorkers; i++ {
-		workerMap[workerId] = []string{}
-		workerId = node.MbList.GetNode(workerId).next.Id
-	}
-	i := 0
-	for i < len(files) {
-		for workerID, workerFiles := range workerMap {
-			workerMap[workerID] = append(workerFiles, files[i])
-			i++
-			if i == len(files) {
-				break
-			}
+	if partitionMethod == "hash" {
+		partitionedFiles := make([][]string, numWorkers)
+		for i, _ := range partitionedFiles {
+			partitionedFiles[i] = []string{}
 		}
+		for _, file := range files {
+			hashIndex := getHashID(file) % numWorkers
+			partitionedFiles[hashIndex] = append(partitionedFiles[hashIndex], file)
+		}
+		workerId := node.MbList.GetNode(node.Id).next.Id
+		for i := 0; i < numWorkers; i++ {
+			workerMap[workerId] = partitionedFiles[i]
+			workerId = node.MbList.GetNode(workerId).next.Id
+		}
+	} else if partitionMethod == "range" {
+		minFiles := len(files) / numWorkers
+		extra := len(files) % numWorkers
+		workerId := node.MbList.GetNode(node.Id).next.Id
+		file_i := 0
+		for i := 0; i < numWorkers; i++ {
+			for j := 0; j < minFiles; j++ {
+				workerMap[workerId] = append(workerMap[workerId], files[file_i])
+				file_i++
+			}
+			if extra > 0 {
+				workerMap[workerId] = append(workerMap[workerId], files[file_i])
+				file_i++
+				extra--
+			}
+			workerId = node.MbList.GetNode(workerId).next.Id
+		}
+		if file_i != len(files) {
+			SLOG.Fatal("[PartitionFiles] assertion error")
+		}
+	} else {
+		SLOG.Fatal("wrong partition moethod")
 	}
+	return workerMap
+	// Data locality partition:
 	// for _, file := range files {
 	// 	assigned := false
 	// 	for workerID, workerFiles := range workerMap {
@@ -241,5 +267,25 @@ func (node *Node) AssignFiles(files []string, numWorkers int) map[int][]string {
 }
 
 func (mj *MapleJuiceService) dispatchJuiceTask(args *MapleJuiceTaskArgs) {
+	/** TODO:
+	 * 1. collect intermediate files based on prefix
+	 * 2. partition files to reducers range or hash (similar to assign file)
+	 * 3.
+	 **/
+}
 
+/*****
+ * Worker:
+ *****/
+func (mj *MapleJuiceService) StartMapleTask(args *MapleArgs, result *RPCResultType) error {
+	// mj.SelfNode.
+	/** TODO:
+	 * 1. for each files, read files 10 lines,
+	 *		a. load mapleExe
+	 *		b. input 10 lines into maple
+	 * 		c. write maple output to local
+	 * 2. send files to SDFS
+	 *	delete local files
+	 **/
+	return nil
 }

@@ -31,7 +31,8 @@ func TestAssignFiles(t *testing.T) {
 	// for _, f := range files {
 	// 	fmt.Print(getHashID(f), " ")
 	// }
-	// log.Printf("%+v", nodes[0].AssignFiles(files, 5))
+	// log.Printf("%+v", nodes[0].PartitionFiles(files, 5, "hash"))
+	// log.Printf("%+v", nodes[0].PartitionFiles(files, 5, "range"))
 }
 
 func TestAddAndProcessMapleTask(t *testing.T) {
@@ -47,7 +48,7 @@ func TestAddAndProcessMapleTask(t *testing.T) {
 	assert(master.Id < worker.Id, "assert wrong")
 	// log.Print(master.Id, worker.Id)
 	var reply node.RPCResultType
-	args := &node.MapleJuiceTaskArgs{node.MapleTask, "", 1, "", "", "", ""}
+	args := &node.MapleJuiceTaskArgs{node.MapleTask, "", 1, "", "", ""}
 	_ = mj.ForwardMapleJuiceRequest(args, &reply)
 	time.Sleep((100 * time.Millisecond))
 	assert(len(mj.TaskQueue) == 0, "task not processed ")

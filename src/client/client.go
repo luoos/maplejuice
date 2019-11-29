@@ -29,7 +29,10 @@ const usage_prompt = `Client commands:
 5.2 put <localdirpath> <sdfsfilepath> - Insert or update all local files in a directory
 6. append <localfilepath> <sdfsfilepath> append a local file to the distributed file system
 7. get <sdfsfilename> <localfilename> - Get the file from the distributed file system, and store it to <localfilename>
-8. delete <sdfsfilename> - Delete a file from the distributed file system`
+8. delete <sdfsfilename> - Delete a file from the distributed file system
+9. maple <maple_exe> <num_maples> <sdfs_intermediate_filename_prefix> <sdfs_src_directory> - Send Maple Task
+10. juice <juice_exe> <num_juices> <sdfs_intermediate_filename_prefix> <sdfs_dest_filename> delete_input={0,1} - Send Juice Task
+`
 
 var port = flag.Int("port", 8000, "The port to connect to; defaults to 8000.")
 var dump = flag.Bool("dump", false, "Dump membership list")
@@ -62,6 +65,7 @@ func parseCommand() {
 	case "put":
 		if len(os.Args) != 4 {
 			log.Fatal("Need More Arguments!")
+			fmt.Println(usage_prompt)
 		}
 		source := os.Args[2]
 		destination := os.Args[3]
@@ -73,6 +77,16 @@ func parseCommand() {
 	case "delete":
 		sdfsName := os.Args[2]
 		deleteFileFromSystem(sdfsName)
+	case "maple":
+		if len(os.Args) != 6 {
+			log.Fatal("Need More Arguments!")
+			fmt.Println(usage_prompt)
+		}
+		maple_exe = os.Args[2]
+		num_maples = os.Args[3]
+		prefix = os.Args[4]
+		src_dir = os.Args[5]
+		CallMapleTask(maple_exe, num_maples, prfix, src_dir)
 	default:
 		fmt.Println(usage_prompt)
 		os.Exit(1)
@@ -248,6 +262,19 @@ func CallDeleteFileRequest(sdfsName string) error {
 	defer client.Close()
 	var result node.RPCResultType
 	err := client.Call(node.FileServiceName+address+".DeleteFileRequest", sdfsName, &result)
+	if result != node.RPC_SUCCESS {
+		fmt.Println("Fail to delete file, check SLOG output")
+		fmt.Println(err)
+	}
+	return err
+}
+
+func CallMapleTask(maple_exe string, num_maples int, prefix, src_dir string) {
+	client, address := dialLocalNode()
+	defer client.Close()
+	args = &node.MapleJuiceTaskArgs{"maple", maple_exe, num_maples, prefix, src_dir, address}
+	var result node.RPCResultType
+	err := client.Call(node.MapleJuiceServiceName+address+".ForwardMapleJuiceRequest", args, &result)
 	if result != node.RPC_SUCCESS {
 		fmt.Println("Fail to delete file, check SLOG output")
 		fmt.Println(err)
