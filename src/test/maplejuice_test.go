@@ -40,24 +40,24 @@ func TestAssignFiles(t *testing.T) {
 	// log.Printf("%+v", nodes[0].PartitionFiles(files, 5, "range"))
 }
 
-func TestAddAndProcessMapleTask(t *testing.T) {
-	master := node.CreateNode("0.0.0.0", "11100", "21100")
-	master.InitMemberList()
-	go master.MonitorInputPacket()
-	mj := &node.MapleJuiceService{TaskQueue: make(chan *node.MapleJuiceTaskArgs, 10), SelfNode: master}
-	go master.StartRPCMapleJuiceService(mj)
-	time.Sleep((100 * time.Millisecond))
-	worker := node.CreateNode("0.0.0.0", "11101", "21101")
-	worker.Join(master.IP + ":" + master.Port)
-	time.Sleep((100 * time.Millisecond))
-	assert(master.Id < worker.Id, "assert wrong")
-	// log.Print(master.Id, worker.Id)
-	var reply node.RPCResultType
-	args := &node.MapleJuiceTaskArgs{node.MapleTask, "", 1, "", "", ""}
-	_ = mj.ForwardMapleJuiceRequest(args, &reply)
-	time.Sleep((100 * time.Millisecond))
-	assert(len(mj.TaskQueue) == 0, "task not processed ")
-}
+// func TestAddAndProcessMapleTask(t *testing.T) {
+// 	master := node.CreateNode("0.0.0.0", "11100", "21100")
+// 	master.InitMemberList()
+// 	go master.MonitorInputPacket()
+// 	mj := &node.MapleJuiceService{TaskQueue: make(chan *node.MapleJuiceTaskArgs, 10), SelfNode: master}
+// 	go master.StartRPCMapleJuiceService(mj)
+// 	time.Sleep((100 * time.Millisecond))
+// 	worker := node.CreateNode("0.0.0.0", "11101", "21101")
+// 	worker.Join(master.IP + ":" + master.Port)
+// 	time.Sleep((100 * time.Millisecond))
+// 	assert(master.Id < worker.Id, "assert wrong")
+// 	// log.Print(master.Id, worker.Id)
+// 	var reply node.RPCResultType
+// 	args := &node.MapleJuiceTaskArgs{node.MapleTask, "", 1, "", "", ""}
+// 	_ = mj.ForwardMapleJuiceRequest(args, &reply)
+// 	time.Sleep((100 * time.Millisecond))
+// 	assert(len(mj.TaskQueue) == 0, "task not processed ")
+// }
 
 func TestMapleTask(t *testing.T) {
 	worker := node.CreateNode("0.0.0.0", "11102", "21202")

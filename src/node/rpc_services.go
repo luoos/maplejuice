@@ -65,8 +65,9 @@ func (node *Node) RegisterFileService(address string) error {
 	return rpc.RegisterName(FileServiceName+address, &FileService{node: node})
 }
 
-func (node *Node) StartRPCFileService() {
+func (node *Node) StartRPCService() {
 	node.RegisterFileService(node.IP + ":" + node.RPC_Port)
+	node.RegisterRPCMapleJuiceService()
 	listener, err := net.Listen("tcp", "0.0.0.0:"+node.RPC_Port)
 	if err != nil {
 		SLOG.Fatal("ListenTCP error:", err)

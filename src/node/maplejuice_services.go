@@ -10,7 +10,6 @@ Includes:
 package node
 
 import (
-	"net"
 	"net/rpc"
 	"path/filepath"
 	. "slogger"
@@ -48,16 +47,11 @@ func (node *Node) RegisterMapleJuiceService(address string, mjService *MapleJuic
 	return rpc.RegisterName(MapleJuiceServiceName+address, mjService)
 }
 
-func (node *Node) StartRPCMapleJuiceService(mjService *MapleJuiceService) *MapleJuiceService {
-	mjService = &MapleJuiceService{TaskQueue: make(chan *MapleJuiceTaskArgs, 10), SelfNode: node}
+func (node *Node) RegisterRPCMapleJuiceService() {
+	mjService := &MapleJuiceService{TaskQueue: make(chan *MapleJuiceTaskArgs, 10), SelfNode: node}
 	go mjService.processMapleJuiceTasks()
-	node.RegisterMapleJuiceService(node.IP+":"+node.RPC_Port, mjService)
-	listener, err := net.Listen("tcp", "0.0.0.0:"+node.RPC_Port)
-	if err != nil {
-		SLOG.Fatal("ListenTCP error:", err)
-	}
-	rpc.Accept(listener)
-	return mjService
+	address := node.IP + ":" + node.RPC_Port
+	rpc.RegisterName(MapleJuiceServiceName+address, mjService)
 }
 
 /*****

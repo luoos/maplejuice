@@ -32,7 +32,7 @@ func deleteDummyFile(filename string) {
 func TestRegisterFileService(t *testing.T) {
 	node0 := node.CreateNode("0.0.0.0", "9200", "9300")
 	node0.InitMemberList()
-	go node0.StartRPCFileService()
+	go node0.StartRPCService()
 	time.Sleep(50 * time.Millisecond)
 	filename := "/tmp/dummyrpcfile"
 	writeDummyFile(filename, "hello")
@@ -50,7 +50,7 @@ func TestRegisterFileService(t *testing.T) {
 
 func TestGetTimeStampRPC(t *testing.T) {
 	node0 := node.CreateNode("0.0.0.0", "9210", "9310")
-	go node0.StartRPCFileService()
+	go node0.StartRPCService()
 	time.Sleep(50 * time.Millisecond)
 	sdfsfilename := "testFilename"
 	c := make(chan node.Pair, 4)
@@ -73,8 +73,8 @@ func TestGetTimeStampRPC(t *testing.T) {
 func TestPutAndGetFileRPC(t *testing.T) {
 	coordinator := node.CreateNode("0.0.0.0", "9200", "9320")
 	master := node.CreateNode("0.0.0.0", "9201", "9321")
-	go coordinator.StartRPCFileService()
-	go master.StartRPCFileService()
+	go coordinator.StartRPCService()
+	go master.StartRPCService()
 	time.Sleep(50 * time.Millisecond)
 	sdfsfilename := "testFilename"
 	content := []byte("this is my file content")
@@ -99,10 +99,10 @@ func TestGetFileFromClient(t *testing.T) {
 	master := node.CreateNode("0.0.0.0", "9511", "19511")
 	coordinator.InitMemberList()
 	go coordinator.MonitorInputPacket()
-	go coordinator.StartRPCFileService()
+	go coordinator.StartRPCService()
 	master.Join(coordinator.IP + ":" + coordinator.Port)
 	go master.MonitorInputPacket()
-	go master.StartRPCFileService()
+	go master.StartRPCService()
 	time.Sleep(50 * time.Millisecond)
 	coorFsAddress := "0.0.0.0:19510"
 	sdfsfilename := "testFilename"
@@ -123,7 +123,7 @@ func TestPutFileFromClient(t *testing.T) {
 	coordinator := node.CreateNode("0.0.0.0", "9500", "19500")
 	coordinator.InitMemberList()
 	go coordinator.MonitorInputPacket()
-	go coordinator.StartRPCFileService()
+	go coordinator.StartRPCService()
 	time.Sleep(50 * time.Millisecond)
 	coorFsAddress := "0.0.0.0:19500"
 	src := "/tmp/dummyrpcfile"

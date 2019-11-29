@@ -53,12 +53,10 @@ func main() {
 	addr := fmt.Sprintf("%s", addr_raw[0])
 	SLOG.Printf("Hostname: %s", addr)
 	selfNode := node.CreateNode(addr, PORT, node.RPC_DEFAULT_PORT)
-	mj := &node.MapleJuiceService{TaskQueue: make(chan *node.MapleJuiceTaskArgs, 10), SelfNode: selfNode}
 	clearDir(selfNode.Root_dir)
 	selfNode.UpdateHostname(hostname)
 	go selfNode.MonitorInputPacket()
-	go selfNode.StartRPCFileService()
-	go selfNode.StartRPCMapleJuiceService(mj)
+	go selfNode.StartRPCService()
 	add, success := selfNode.ScanIntroducer(SERVER_LIST)
 	if success {
 		selfNode.Join(add)
