@@ -107,6 +107,7 @@ func dialLocalNode() (*rpc.Client, string) {
 	}
 	return client, address
 }
+
 func listHostsForFile(sdfsName string) {
 	client, address := dialLocalNode()
 	defer client.Close()

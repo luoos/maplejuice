@@ -39,7 +39,7 @@ func TestRegisterFileService(t *testing.T) {
 	defer deleteDummyFile(filename)
 	var reply node.RPCResultType
 	client, _ := rpc.Dial("tcp", "0.0.0.0:9300")
-	err := client.Call(node.FileServiceName+"0.0.0.0:9300"+".PutFileRequest", node.PutFileArgs{filename, "dest", false}, &reply)
+	err := client.Call(node.FileServiceName+"0.0.0.0:9300"+".PutFileRequest", node.PutFileArgs{filename, "dest", false, false}, &reply)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -134,7 +134,7 @@ func TestPutFileFromClient(t *testing.T) {
 	dest := "destfile"
 	client := getDcliClient(coorFsAddress)
 	var reply node.RPCResultType
-	client.Call(node.FileServiceName+coorFsAddress+".PutFileRequest", node.PutFileArgs{src, dest, false}, &reply)
+	client.Call(node.FileServiceName+coorFsAddress+".PutFileRequest", node.PutFileArgs{src, dest, false, false}, &reply)
 	data, _ := ioutil.ReadFile(coordinator.Root_dir + "/" + dest)
 	assert(string(data) == content, "wrong")
 }

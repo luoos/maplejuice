@@ -38,6 +38,7 @@ type PutFileArgs struct {
 	LocalName   string
 	SdfsName    string
 	ForceUpdate bool
+	Appending   bool
 }
 
 type StoreFileArgs struct {
