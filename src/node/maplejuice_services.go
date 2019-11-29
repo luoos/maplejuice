@@ -14,6 +14,8 @@ import (
 	"net/rpc"
 	"path/filepath"
 	. "slogger"
+	"strconv"
+	"strings"
 )
 
 // MapleJuiceServiceName ...
@@ -36,19 +38,6 @@ type MapleJuiceTaskArgs struct {
 	Path       string
 	ClientAddr string
 }
-
-type MapleArgs struct {
-	MapleExe string
-	Prefix   string
-	SrcFiles []string
-}
-
-// type JuiceArgs struct {
-// 	JuiceExe     string
-// 	NumJuices    int
-// 	Prefix       string
-// 	DestFilename string
-// }
 
 type MapleJuiceService struct {
 	TaskQueue chan *MapleJuiceTaskArgs
@@ -138,9 +127,13 @@ func (mj *MapleJuiceService) dispatchMapleTask(args *MapleJuiceTaskArgs) {
 	// 4. goroutine each call one worker to start maple task
 	waitChan := make(chan int, args.NumWorkers)
 	for workerID, filesList := range worker_and_files {
-		workerNode := mj.SelfNode.MbList.GetNode(workerID)
-		workerAddress := workerNode.Ip + ":" + workerNode.Port
-		go CallMapleRequest(workerID, workerAddress, filesList, args, waitChan)
+		if len(filesList) > 0 {
+			workerNode := mj.SelfNode.MbList.GetNode(workerID)
+			workerAddress := workerNode.Ip + ":" + workerNode.Port
+			go CallMapleRequest(workerID, workerAddress, filesList, args, waitChan)
+		} else {
+			waitChan <- workerID
+		}
 	}
 
 	// 5. wait for ack using success channel and fail channel
@@ -149,12 +142,15 @@ func (mj *MapleJuiceService) dispatchMapleTask(args *MapleJuiceTaskArgs) {
 		select {
 		case workerID := <-waitChan:
 			completeTaskCount -= 1
-			SLOG.Printf("[DispatchMapleTask] work done! workerID: %d, %d/%d remaining", workerID, completeTaskCount, args.NumWorkers)
+			SLOG.Printf("[DispatchMapleTask] work done! workerID: %d, Files: %+q ... %d/%d remaining", workerID, worker_and_files[workerID], completeTaskCount, args.NumWorkers)
 		case failureWorkerID := <-mj.SelfNode.FailureNodeChan:
+			SLOG.Printf("[DispatchMapleTask] work from workerid: %d has failed, finding a new worker!", failureWorkerID)
 			mj.reDispatchMapleTask(failureWorkerID, worker_and_files, waitChan, args)
 		}
 	}
 	// 6. send success message to client
+	// NotYetImplemented
+	SLOG.Print("[DispatchMapleTask] Success!")
 }
 
 // TODO: test this
@@ -180,7 +176,8 @@ func (mj *MapleJuiceService) reDispatchMapleTask(failureWorkerID int, worker_and
 }
 
 func CallMapleRequest(workerID int, workerAddress string, files []string, args *MapleJuiceTaskArgs, waitChan chan int) {
-	mapleArgs := &MapleArgs{args.Exe, args.Prefix, files}
+	taskID := getHashID(strings.Join(files[:], ","))
+	mapleTaskDescription := &MapleTaskDescription{strconv.Itoa(taskID), args.Exe, args.Prefix, files}
 	client, err := rpc.Dial("tcp", workerAddress)
 	if err != nil {
 		SLOG.Printf("[ForwardMJ] Dial failed, address: %s", workerAddress)
@@ -188,9 +185,9 @@ func CallMapleRequest(workerID int, workerAddress string, files []string, args *
 	}
 	defer client.Close()
 	var reply RPCResultType
-	sendErr := client.Call(MapleJuiceServiceName+workerAddress+".StartMapleTask", mapleArgs, &reply)
+	sendErr := client.Call(MapleJuiceServiceName+workerAddress+".StartMapleTask", mapleTaskDescription, &reply)
 	if sendErr != nil {
-		SLOG.Println("[ForwardMJ] call rpc err:", sendErr)
+		SLOG.Println("[ForwardMJ] call MapleTask err:", sendErr)
 	}
 	waitChan <- workerID
 }
@@ -277,15 +274,7 @@ func (mj *MapleJuiceService) dispatchJuiceTask(args *MapleJuiceTaskArgs) {
 /*****
  * Worker:
  *****/
-func (mj *MapleJuiceService) StartMapleTask(args *MapleArgs, result *RPCResultType) error {
-	// mj.SelfNode.
-	/** TODO:
-	 * 1. for each files, read files 10 lines,
-	 *		a. load mapleExe
-	 *		b. input 10 lines into maple
-	 * 		c. write maple output to local
-	 * 2. send files to SDFS
-	 *	delete local files
-	 **/
-	return nil
+func (mj *MapleJuiceService) StartMapleTask(des *MapleTaskDescription, result *RPCResultType) error {
+	*result = RPC_DUMMY
+	return mj.SelfNode.StartMapleTask(des)
 }
