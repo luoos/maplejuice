@@ -2,7 +2,6 @@ package test
 
 import (
 	"fmt"
-	"log"
 	"node"
 	"testing"
 	"time"
@@ -28,7 +27,7 @@ func TestAssignFiles(t *testing.T) {
 			t.Fatalf("wrong size for nod: %d size: %d", i, nod.MbList.Size)
 		}
 	}
-	files := []string{"file1", "file2", "file3", "file4", "file5", "file6", "file7", "file8", "file9", "file10", "file11"}
+	// files := []string{"file1", "file2", "file3", "file4", "file5", "file6", "file7", "file8", "file9", "file10", "file11"}
 	// for _, f := range files {
 	// 	fmt.Print(getHashID(f), " ")
 	// }
@@ -46,7 +45,7 @@ func TestAddAndProcessMapleTask(t *testing.T) {
 	worker.Join(master.IP + ":" + master.Port)
 	time.Sleep((100 * time.Millisecond))
 	assert(master.Id < worker.Id, "assert wrong")
-	log.Print(master.Id, worker.Id)
+	// log.Print(master.Id, worker.Id)
 	var reply node.RPCResultType
 	args := &node.MapleJuiceTaskArgs{node.MapleTask, "", 1, "", "", "", ""}
 	_ = mj.ForwardMapleJuiceRequest(args, &reply)

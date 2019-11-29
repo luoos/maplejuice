@@ -84,7 +84,6 @@ func TestPutAndGetFileRPC(t *testing.T) {
 	node.GetFile("0.0.0.0:9321", sdfsfilename, &data)
 	assert(string(data) == string(content), "wrong1")
 	os.Remove(FILES_ROOT_DIR + "/" + sdfsfilename)
-	log.Println("hi")
 }
 
 func getDcliClient(address string) *rpc.Client {

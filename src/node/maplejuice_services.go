@@ -19,15 +19,17 @@ import (
 // MapleJuiceServiceName ...
 const MapleJuiceServiceName = "MapleJuiceService"
 
+type MapleJuiceTaskType int8
+
 // Task names
 const (
-	MapleTask = 1
-	JuiceTask = 2
+	MapleTask MapleJuiceTaskType = 1
+	JuiceTask MapleJuiceTaskType = 2
 )
 
 //MapleJuiceTaskArgs ...
 type MapleJuiceTaskArgs struct {
-	TaskName   int // "MapleTask" or "JuiceTask"
+	TaskType   MapleJuiceTaskType // "MapleTask" or "JuiceTask"
 	Exe        string
 	NumWorkers int
 	Prefix     string
@@ -110,9 +112,9 @@ func (mj *MapleJuiceService) AddMapleJuiceTask(args *MapleJuiceTaskArgs, result 
 func (mj *MapleJuiceService) processMapleJuiceTasks() {
 	for {
 		task := <-mj.TaskQueue
-		if task.TaskName == MapleTask {
+		if task.TaskType == MapleTask {
 			mj.dispatchMapleTask(task)
-		} else if task.TaskName == JuiceTask {
+		} else if task.TaskType == JuiceTask {
 			mj.dispatchJuiceTask(task)
 		}
 	}
