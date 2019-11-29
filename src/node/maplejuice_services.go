@@ -74,6 +74,7 @@ func (mj *MapleJuiceService) ForwardMapleJuiceRequest(args *MapleJuiceTaskArgs, 
 	if send_err != nil {
 		SLOG.Println("[ForwardMJ] call rpc err:", send_err)
 	}
+	SLOG.Printf("[FowardMJ] forward request to master: %d", masterNode.Id)
 	*result = RPC_SUCCESS
 	return err
 }
@@ -117,13 +118,14 @@ func (mj *MapleJuiceService) dispatchMapleTask(args *MapleJuiceTaskArgs) {
 	// 3. assign files to machines,func PartitionFiles(files, num_workers) -> map of {int(node_id):string(files)}
 	//    TODO: based on data locality:
 	worker_and_files := mj.SelfNode.PartitionFiles(files, args.NumWorkers, "hash")
-
+	SLOG.Printf("[dispatchMapleTask] worker and files: %+v", worker_and_files)
 	// 4. goroutine each call one worker to start maple task
 	waitChan := make(chan int, args.NumWorkers)
 	for workerID, filesList := range worker_and_files {
 		if len(filesList) > 0 {
 			workerNode := mj.SelfNode.MbList.GetNode(workerID)
 			workerAddress := workerNode.Ip + ":" + workerNode.Port
+			SLOG.Printf("[dispatchMapleTask] telling workderID: %d to process files: %+q", workerID, filesList)
 			go CallMapleRequest(workerID, workerAddress, filesList, args, waitChan)
 		} else {
 			waitChan <- workerID

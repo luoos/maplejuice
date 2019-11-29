@@ -96,6 +96,8 @@ func TestMapleTask(t *testing.T) {
 		log.Println(path)
 		return nil
 	})
-	// os.RemoveAll(input_dir)
-	// os.RemoveAll(output_dir)
+	os.RemoveAll(input_dir)
+	os.RemoveAll(output_dir)
+	worker_and_files := make(map[int][]string)
+	worker_and_files[1] = []string{"1", "2"}
 }
