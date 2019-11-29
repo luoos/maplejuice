@@ -61,12 +61,6 @@ type FileService struct {
 	node *Node
 }
 
-// type FileServiceInterface = interface {
-// 	PutFileRequest(args *PutFileArgs, code *RPCResultType) error
-// 	GetTimeStamp(sdfsFileName string, timestamp *int) error
-// 	StoreFileToLocal(args *StoreFileArgs, result *RPCResultType) error
-// }
-
 func (node *Node) RegisterFileService(address string) error {
 	return rpc.RegisterName(FileServiceName+address, &FileService{node: node})
 }
@@ -105,7 +99,7 @@ func (fileService *FileService) PutFileRequest(args *PutFileArgs, result *RPCRes
 		for _, file := range files {
 			localFilename := filepath.Join(args.LocalName, file.Name())
 			sdfsFileName := filepath.Join(args.SdfsName, file.Name()) // Now we need to store a dir in SDFS
-			err := fileService.individualPutFileRequest(sdfsFileName, localFilename, true, result)
+			err := fileService.individualPutFileRequest(sdfsFileName, localFilename, true, args.Appending, result)
 			if err != nil {
 				SLOG.Printf("err individual put")
 				return err
@@ -113,11 +107,11 @@ func (fileService *FileService) PutFileRequest(args *PutFileArgs, result *RPCRes
 		}
 		return nil
 	} else {
-		return fileService.individualPutFileRequest(args.SdfsName, args.LocalName, args.ForceUpdate, result)
+		return fileService.individualPutFileRequest(args.SdfsName, args.LocalName, args.ForceUpdate, args.Appending, result)
 	}
 }
 
-func (fileService *FileService) individualPutFileRequest(sdfsName, localName string, forceUpdate bool, result *RPCResultType) error {
+func (fileService *FileService) individualPutFileRequest(sdfsName, localName string, forceUpdate, appending bool, result *RPCResultType) error {
 	_, ts := fileService.node.GetAddressOfLatestTS(sdfsName)
 	if !forceUpdate && ((GetMillisecond() - ts) < MIN_UPDATE_INTERVAL) {
 		*result = RPC_PROMPT
@@ -133,7 +127,7 @@ func (fileService *FileService) individualPutFileRequest(sdfsName, localName str
 		*result = RPC_FAIL
 		return err
 	}
-	args := &StoreFileArgs{masterId, sdfsName, ts, data, false}
+	args := &StoreFileArgs{masterId, sdfsName, ts, data, appending}
 	c := make(chan int, DUPLICATE_CNT)
 	for _, addr := range targetAddresses {
 		PutFile(addr, args, c)
