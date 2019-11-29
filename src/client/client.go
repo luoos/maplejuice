@@ -82,11 +82,11 @@ func parseCommand() {
 			log.Fatal("Need More Arguments!")
 			fmt.Println(usage_prompt)
 		}
-		maple_exe = os.Args[2]
-		num_maples = os.Args[3]
-		prefix = os.Args[4]
-		src_dir = os.Args[5]
-		CallMapleTask(maple_exe, num_maples, prfix, src_dir)
+		maple_exe := os.Args[2]
+		num_maples, _ := strconv.Atoi(os.Args[3])
+		prefix := os.Args[4]
+		src_dir := os.Args[5]
+		CallMapleTask(maple_exe, num_maples, prefix, src_dir)
 	default:
 		fmt.Println(usage_prompt)
 		os.Exit(1)
@@ -227,7 +227,7 @@ func request_cmd(host string, port int, cmd string) {
 	}
 }
 
-func CallPutFileRequest(src, dest string, forceUpdate, appending bool) node.RPCResultType {
+func CallPutFileRequest(src, dest string, forceUpdate bool) node.RPCResultType {
 	// src is absolute path.
 	// dest is sdfs filename
 	if !filepath.IsAbs(src) {
@@ -241,7 +241,7 @@ func CallPutFileRequest(src, dest string, forceUpdate, appending bool) node.RPCR
 	client, address := dialLocalNode()
 	defer client.Close()
 	var reply node.RPCResultType
-	err := client.Call(node.FileServiceName+address+".PutFileRequest", node.PutFileArgs{src, dest, forceUpdate, appending}, &reply)
+	err := client.Call(node.FileServiceName+address+".PutFileRequest", node.PutFileArgs{src, dest, forceUpdate, false}, &reply)
 	if err != nil {
 		log.Printf("call PutFileRequest return err")
 		log.Fatal(err)
@@ -273,12 +273,11 @@ func CallDeleteFileRequest(sdfsName string) error {
 func CallMapleTask(maple_exe string, num_maples int, prefix, src_dir string) {
 	client, address := dialLocalNode()
 	defer client.Close()
-	args = &node.MapleJuiceTaskArgs{"maple", maple_exe, num_maples, prefix, src_dir, address}
+	args := &node.MapleJuiceTaskArgs{node.MapleTask, maple_exe, num_maples, prefix, src_dir, address}
 	var result node.RPCResultType
 	err := client.Call(node.MapleJuiceServiceName+address+".ForwardMapleJuiceRequest", args, &result)
 	if result != node.RPC_SUCCESS {
 		fmt.Println("Fail to delete file, check SLOG output")
 		fmt.Println(err)
 	}
-	return err
 }
