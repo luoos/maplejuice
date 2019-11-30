@@ -159,3 +159,18 @@ func TestDeleteFileAndInfo(t *testing.T) {
 	_, err = os.Stat(info.Localpath)
 	assert(os.IsNotExist(err), "file should not exist")
 }
+
+func TestDeleteDir(t *testing.T) {
+	fl := node.CreateFileList(1)
+	fl.StoreFile("test_dd/testFilename1", "/tmp/test_delete_dir", 1, 2, []byte("hello world"))
+	fl.StoreFile("test_dd/testFilename2", "/tmp/test_delete_dir", 1, 2, []byte("hello world2"))
+	_, err := os.Stat("/tmp/test_delete_dir/test_dd")
+	assert(err == nil, "dir should exist")
+	_, err = os.Stat("/tmp/test_delete_dir/test_dd/testFilename1")
+	assert(err == nil, "dir should exist")
+	fl.DeleteSDFSDir("test_dd")
+	_, err = os.Stat("/tmp/test_delete_dir/test_dd")
+	assert(os.IsNotExist(err), "dir should not exist")
+	info := fl.GetFileInfo("test_dd/testFilename2")
+	assert(info == nil, "info should not exist")
+}

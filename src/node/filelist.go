@@ -236,3 +236,23 @@ func (fl *FileList) ListFileInDir(dir string) []string {
 	SLOG.Printf("[ListFileInDir] Found these files: %+q", res)
 	return res
 }
+
+func (fl *FileList) DeleteSDFSDir(dirName string) {
+	// delete all files under this dir
+	files := fl.ListFileInDir(dirName)
+	if len(files) == 0 {
+		return
+	}
+
+	// Get path of dir in file system
+	head := fl.GetFileInfo(files[0])
+	abs_dir_path := filepath.Dir(head.Localpath)
+
+	// delete all Fileinfo under this dir
+	for _, sdfsfilename := range files {
+		fl.DeleteFileAndInfo(sdfsfilename)
+	}
+
+	// delete this dir
+	_ = os.RemoveAll(abs_dir_path)
+}

@@ -268,8 +268,14 @@ func (fileService *FileService) DeleteLocalFile(sdfsName string, result *RPCResu
 	return nil
 }
 
-func (FileService *FileService) ListFileInLocalDir(dir string, result *[]string) error {
-	*result = FileService.node.FileList.ListFileInDir(dir)
+func (fileService *FileService) ListFileInLocalDir(dir string, result *[]string) error {
+	*result = fileService.node.FileList.ListFileInDir(dir)
+	return nil
+}
+
+func (fileService *FileService) DeleteSDFSDir(dir string, result *RPCResultType) error {
+	fileService.node.FileList.DeleteSDFSDir(dir)
+	*result = RPC_SUCCESS
 	return nil
 }
 
@@ -349,6 +355,17 @@ func DeleteFile(address, sdfsName string, c chan string) error {
 		return err
 	}
 	c <- address
+	return err
+}
+
+func DeleteSDFSDir(address, dir string) error {
+	client, err := rpc.Dial("tcp", address)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+	var result RPCResultType
+	err = client.Call(FileServiceName+address+".DeleteSDFSDir", dir, &result)
 	return err
 }
 

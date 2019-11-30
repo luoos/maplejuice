@@ -138,3 +138,18 @@ func TestPutFileFromClient(t *testing.T) {
 	data, _ := ioutil.ReadFile(coordinator.Root_dir + "/" + dest)
 	assert(string(data) == content, "wrong")
 }
+
+func TestRPCDeleteDir(t *testing.T) {
+	mynode := node.CreateNode("0.0.0.0", "9500", "19520")
+	go mynode.StartRPCService()
+	time.Sleep(50 * time.Millisecond)
+	mynode.FileList.StoreFile("test_ddd/testFilename", "/tmp/test_delete_dirrpc", 1, 2, []byte("hello world"))
+	_, err := os.Stat("/tmp/test_delete_dirrpc/test_ddd/testFilename1")
+	assert(err == nil, "file should exist")
+	mynodeRPCAddress := "0.0.0.0:19520"
+	client := getDcliClient("0.0.0.0:19520")
+	var reply node.RPCResultType
+	client.Call(node.FileServiceName+mynodeRPCAddress+".DeleteSDFSDir", "test_ddd", &reply)
+	_, err = os.Stat("/tmp/test_delete_dirrpc/test_ddd")
+	assert(os.IsNotExist(err), "dir should not exist")
+}
