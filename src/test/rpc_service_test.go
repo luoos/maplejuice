@@ -147,9 +147,7 @@ func TestRPCDeleteDir(t *testing.T) {
 	_, err := os.Stat("/tmp/test_delete_dirrpc/test_ddd/testFilename")
 	assert(err == nil, "file should exist")
 	mynodeRPCAddress := "0.0.0.0:19520"
-	client := getDcliClient("0.0.0.0:19520")
-	var reply node.RPCResultType
-	client.Call(node.FileServiceName+mynodeRPCAddress+".DeleteSDFSDir", "test_ddd", &reply)
+	node.DeleteSDFSDir(mynodeRPCAddress, "test_ddd")
 	_, err = os.Stat("/tmp/test_delete_dirrpc/test_ddd")
 	assert(os.IsNotExist(err), "dir should not exist")
 }
