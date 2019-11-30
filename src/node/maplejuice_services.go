@@ -120,7 +120,7 @@ func (mj *MapleJuiceService) dispatchMapleTask(args *MapleJuiceTaskArgs) {
 	for workerID, filesList := range worker_and_files {
 		if len(filesList) > 0 {
 			workerNode := mj.SelfNode.MbList.GetNode(workerID)
-			workerAddress := workerNode.Ip + ":" + workerNode.Port
+			workerAddress := workerNode.Ip + ":" + workerNode.RPC_Port
 			SLOG.Printf("[dispatchMapleTask] telling workderID: %d to process files: %+q", workerID, filesList)
 			go CallMapleRequest(workerID, workerAddress, filesList, args, waitChan)
 		} else {
@@ -163,7 +163,7 @@ func (mj *MapleJuiceService) reDispatchMapleTask(failureWorkerID int, worker_and
 	worker_and_files[newWorkerId] = worker_and_files[failureWorkerID]
 	delete(worker_and_files, failureWorkerID)
 	newWorkerNode := mj.SelfNode.MbList.GetNode(newWorkerId)
-	newWorkerAddress := newWorkerNode.Ip + ":" + newWorkerNode.Port
+	newWorkerAddress := newWorkerNode.Ip + ":" + newWorkerNode.RPC_Port
 	go CallMapleRequest(newWorkerId, newWorkerAddress, worker_and_files[newWorkerId], args, waitChan)
 }
 

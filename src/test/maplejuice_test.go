@@ -3,10 +3,8 @@ package test
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"node"
 	"os"
-	"path/filepath"
 	"plugin"
 	"testing"
 	"time"
@@ -92,12 +90,10 @@ func TestMapleTask(t *testing.T) {
 	if _, err := os.Stat(output_dir + "/world"); os.IsNotExist(err) {
 		t.Fatal("wrong4")
 	}
-	err = filepath.Walk(output_dir, func(path string, info os.FileInfo, err error) error {
-		log.Println(path)
-		return nil
-	})
+	// err = filepath.Walk(output_dir, func(path string, info os.FileInfo, err error) error {
+	// 	log.Println(path)
+	// 	return nil
+	// })
 	os.RemoveAll(input_dir)
 	os.RemoveAll(output_dir)
-	worker_and_files := make(map[int][]string)
-	worker_and_files[1] = []string{"1", "2"}
 }

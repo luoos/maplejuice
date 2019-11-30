@@ -185,6 +185,7 @@ func TestHeartbeat(t *testing.T) {
 
 // *** this is for passive monitoring
 func TestCheckFailure(t *testing.T) {
+	t.Skip("this test is too long")
 	SLOG.Print("Staring TestCheckFailure.")
 	node1 := node.CreateNode("0.0.0.0", "9040", "")
 	node2 := node.CreateNode("0.0.0.0", "9041", "")
@@ -281,6 +282,7 @@ func TestPingSelf(t *testing.T) {
 }
 
 func TestManyNodes(t *testing.T) {
+	t.Skip("this test is too long")
 	SLOG.Print("starting test many nodes")
 	const NODES = 10
 	var nodes [NODES]*node.Node
@@ -416,6 +418,7 @@ func TestPassRPCPort(t *testing.T) {
 }
 
 func TestDisableHeartbeat(t *testing.T) {
+	t.Skip("this test is too long")
 	node1 := node.CreateNode("0.0.0.0", "9140", "9141")
 	node2 := node.CreateNode("0.0.0.0", "9150", "9151")
 	node1.InitMemberList()
