@@ -1,7 +1,6 @@
 package test
 
 import (
-	"net/rpc"
 	"node"
 	"os"
 	"testing"
@@ -129,13 +128,7 @@ func TestListDir(t *testing.T) {
 	node1.FileList.StoreFile("book/sdfs2", "/tmp/node1", 0, node1.Id, []byte("hello file2"))
 	node2.FileList.StoreFile("book/sdfs3", "/tmp/node2", 0, node2.Id, []byte("hello file3"))
 	// CALL node0 list all files in dir
-	node0RPCaddr := "0.0.0.0:9681"
-	client, err := rpc.Dial("tcp", node0RPCaddr)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer client.Close()
 	var filepaths []string
-	client.Call(node.FileServiceName+node0RPCaddr+".ListFileInDirRequest", "book", &filepaths)
+	filepaths = node0.ListFileInDirRequest("book")
 	assert(len(filepaths) == 3, "wrong")
 }

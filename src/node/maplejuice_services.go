@@ -11,7 +11,6 @@ package node
 
 import (
 	"net/rpc"
-	"path/filepath"
 	. "slogger"
 	"strconv"
 	"strings"
@@ -111,10 +110,7 @@ func (mj *MapleJuiceService) dispatchMapleTask(args *MapleJuiceTaskArgs) {
 
 	// 2. get all filenames in the dir
 	SLOG.Printf("[MAPLE] starting maple task with exe: %s, src_dir: %s", args.Exe, args.Path)
-	files, err := filepath.Glob(filepath.Join(args.Path, "*"))
-	if err != nil {
-		SLOG.Fatal(err)
-	}
+	files := mj.SelfNode.ListFileInDirRequest(args.Path)
 	// 3. assign files to machines,func PartitionFiles(files, num_workers) -> map of {int(node_id):string(files)}
 	//    TODO: based on data locality:
 	worker_and_files := mj.SelfNode.PartitionFiles(files, args.NumWorkers, "hash")

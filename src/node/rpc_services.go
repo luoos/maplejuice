@@ -168,9 +168,9 @@ func (fileService *FileService) GetFileRequest(args []string, result *RPCResultT
 	return nil
 }
 
-func (fileService *FileService) ListFileInDirRequest(dir string, result *[]string) error {
+func (node *Node) ListFileInDirRequest(dir string) []string {
 	fileSet := make(map[string]bool)
-	for _, memNode := range fileService.node.MbList.Member_map {
+	for _, memNode := range node.MbList.Member_map {
 		address := memNode.Ip + ":" + memNode.RPC_Port
 		filelists := ListFileInSDFSDir(address, dir)
 		for _, f := range filelists {
@@ -181,8 +181,7 @@ func (fileService *FileService) ListFileInDirRequest(dir string, result *[]strin
 	for filepath, _ := range fileSet {
 		res = append(res, filepath)
 	}
-	*result = res
-	return nil
+	return res
 }
 
 func (fileService *FileService) DeleteFileRequest(sdfsName string, result *RPCResultType) error {
