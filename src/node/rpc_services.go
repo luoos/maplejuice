@@ -168,11 +168,16 @@ func (fileService *FileService) GetFileRequest(args []string, result *RPCResultT
 	return nil
 }
 
-func (node *Node) ListFileInDirRequest(dir string) []string {
+func (fileService *FileService) ListFileInDirRequest(sdfsDir string, res *[]string) error {
+	*res = fileService.node.ListFileInDirRequest(sdfsDir)
+	return nil
+}
+
+func (node *Node) ListFileInDirRequest(sdfsDir string) []string {
 	fileSet := make(map[string]bool)
 	for _, memNode := range node.MbList.Member_map {
 		address := memNode.Ip + ":" + memNode.RPC_Port
-		filelists := ListFileInSDFSDir(address, dir)
+		filelists := ListFileInSDFSDir(address, sdfsDir)
 		for _, f := range filelists {
 			fileSet[f] = true
 		}
@@ -184,9 +189,9 @@ func (node *Node) ListFileInDirRequest(dir string) []string {
 	return res
 }
 
-func (FileService *FileService) DeleteSDFSDirRequest(sdfsdir string, result *RPCResultType) error {
+func (fileService *FileService) DeleteSDFSDirRequest(sdfsdir string, result *RPCResultType) error {
 	*result = RPC_DUMMY
-	return FileService.node.DeleteSDFSDirRequest(sdfsdir)
+	return fileService.node.DeleteSDFSDirRequest(sdfsdir)
 }
 
 func (node *Node) DeleteSDFSDirRequest(sdfsdir string) error {

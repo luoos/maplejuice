@@ -21,18 +21,19 @@ import (
 
 const usage_prompt = `Client commands:
 
-1. exec "<command>" - execute command on all servers
-2. dump - dump local host membership list
-3. ls <sdfsfilename> - list all machine addresses where this file is currently being stored
-4. store - list all files currently being stored at this machine
-5.1 put <localfilepath> <sdfsfilepath> - Insert or update a local file to the distributed file system
-5.2 put <localdirpath> <sdfsfilepath> - Insert or update all local files in a directory
-6. append <localfilepath> <sdfsfilepath> append a local file to the distributed file system
-7. get <sdfsfilename> <localfilename> - Get the file from the distributed file system, and store it to <localfilename>
-8. delete <sdfsfilename> - Delete a file from the distributed file system
-9. deleteDir <sdfsdir> - Delete a directory from the distributed file system
-9. maple <maple_exe> <num_maples> <sdfs_intermediate_filename_prefix> <sdfs_src_directory> - Send Maple Task
-10. juice <juice_exe> <num_juices> <sdfs_intermediate_filename_prefix> <sdfs_dest_filename> delete_input={0,1} - Send Juice Task
+- exec "<command>" - execute command on all servers
+- dump - dump local host membership list
+- ls <sdfsfilename> - list all machine addresses where this file is currently being stored
+- lsdir <sdfsDir> - list all sdfsfiles in sdfs directory
+- store - list all files currently being stored at this machine
+- put <localfilepath> <sdfsfilepath> - Insert or update a local file to the distributed file system
+- put <localdirpath> <sdfsfilepath> - Insert or update all local files in a directory
+- append <localfilepath> <sdfsfilepath> append a local file to the distributed file system
+- get <sdfsfilename> <localfilename> - Get the file from the distributed file system, and store it to <localfilename>
+- delete <sdfsfilename> - Delete a file from the distributed file system
+- deleteDir <sdfsdir> - Delete a directory from the distributed file system
+- maple <maple_exe> <num_maples> <sdfs_intermediate_filename_prefix> <sdfs_src_directory> - Send Maple Task
+- juice <juice_exe> <num_juices> <sdfs_intermediate_filename_prefix> <sdfs_dest_filename> delete_input={0,1} - Send Juice Task
 `
 
 var port = flag.Int("port", 8000, "The port to connect to; defaults to 8000.")
@@ -61,6 +62,9 @@ func parseCommand() {
 	case "ls":
 		sdfsName := os.Args[2]
 		listHostsForFile(sdfsName)
+	case "lsdir":
+		sdfsDir := os.Args[2]
+		listDirFromSystem(sdfsDir)
 	case "store":
 		listLocalFiles()
 	case "put":
@@ -300,4 +304,15 @@ func CallMapleTask(maple_exe string, num_maples int, prefix, src_dir string) {
 		fmt.Println("Fail to delete file, check SLOG output")
 		fmt.Println(err)
 	}
+}
+
+func listDirFromSystem(sdfsDir string) {
+	client, address := dialLocalNode()
+	defer client.Close()
+	var result []string
+	client.Call(node.FileServiceName+address+".ListFileInDirRequest", sdfsDir, &result)
+	for _, filePath := range result {
+		fmt.Println(filePath)
+	}
+	fmt.Printf("\n%d files in total\n", len(result))
 }
