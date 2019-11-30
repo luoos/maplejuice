@@ -190,7 +190,7 @@ func (node *Node) ListFileInDirRequest(sdfsDir string) []string {
 }
 
 func (fileService *FileService) DeleteSDFSDirRequest(sdfsdir string, result *RPCResultType) error {
-	*result = RPC_DUMMY
+	*result = RPC_SUCCESS
 	return fileService.node.DeleteSDFSDirRequest(sdfsdir)
 }
 
