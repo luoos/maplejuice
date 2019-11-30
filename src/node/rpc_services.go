@@ -168,6 +168,23 @@ func (fileService *FileService) GetFileRequest(args []string, result *RPCResultT
 	return nil
 }
 
+func (fileService *FileService) ListFileInDirRequest(dir string, result *[]string) error {
+	fileSet := make(map[string]bool)
+	for _, memNode := range fileService.node.MbList.Member_map {
+		address := memNode.Ip + ":" + memNode.RPC_Port
+		filelists := ListFileInSDFSDir(address, dir)
+		for _, f := range filelists {
+			fileSet[f] = true
+		}
+	}
+	res := []string{}
+	for filepath, _ := range fileSet {
+		res = append(res, filepath)
+	}
+	*result = res
+	return nil
+}
+
 func (fileService *FileService) DeleteFileRequest(sdfsName string, result *RPCResultType) error {
 	targetAddresses := fileService.node.GetResponsibleAddresses(sdfsName)
 	c := make(chan string, DUPLICATE_CNT)
@@ -252,10 +269,29 @@ func (fileService *FileService) DeleteLocalFile(sdfsName string, result *RPCResu
 	return nil
 }
 
+func (FileService *FileService) ListFileInLocalDir(dir string, result *[]string) error {
+	*result = FileService.node.FileList.ListFileInDir(dir)
+	return nil
+}
+
 /* Callee end */
 
 /* Caller begin */
 
+func ListFileInSDFSDir(address, dir string) []string {
+	client, err := rpc.Dial("tcp", address)
+	if err != nil {
+		SLOG.Printf("[ListFileInSDFSDir] Dial failed, address: %s", address)
+		return []string{}
+	}
+	defer client.Close()
+	var result []string
+	send_err := client.Call(FileServiceName+address+".ListFileInLocalDir", dir, &result)
+	if send_err != nil {
+		SLOG.Println("send_err:", send_err)
+	}
+	return result
+}
 func PutFile(address string, args *StoreFileArgs, c chan int) {
 	client, err := rpc.Dial("tcp", address)
 	if err != nil {

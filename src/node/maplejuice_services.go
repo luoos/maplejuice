@@ -110,7 +110,7 @@ func (mj *MapleJuiceService) dispatchMapleTask(args *MapleJuiceTaskArgs) {
 	// 1. split input files TBD
 
 	// 2. get all filenames in the dir
-	SLOG.Printf("[MAPLE] starting maple task with exe: %s", args.Exe)
+	SLOG.Printf("[MAPLE] starting maple task with exe: %s, src_dir: %s", args.Exe, args.Path)
 	files, err := filepath.Glob(filepath.Join(args.Path, "*"))
 	if err != nil {
 		SLOG.Fatal(err)

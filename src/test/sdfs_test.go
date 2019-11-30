@@ -1,6 +1,7 @@
 package test
 
 import (
+	"net/rpc"
 	"node"
 	"os"
 	"testing"
@@ -106,4 +107,35 @@ func TestDuplicateReplica(t *testing.T) {
 	assert(node1.FileList.GetFileInfo("sdfs1") != nil, "should exist")
 	assert(node3.FileList.GetFileInfo("sdfs1") != nil, "should exist")
 	assert(node4.FileList.GetFileInfo("sdfs1") == nil, "should not exist")
+}
+
+func TestListDir(t *testing.T) {
+	node0 := node.CreateNode("0.0.0.0", "9680", "9681") // Id 815
+	node0.SetFileDir("/tmp/node0")
+	node0.InitMemberList()
+	node1 := node.CreateNode("0.0.0.0", "9670", "9671") // Id 823
+	node1.SetFileDir("/tmp/node1")
+	node2 := node.CreateNode("0.0.0.0", "9660", "9661") // Id 833
+	node2.SetFileDir("/tmp/node2")
+	go node0.MonitorInputPacket()
+	go node1.MonitorInputPacket()
+	go node2.MonitorInputPacket()
+	go node0.StartRPCService()
+	go node1.StartRPCService()
+	go node2.StartRPCService()
+	node1.Join(node0.IP + ":" + node0.Port)
+	node2.Join(node0.IP + ":" + node0.Port)
+	node0.FileList.StoreFile("book/sdfs1", "/tmp/node0", 0, node0.Id, []byte("hello file1"))
+	node1.FileList.StoreFile("book/sdfs2", "/tmp/node1", 0, node1.Id, []byte("hello file2"))
+	node2.FileList.StoreFile("book/sdfs3", "/tmp/node2", 0, node2.Id, []byte("hello file3"))
+	// CALL node0 list all files in dir
+	node0RPCaddr := "0.0.0.0:9681"
+	client, err := rpc.Dial("tcp", node0RPCaddr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Close()
+	var filepaths []string
+	client.Call(node.FileServiceName+node0RPCaddr+".ListFileInDirRequest", "book", &filepaths)
+	assert(len(filepaths) == 3, "wrong")
 }

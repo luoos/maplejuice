@@ -19,7 +19,7 @@ type FileInfo struct {
 
 type FileList struct {
 	ID      int
-	FileMap map[string]*FileInfo
+	FileMap map[string]*FileInfo // Key: sdfsfilename, value: fileinfo
 }
 
 func CreateFileInfo(hashID int,
@@ -226,15 +226,13 @@ func (fl *FileList) GetOwnedFileInfos(masterId int) []FileInfo {
 	return res
 }
 
-// func ConstructFListFromTmpFile() FileList {
-// 	_, e := os.Stat(FILE_LIST_FILE)
-// 	if os.IsNotExist(e) {
-// 		log.Fatalf("File list file (%s) doesn't exist\n", FILE_LIST_FILE)
-// 	}
-// 	dat, err := ioutil.ReadFile(FILE_LIST_FILE)
-// 	checkErrorFatal(err)
-// 	var new_fList FileList
-// 	err = json.Unmarshal(dat, &new_fList)
-// 	checkErrorFatal(err)
-// 	return new_fList
-// }
+func (fl *FileList) ListFileInDir(dir string) []string {
+	res := []string{}
+	for sdfsfilename, _ := range fl.FileMap {
+		if filepath.Dir(sdfsfilename) == dir {
+			res = append(res, sdfsfilename)
+		}
+	}
+	SLOG.Printf("[ListFileInDir] Found these files: %+q", res)
+	return res
+}
