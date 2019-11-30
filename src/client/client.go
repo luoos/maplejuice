@@ -30,6 +30,7 @@ const usage_prompt = `Client commands:
 6. append <localfilepath> <sdfsfilepath> append a local file to the distributed file system
 7. get <sdfsfilename> <localfilename> - Get the file from the distributed file system, and store it to <localfilename>
 8. delete <sdfsfilename> - Delete a file from the distributed file system
+9. deleteDir <sdfsdir> - Delete a directory from the distributed file system
 9. maple <maple_exe> <num_maples> <sdfs_intermediate_filename_prefix> <sdfs_src_directory> - Send Maple Task
 10. juice <juice_exe> <num_juices> <sdfs_intermediate_filename_prefix> <sdfs_dest_filename> delete_input={0,1} - Send Juice Task
 `
@@ -77,6 +78,9 @@ func parseCommand() {
 	case "delete":
 		sdfsName := os.Args[2]
 		deleteFileFromSystem(sdfsName)
+	case "deleteDir":
+		sdfsDir := os.Args[2]
+		deleteDirFromSystem(sdfsDir)
 	case "maple":
 		if len(os.Args) != 6 {
 			log.Fatal("Need More Arguments!")
@@ -176,6 +180,10 @@ func deleteFileFromSystem(sdfsName string) {
 	CallDeleteFileRequest(sdfsName)
 }
 
+func deleteDirFromSystem(dirName string) {
+	CallDeleteDirRequest(dirName)
+}
+
 func dumpMembershipList() {
 	mbList := node.ConstructFromTmpFile()
 	mbList.NicePrint()
@@ -263,6 +271,18 @@ func CallDeleteFileRequest(sdfsName string) error {
 	defer client.Close()
 	var result node.RPCResultType
 	err := client.Call(node.FileServiceName+address+".DeleteFileRequest", sdfsName, &result)
+	if result != node.RPC_SUCCESS {
+		fmt.Println("Fail to delete file, check SLOG output")
+		fmt.Println(err)
+	}
+	return err
+}
+
+func CallDeleteDirRequest(sdfsDir string) error {
+	client, address := dialLocalNode()
+	defer client.Close()
+	var result node.RPCResultType
+	err := client.Call(node.FileServiceName+address+".DeleteSDFSDirRequest", sdfsDir, &result)
 	if result != node.RPC_SUCCESS {
 		fmt.Println("Fail to delete file, check SLOG output")
 		fmt.Println(err)

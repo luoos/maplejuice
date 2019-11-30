@@ -77,6 +77,7 @@ func (node *Node) StartMapleTask(des *MapleTaskDescription) error {
 	// 6. delete local dir
 	_ = os.RemoveAll(input_dir_path)
 	_ = os.RemoveAll(output_dir_path)
+	_ = os.RemoveAll(exe_path)
 	return nil
 }
 

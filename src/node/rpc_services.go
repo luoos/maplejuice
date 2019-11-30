@@ -184,6 +184,23 @@ func (node *Node) ListFileInDirRequest(dir string) []string {
 	return res
 }
 
+func (FileService *FileService) DeleteSDFSDirRequest(sdfsdir string, result *RPCResultType) error {
+	*result = RPC_DUMMY
+	return FileService.node.DeleteSDFSDirRequest(sdfsdir)
+}
+
+func (node *Node) DeleteSDFSDirRequest(sdfsdir string) error {
+	for _, memNode := range node.MbList.Member_map {
+		address := memNode.Ip + ":" + memNode.RPC_Port
+		err := DeleteSDFSDir(address, sdfsdir)
+		if err != nil {
+			SLOG.Println("[DeleteSDFSDirRequest] err: ", err)
+			return err
+		}
+	}
+	return nil
+}
+
 func (fileService *FileService) DeleteFileRequest(sdfsName string, result *RPCResultType) error {
 	targetAddresses := fileService.node.GetResponsibleAddresses(sdfsName)
 	c := make(chan string, DUPLICATE_CNT)
