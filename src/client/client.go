@@ -42,6 +42,7 @@ var servers_file = "/usr/app/log_querier/servers"
 var wg sync.WaitGroup
 
 const sdfsDir = "/apps/files"
+const DcliReceiverPort = node.DcliReceiverPort
 
 func main() {
 	flag.Parse()
@@ -307,6 +308,7 @@ func CallDeleteDirRequest(sdfsDir string) error {
 
 func CallMapleTask(maple_exe string, num_maples int, prefix, src_dir string) {
 	client, address := dialLocalNode()
+	ip := strings.Split(address, ":")[0]
 	defer client.Close()
 	args := &node.MapleJuiceTaskArgs{
 		TaskType:   node.MapleTask,
@@ -314,7 +316,7 @@ func CallMapleTask(maple_exe string, num_maples int, prefix, src_dir string) {
 		NumWorkers: num_maples,
 		InputPath:  src_dir,
 		OutputPath: prefix,
-		ClientAddr: address,
+		ClientAddr: ip + ":" + DcliReceiverPort,
 	}
 	var result node.RPCResultType
 	err := client.Call(node.MapleJuiceServiceName+address+".ForwardMapleJuiceRequest", args, &result)
@@ -322,6 +324,8 @@ func CallMapleTask(maple_exe string, num_maples int, prefix, src_dir string) {
 		fmt.Println("Fail, check SLOG output")
 		fmt.Println(err)
 	}
+	// open a tcp listener
+	waitResponse()
 }
 
 func CallJuiceTask(juice_exe string, num_juices int, prefix string, destFilename string, deleteInput bool) {
@@ -342,6 +346,20 @@ func CallJuiceTask(juice_exe string, num_juices int, prefix string, destFilename
 		fmt.Println("Fail, check SLOG output")
 		fmt.Println(err)
 	}
+	waitResponse()
+}
+
+func waitResponse() {
+	ln, _ := net.Listen("tcp", "0.0.0.0:"+DcliReceiverPort)
+	conn, err := ln.Accept()
+	if err != nil {
+		fmt.Print(err)
+	}
+	message, err := bufio.NewReader(conn).ReadString('\n')
+	if err != nil {
+		fmt.Print(err)
+	}
+	fmt.Print(message)
 }
 
 func listDirFromSystem(sdfsDir string) {

@@ -10,6 +10,8 @@ Includes:
 package node
 
 import (
+	"fmt"
+	"net"
 	"net/rpc"
 	. "slogger"
 	"strconv"
@@ -19,6 +21,7 @@ import (
 // MapleJuiceServiceName ...
 const MapleJuiceServiceName = "MapleJuiceService"
 const JuicePartitionMethod = "range"
+const DcliReceiverPort = "8012"
 
 type MapleJuiceTaskType int8
 
@@ -184,13 +187,21 @@ func (mj *MapleJuiceService) dispatchMapleJuiceTask(args *MapleJuiceTaskArgs) {
 }
 
 func ReplyTaskResultToDcli(message, clientAddress string) {
-	client, err := rpc.Dial("tcp", clientAddress)
+	conn, err := net.Dial("tcp", clientAddress)
 	if err != nil {
-		SLOG.Fatal("[ReplyTaskResultToDcli] fail", err)
+		SLOG.Println(err)
+		return
 	}
-	defer client.Close()
-	var result RPCResultType
-	client.Call(MapleJuiceServiceName+clientAddress+".ReceiveMapleJuiceResponse", message, &result)
+	fmt.Fprintf(conn, message+"\n")
+	conn.Close()
+
+	// client, err := rpc.Dial("tcp", clientAddress)
+	// if err != nil {
+	// 	SLOG.Fatal("[ReplyTaskResultToDcli] fail", err)
+	// }
+	// defer client.Close()
+	// var result RPCResultType
+	// client.Call(MapleJuiceServiceName+clientAddress+".ReceiveMapleJuiceResponse", message, &result)
 }
 
 // TODO: test this
