@@ -18,6 +18,7 @@ import (
 
 // MapleJuiceServiceName ...
 const MapleJuiceServiceName = "MapleJuiceService"
+const JuicePartitionMethod = "range"
 
 type MapleJuiceTaskType int8
 
@@ -29,12 +30,13 @@ const (
 
 //MapleJuiceTaskArgs ...
 type MapleJuiceTaskArgs struct {
-	TaskType   MapleJuiceTaskType // "MapleTask" or "JuiceTask"
-	Exe        string
-	NumWorkers int
-	Prefix     string
-	Path       string
-	ClientAddr string
+	TaskType    MapleJuiceTaskType // "MapleTask" or "JuiceTask"
+	Exe         string
+	NumWorkers  int
+	InputPath   string // sdfs_src_dir for maple, prefix for juice
+	OutputPath  string // prefix for maple, sdfs_dest_filename for juice
+	ClientAddr  string
+	DeleteInput bool
 }
 
 type MapleJuiceService struct {
@@ -78,6 +80,12 @@ func (mj *MapleJuiceService) ForwardMapleJuiceRequest(args *MapleJuiceTaskArgs, 
 	return err
 }
 
+func (mj *MapleJuiceService) ReceiveMapleJuiceResponse(msg string, result *RPCResultType) error {
+	SLOG.Println(msg)
+	*result = RPC_DUMMY
+	return nil
+}
+
 /*****
  * Master:
  * 1. handle Maple
@@ -95,58 +103,91 @@ func (mj *MapleJuiceService) AddMapleJuiceTask(args *MapleJuiceTaskArgs, result 
 func (mj *MapleJuiceService) processMapleJuiceTasks() {
 	for {
 		task := <-mj.TaskQueue
-		if task.TaskType == MapleTask {
-			mj.dispatchMapleTask(task)
-		} else if task.TaskType == JuiceTask {
-			mj.dispatchJuiceTask(task)
-		}
+		mj.dispatchMapleJuiceTask(task)
 	}
 }
 
-func (mj *MapleJuiceService) dispatchMapleTask(args *MapleJuiceTaskArgs) {
+func (mj *MapleJuiceService) dispatchMapleJuiceTask(args *MapleJuiceTaskArgs) {
+	/*****
+	 * 1. split input files
+	 * 2. collect intermediate files based on prefix
+	 * 3. partition files to reducers range or hash (similar to assign file)
+	 * 4. goroutine each call one worker to start juice task
+	 * 5. wait for ack using success channel and fail channel
+	 * 6. delete input if neccessary
+	 * 7. send success message to client
+	 *****/
+	// handle failure using a channel from failure detector
 	liveNodeCount := len(mj.SelfNode.MbList.Member_map)
 	mj.SelfNode.FailureNodeChan = make(chan int, liveNodeCount)
-	// 1. split input files TBD
 
-	// 2. get all filenames in the dir
-	SLOG.Printf("[MAPLE] starting maple task with exe: %s, src_dir: %s", args.Exe, args.Path)
-	files := mj.SelfNode.ListFileInDirRequest(args.Path)
-	// 3. assign files to machines,func PartitionFiles(files, num_workers) -> map of {int(node_id):string(files)}
-	//    TODO: based on data locality:
-	worker_and_files := mj.SelfNode.PartitionFiles(files, args.NumWorkers, "hash")
-	SLOG.Printf("[dispatchMapleTask] worker and files: %+v", worker_and_files)
-	// 4. goroutine each call one worker to start maple task
+	// 1. TBD
+
+	// 2.
+	files := mj.SelfNode.ListFileInDirRequest(args.InputPath)
+	if args.TaskType == MapleTask {
+		SLOG.Printf("[MAPLE] starting maple task with exe: %s, src_dir: %s", args.Exe, args.InputPath)
+	} else {
+		SLOG.Printf("[JUICE] starting juice task with exe: %s, src_prefix: %s", args.Exe, args.InputPath)
+	}
+
+	// 3.
+	partitionMethod := "hash"
+	if args.TaskType == JuiceTask {
+		partitionMethod = JuicePartitionMethod
+	}
+	worker_and_files := mj.SelfNode.PartitionFiles(files, args.NumWorkers, partitionMethod)
+	SLOG.Printf("[dispatchMapleJuiceTask] worker and files: %+v", worker_and_files)
+
+	// 4.
 	waitChan := make(chan int, args.NumWorkers)
 	for workerID, filesList := range worker_and_files {
 		if len(filesList) > 0 {
 			workerNode := mj.SelfNode.MbList.GetNode(workerID)
 			workerAddress := workerNode.Ip + ":" + workerNode.RPC_Port
-			SLOG.Printf("[dispatchMapleTask] telling workderID: %d to process files: %+q", workerID, filesList)
-			go CallMapleRequest(workerID, workerAddress, filesList, args, waitChan)
+			SLOG.Printf("[dispatchMapleJuiceTask] telling workderID: %d to process files: %+q", workerID, filesList)
+			go CallMapleJuiceRequest(workerID, workerAddress, filesList, args, waitChan)
 		} else {
 			waitChan <- workerID
 		}
 	}
 
-	// 5. wait for ack using success channel and fail channel
+	// 5.
 	completeTaskCount := args.NumWorkers
 	for completeTaskCount > 0 {
 		select {
 		case workerID := <-waitChan:
-			completeTaskCount -= 1
-			SLOG.Printf("[DispatchMapleTask] work done! workerID: %d, Files: %+q ... %d/%d remaining", workerID, worker_and_files[workerID], completeTaskCount, args.NumWorkers)
+			completeTaskCount--
+			SLOG.Printf("[DispatchMapleJuiceTask] work done! workerID: %d, Files: %+q ... %d/%d remaining", workerID, worker_and_files[workerID], completeTaskCount, args.NumWorkers)
 		case failureWorkerID := <-mj.SelfNode.FailureNodeChan:
-			SLOG.Printf("[DispatchMapleTask] work from workerid: %d has failed, finding a new worker!", failureWorkerID)
-			mj.reDispatchMapleTask(failureWorkerID, worker_and_files, waitChan, args)
+			SLOG.Printf("[DispatchMapleJuiceTask] work from workerid: %d has failed, finding a new worker!", failureWorkerID)
+			mj.reDispatchMapleJuiceTask(MapleTask, failureWorkerID, worker_and_files, waitChan, args)
 		}
 	}
-	// 6. send success message to client
-	// NotYetImplemented
-	SLOG.Print("[DispatchMapleTask] Success!")
+
+	// 6. TODO:
+
+	// 7.
+	msg := "[Maple Task] Finished!"
+	if args.TaskType == JuiceTask {
+		msg = "[Juice Task] Finished!"
+	}
+	ReplyTaskResultToDcli(msg, args.ClientAddr)
+	SLOG.Print("[DispatchMapleJuiceTask] Success!")
+}
+
+func ReplyTaskResultToDcli(message, clientAddress string) {
+	client, err := rpc.Dial("tcp", clientAddress)
+	if err != nil {
+		SLOG.Fatal("[ReplyTaskResultToDcli] fail", err)
+	}
+	defer client.Close()
+	var result RPCResultType
+	client.Call(MapleJuiceServiceName+clientAddress+".ReceiveMapleJuiceResponse", message, &result)
 }
 
 // TODO: test this
-func (mj *MapleJuiceService) reDispatchMapleTask(failureWorkerID int, worker_and_files map[int][]string, waitChan chan int, args *MapleJuiceTaskArgs) {
+func (mj *MapleJuiceService) reDispatchMapleJuiceTask(taskType MapleJuiceTaskType, failureWorkerID int, worker_and_files map[int][]string, waitChan chan int, args *MapleJuiceTaskArgs) {
 	newWorkerId := -1
 	for nodeId, _ := range mj.SelfNode.MbList.Member_map {
 		if _, exists := worker_and_files[nodeId]; !exists {
@@ -164,22 +205,29 @@ func (mj *MapleJuiceService) reDispatchMapleTask(failureWorkerID int, worker_and
 	delete(worker_and_files, failureWorkerID)
 	newWorkerNode := mj.SelfNode.MbList.GetNode(newWorkerId)
 	newWorkerAddress := newWorkerNode.Ip + ":" + newWorkerNode.RPC_Port
-	go CallMapleRequest(newWorkerId, newWorkerAddress, worker_and_files[newWorkerId], args, waitChan)
+	go CallMapleJuiceRequest(newWorkerId, newWorkerAddress, worker_and_files[newWorkerId], args, waitChan)
 }
 
-func CallMapleRequest(workerID int, workerAddress string, files []string, args *MapleJuiceTaskArgs, waitChan chan int) {
-	taskID := getHashID(strings.Join(files[:], ","))
-	mapleTaskDescription := &MapleTaskDescription{strconv.Itoa(taskID), args.Exe, args.Prefix, files}
+func CallMapleJuiceRequest(workerID int, workerAddress string, files []string, args *MapleJuiceTaskArgs, waitChan chan int) {
+	taskID := strconv.Itoa(getHashID(strings.Join(files[:], ",")))
+	taskDescription := &TaskDescription{
+		TaskType:   args.TaskType,
+		TaskID:     taskID,
+		ExeFile:    args.Exe,
+		InputFiles: files,
+		OutputPath: args.OutputPath,
+	}
 	client, err := rpc.Dial("tcp", workerAddress)
 	if err != nil {
-		SLOG.Printf("[ForwardMJ] Dial failed, address: %s", workerAddress)
+		SLOG.Printf("[CallMapleJuiceRequest] Dial failed, address: %s", workerAddress)
 		return
 	}
 	defer client.Close()
 	var reply RPCResultType
-	sendErr := client.Call(MapleJuiceServiceName+workerAddress+".StartMapleTask", mapleTaskDescription, &reply)
+	sendErr := client.Call(MapleJuiceServiceName+workerAddress+".StartMapleJuiceTask", taskDescription, &reply)
 	if sendErr != nil {
-		SLOG.Println("[ForwardMJ] call MapleTask err:", sendErr)
+		SLOG.Println("[CallMapleJuiceRequest] call MapleTask err:", sendErr)
+		return
 	}
 	waitChan <- workerID
 }
@@ -224,49 +272,12 @@ func (node *Node) PartitionFiles(files []string, numWorkers int, partitionMethod
 		SLOG.Fatal("wrong partition moethod")
 	}
 	return workerMap
-	// Data locality partition:
-	// for _, file := range files {
-	// 	assigned := false
-	// 	for workerID, workerFiles := range workerMap {
-	// 		var K int
-	// 		if len(node.MbList.Member_map) < DUPLICATE_CNT {
-	// 			K = len(node.MbList.Member_map)
-	// 		} else {
-	// 			K = DUPLICATE_CNT
-	// 		}
-	// 		log.Print(len(node.MbList.GetNextKNodes(workerID, K)))
-	// 		nextKID := node.MbList.GetNextKNodes(workerID, K-1)[K-1].Id
-	// 		hashid := getHashID(file)
-	// 		if IsInCircleRange(hashid, workerID+1, nextKID) && len(workerFiles) < max_files_per_worker {
-	// 			workerMap[workerID] = append(workerFiles, file)
-	// 			assigned = true
-	// 			break
-	// 		}
-	// 	}
-	// 	if !assigned {
-	// 		for workerID, workerFiles := range workerMap {
-	// 			if len(workerFiles) < max_files_per_worker {
-	// 				workerMap[workerID] = append(workerFiles, file)
-	// 				break
-	// 			}
-	// 		}
-	// 	}
-	// }
-	return workerMap
-}
-
-func (mj *MapleJuiceService) dispatchJuiceTask(args *MapleJuiceTaskArgs) {
-	/** TODO:
-	 * 1. collect intermediate files based on prefix
-	 * 2. partition files to reducers range or hash (similar to assign file)
-	 * 3.
-	 **/
 }
 
 /*****
  * Worker:
  *****/
-func (mj *MapleJuiceService) StartMapleTask(des *MapleTaskDescription, result *RPCResultType) error {
+func (mj *MapleJuiceService) StartMapleJuiceTask(des *TaskDescription, result *RPCResultType) error {
 	*result = RPC_DUMMY
-	return mj.SelfNode.StartMapleTask(des)
+	return mj.SelfNode.StartMapleJuiceTask(des)
 }

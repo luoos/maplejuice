@@ -28,7 +28,6 @@ func Maple(lines []string) map[string]string {
 }
 
 func Juice(key string, lines []string) map[string]string {
-	// rtype: []string{key, result}
 	s := 0
 	for _, l := range lines {
 		n, err := strconv.Atoi(l)

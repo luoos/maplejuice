@@ -57,43 +57,62 @@ func TestAssignFiles(t *testing.T) {
 // 	assert(len(mj.TaskQueue) == 0, "task not processed ")
 // }
 
-func TestMapleTask(t *testing.T) {
+func TestMapleJuiceTask(t *testing.T) {
 	worker := node.CreateNode("0.0.0.0", "11102", "21202")
-	exe_path := "/tmp/maple.so"
+	exe_path := "/tmp/wordcount.so"
 	p, _ := plugin.Open(exe_path)
-	// 3. load func from exec
+
+	// Maple
 	f, err := p.Lookup("Maple")
 	if err != nil {
 		t.Fatal(err)
 	}
 	input_dir := "/tmp/input___1___wordcount"
-	output_dir := "/tmp/output___1___wordcount"
+	output_path := "/tmp/output___1___wordcount"
 	os.RemoveAll(input_dir)
-	os.RemoveAll(output_dir)
+	os.RemoveAll(output_path)
 	os.MkdirAll(input_dir, 0777)
-	os.MkdirAll(output_dir, 0777)
-	line := "hello world! Maple Juice Juice"
+	os.MkdirAll(output_path, 0777)
+	line := "hello world! Maple Juice Juice Maple"
 	err = ioutil.WriteFile(input_dir+"/testfile", []byte(line), 0777)
 	if err != nil {
 		t.Fatal(err)
 	}
-	worker.HandleMapleTask(input_dir, output_dir, f)
-	if _, err := os.Stat(output_dir + "/Maple"); os.IsNotExist(err) {
+	worker.HandleMapleTask(input_dir, output_path, f)
+	if _, err := os.Stat(output_path + "/Maple"); os.IsNotExist(err) {
 		t.Fatal("wrong1")
 	}
-	if _, err := os.Stat(output_dir + "/Juice"); os.IsNotExist(err) {
+	if _, err := os.Stat(output_path + "/Juice"); os.IsNotExist(err) {
 		t.Fatal("wrong2")
 	}
-	if _, err := os.Stat(output_dir + "/hello"); os.IsNotExist(err) {
+	if _, err := os.Stat(output_path + "/hello"); os.IsNotExist(err) {
 		t.Fatal("wrong3")
 	}
-	if _, err := os.Stat(output_dir + "/world"); os.IsNotExist(err) {
+	if _, err := os.Stat(output_path + "/world"); os.IsNotExist(err) {
 		t.Fatal("wrong4")
 	}
-	// err = filepath.Walk(output_dir, func(path string, info os.FileInfo, err error) error {
+	// err = filepath.Walk(output_path, func(path string, info os.FileInfo, err error) error {
 	// 	log.Println(path)
 	// 	return nil
 	// })
 	os.RemoveAll(input_dir)
-	os.RemoveAll(output_dir)
+
+	// Juice
+	f, err = p.Lookup("Juice")
+	if err != nil {
+		t.Fatal(err)
+	}
+	input_dir = output_path
+	output_path = "/tmp/juiceResult"
+	worker.HandleJuiceTask(input_dir, output_path, f)
+	if _, err := os.Stat(output_path); os.IsNotExist(err) {
+		t.Fatal("wrong1")
+	}
+	data, err := ioutil.ReadFile(output_path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert(string(data) == "Juice 2\nMaple 2\nhello 1\nworld 1\n", "wrong res")
+	os.RemoveAll(input_dir)
+	os.RemoveAll(output_path)
 }

@@ -12,38 +12,36 @@ import (
 	"path/filepath"
 	"plugin"
 	. "slogger"
+	"strings"
 )
 
 type TaskDescription struct {
-	TaskType        MapleJuiceTaskType // Maple or Juice
-	TaskID          string             // TODO: backup
-	Prefix          string
+	TaskType        MapleJuiceTaskType
+	TaskID          string
 	ExeFile         string
-	Files           []string
+	InputFiles      []string
+	OutputPath      string
 	MasterAddresses []string // includes backup master
 }
 
-type MapleTaskDescription struct {
-	TaskID  string
-	ExeFile string
-	Prefix  string
-	Files   []string
-	// MasterAddresses []string
-}
-
-func (node *Node) StartMapleTask(des *MapleTaskDescription) error {
+func (node *Node) StartMapleJuiceTask(des *TaskDescription) error {
 	// 1. Retrieve files and exe into a local tmp dir
 	// 1.1 Recreate dir: task_id+prefix as dir name
-	input_dir_name := "input___" + des.TaskID + "___" + des.Prefix
-	input_dir_path := filepath.Join("/tmp", input_dir_name)
-	output_dir_name := "output___" + des.TaskID + "___" + des.Prefix
-	output_dir_path := filepath.Join("/tmp", output_dir_name)
-	_ = os.RemoveAll(input_dir_path)
-	_ = os.MkdirAll(input_dir_path, 0777)
-	_ = os.RemoveAll(output_dir_path)
-	_ = os.MkdirAll(output_dir_path, 0777)
+	input_sub_path := "input___" + des.TaskID + "___" + des.OutputPath
+	local_input_path := filepath.Join("/tmp", input_sub_path)
+	output_sub_path := "output___" + des.TaskID + "___" + des.OutputPath
+	local_output_path := filepath.Join("/tmp", output_sub_path)
+	if des.TaskType == JuiceTask {
+		local_output_path = filepath.Join("/tmp", des.OutputPath)
+	}
+	os.RemoveAll(local_input_path)
+	os.MkdirAll(local_input_path, 0777)
+	if des.TaskType == MapleTask {
+		os.RemoveAll(local_output_path)
+		os.MkdirAll(local_output_path, 0777)
+	}
 	// 1.2 Retrieve files from SDFS and store files into above dir
-	err := node.GetFilesFromSDFS(des.Files, input_dir_path)
+	err := node.GetFilesFromSDFS(des.InputFiles, local_input_path)
 	if err != nil {
 		SLOG.Println("[GetFilesFromSDFS] files", err)
 		return err
@@ -56,86 +54,42 @@ func (node *Node) StartMapleTask(des *MapleTaskDescription) error {
 	}
 	exe_path := filepath.Join("/tmp", des.ExeFile)
 
-	p, _ := plugin.Open(exe_path)
 	// 3. load func from exec
-	f, err := p.Lookup("Maple")
+	p, _ := plugin.Open(exe_path)
+	var f plugin.Symbol
+	if des.TaskType == MapleTask {
+		f, err = p.Lookup("Maple")
+	} else {
+		f, err = p.Lookup("Juice")
+	}
 	if err != nil {
 		SLOG.Println(err)
 		return err
 	}
+
 	// 4. process each file and store tmp result to local dir
-	node.HandleMapleTask(input_dir_path, output_dir_path, f)
+	if des.TaskType == MapleTask {
+		node.HandleMapleTask(local_input_path, local_output_path, f)
+	} else {
+		node.HandleJuiceTask(local_input_path, local_output_path, f)
+	}
 	client, address := dialLocalNode()
 	defer client.Close()
 	var reply RPCResultType
+
 	// 5. append files to SDFS
-	err = client.Call(FileServiceName+address+".PutFileRequest", PutFileArgs{output_dir_path, des.Prefix, true, true}, &reply)
+	err = client.Call(FileServiceName+address+".PutFileRequest", PutFileArgs{local_output_path, des.OutputPath, true, true}, &reply)
 	if err != nil {
 		log.Printf("call PutFileRequest return err")
 		return err
 	}
+
 	// 6. delete local dir
-	_ = os.RemoveAll(input_dir_path)
-	_ = os.RemoveAll(output_dir_path)
-	_ = os.RemoveAll(exe_path)
+	os.RemoveAll(local_input_path)
+	os.RemoveAll(local_output_path)
+	os.RemoveAll(exe_path)
 	return nil
 }
-
-// func (node *Node) StartProcessTask(des TaskDescription) {
-// 	// 1. Retrieve files and exe into a local tmp dir
-// 	// 1.1 Recreate dir: task_id+prefix as dir name
-// 	input_dir_name := "input___" + des.TaskID + "___" + des.Prefix
-// 	input_dir_path := filepath.Join("/tmp", input_dir_name)
-// 	output_dir_name := "output___" + des.TaskID + "___" + des.Prefix
-// 	output_dir_path := filepath.Join("/tmp", output_dir_name)
-
-// 	_ = os.RemoveAll(input_dir_path)
-// 	_ = os.MkdirAll(input_dir_path, 0777)
-// 	_ = os.RemoveAll(output_dir_path)
-// 	_ = os.MkdirAll(output_dir_path, 0777)
-// 	err := node.GetFilesFromSDFS(des.Files, input_dir_path)
-// 	if err != nil {
-// 		SLOG.Println(err)
-// 		return
-// 	}
-// 	// 1.2 Retrieve files from SDFS and store files into above dir
-// 	// 1.3 Retrieve exe file into /tmp
-// 	err = node.GetFilesFromSDFS([]string{des.ExeFile}, "/tmp")
-// 	if err != nil {
-// 		SLOG.Println(err)
-// 		return
-// 	}
-// 	exe_path := filepath.Join("/tmp", des.ExeFile)
-
-// 	p, _ := plugin.Open(exe_path)
-// 	// 2. determine the task type, maple or juice
-// 	if des.TaskType == MapleTask {
-// 		// 3. load func from exec
-// 		f, err := p.Lookup("Maple")
-// 		if err != nil {
-// 			SLOG.Println(err)
-// 			return
-// 		}
-// 		// 4. process each file and store tmp result to local dir
-// 		node.HandleMapleTask(input_dir_path, output_dir_path, f)
-// 		client, address := dialLocalNode()
-// 		defer client.Close()
-// 		var reply RPCResultType
-// 		err = client.Call(FileServiceName+address+".PutFileRequest", PutFileArgs{output_dir_path, des.Prefix, true, true}, &reply)
-// 		if err != nil {
-// 			log.Printf("call PutFileRequest return err")
-// 			log.Fatal(err)
-// 		}
-// 	} else {
-// 		// 3. load func from exec
-// 		// f, err := p.Lookup("Juice")
-// 		// TODO: 4.
-// 	}
-
-// 	// 5. append files to SDFS
-
-// 	// 6. delete local dir
-// }
 
 func (node *Node) HandleMapleTask(input_dir, output_dir string, f plugin.Symbol) {
 	mapleFunc := f.(func([]string) map[string]string)
@@ -161,8 +115,7 @@ func (node *Node) HandleMapleTask(input_dir, output_dir string, f plugin.Symbol)
 			lines = append(lines, line)
 			if i == 9 || err == io.EOF {
 				kvpair := mapleFunc(lines)
-				node.WritePairToLocal(output_dir, kvpair)
-				log.Printf("%+v", kvpair)
+				WriteMaplePairToLocal(output_dir, kvpair)
 				i = 0
 				lines = make([]string, 0)
 			}
@@ -174,7 +127,7 @@ func (node *Node) HandleMapleTask(input_dir, output_dir string, f plugin.Symbol)
 	}
 }
 
-func (node *Node) WritePairToLocal(dir string, kvpair map[string]string) {
+func WriteMaplePairToLocal(dir string, kvpair map[string]string) {
 	// TODO: check special character in key for valid filename
 	for k, v := range kvpair {
 		output_path := filepath.Join(dir, k)
@@ -192,7 +145,59 @@ func (node *Node) WritePairToLocal(dir string, kvpair map[string]string) {
 	}
 }
 
-// func (node *Node) HandleJuiceTask(dir string, f plugin.Symbol) string {}
+func (node *Node) HandleJuiceTask(input_dir, output_file string, f plugin.Symbol) {
+	juiceFunc := f.(func(string, []string) map[string]string)
+	var files []string
+	err := filepath.Walk(input_dir, func(path string, info os.FileInfo, err error) error {
+		if !info.IsDir() {
+			files = append(files, path)
+		}
+		return nil
+	})
+	if err != nil {
+		SLOG.Println(err)
+	}
+	for _, file := range files {
+		fd, err := os.Open(file)
+		key := filepath.Base(file)
+		if err != nil {
+			SLOG.Println(err)
+		}
+		reader := bufio.NewReader(fd)
+		var lines []string
+		var line string
+		for err == nil {
+			line, err = reader.ReadString('\n')
+			line = strings.Trim(line, " \n")
+			if line != "" { // discard empty lines
+				lines = append(lines, line)
+			}
+		}
+		if err != io.EOF {
+			SLOG.Print("[HandleJuiceTask] error reading file ", err)
+			return
+		}
+		kvpair := juiceFunc(key, lines)
+		WriteJuicePairToLocal(output_file, kvpair)
+		fd.Close()
+	}
+}
+
+func WriteJuicePairToLocal(outputfile string, kvpair map[string]string) {
+	for k, v := range kvpair {
+		f, err := os.OpenFile(outputfile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0777)
+		if err != nil {
+			SLOG.Printf("Fail to open file: %s", outputfile)
+			return
+		}
+		_, err = f.WriteString(k + " " + v + "\n")
+		if err != nil {
+			SLOG.Printf("Fail to append file: %s", outputfile)
+			return
+		}
+		f.Close()
+	}
+}
 
 func (node *Node) GetFilesFromSDFS(sdfsfiles []string, dir string) error {
 	for _, sdfsPath := range sdfsfiles {

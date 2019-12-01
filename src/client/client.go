@@ -95,6 +95,17 @@ func parseCommand() {
 		prefix := os.Args[4]
 		src_dir := os.Args[5]
 		CallMapleTask(maple_exe, num_maples, prefix, src_dir)
+	case "juice":
+		if len(os.Args) != 7 {
+			log.Fatal("Need More Arguments!")
+			fmt.Println(usage_prompt)
+		}
+		juice_exe := os.Args[2]
+		num_juices, _ := strconv.Atoi(os.Args[3])
+		prefix := os.Args[4]
+		destFilename := os.Args[5]
+		deleteInput := (os.Args[6] == "1") // TODO: Should check if input is valid
+		CallJuiceTask(juice_exe, num_juices, prefix, destFilename, deleteInput)
 	default:
 		fmt.Println(usage_prompt)
 		os.Exit(1)
@@ -297,11 +308,38 @@ func CallDeleteDirRequest(sdfsDir string) error {
 func CallMapleTask(maple_exe string, num_maples int, prefix, src_dir string) {
 	client, address := dialLocalNode()
 	defer client.Close()
-	args := &node.MapleJuiceTaskArgs{node.MapleTask, maple_exe, num_maples, prefix, src_dir, address}
+	args := &node.MapleJuiceTaskArgs{
+		TaskType:   node.MapleTask,
+		Exe:        maple_exe,
+		NumWorkers: num_maples,
+		InputPath:  src_dir,
+		OutputPath: prefix,
+		ClientAddr: address,
+	}
 	var result node.RPCResultType
 	err := client.Call(node.MapleJuiceServiceName+address+".ForwardMapleJuiceRequest", args, &result)
 	if result != node.RPC_SUCCESS {
-		fmt.Println("Fail to delete file, check SLOG output")
+		fmt.Println("Fail, check SLOG output")
+		fmt.Println(err)
+	}
+}
+
+func CallJuiceTask(juice_exe string, num_juices int, prefix string, destFilename string, deleteInput bool) {
+	client, address := dialLocalNode()
+	defer client.Close()
+	args := &node.MapleJuiceTaskArgs{
+		TaskType:    node.JuiceTask,
+		Exe:         juice_exe,
+		NumWorkers:  num_juices,
+		InputPath:   prefix,
+		OutputPath:  destFilename,
+		ClientAddr:  address,
+		DeleteInput: deleteInput,
+	}
+	var result node.RPCResultType
+	err := client.Call(node.MapleJuiceServiceName+address+".ForwardMapleJuiceRequest", args, &result)
+	if result != node.RPC_SUCCESS {
+		fmt.Println("Fail, check SLOG output")
 		fmt.Println(err)
 	}
 }
