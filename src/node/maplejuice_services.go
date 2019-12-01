@@ -254,6 +254,7 @@ func (node *Node) PartitionFiles(files []string, numWorkers int, partitionMethod
 		workerId := node.MbList.GetNode(node.Id).next.Id
 		file_i := 0
 		for i := 0; i < numWorkers; i++ {
+			workerMap[workerId] = []string{}
 			for j := 0; j < minFiles; j++ {
 				workerMap[workerId] = append(workerMap[workerId], files[file_i])
 				file_i++
