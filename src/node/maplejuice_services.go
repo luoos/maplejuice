@@ -165,7 +165,14 @@ func (mj *MapleJuiceService) dispatchMapleJuiceTask(args *MapleJuiceTaskArgs) {
 		}
 	}
 
-	// 6. TODO:
+	// 6.
+	if args.DeleteInput {
+		if args.TaskType == JuiceTask {
+			mj.SelfNode.DeleteSDFSDirRequest(args.InputPath)
+		} else {
+			SLOG.Print("unexpected deleteInput")
+		}
+	}
 
 	// 7.
 	msg := "[Maple Task] Finished!"
