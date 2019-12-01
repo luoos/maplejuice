@@ -40,14 +40,12 @@ func TestWordCount(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	juiceFunc := juiceF.(func(string, []string) []string)
+	juiceFunc := juiceF.(func(string, []string) map[string]string)
 	lines = []string{"1", "2", "3"}
 	joutput := juiceFunc("coco", lines)
-	assert(joutput[0] == "coco", "wrong key")
-	assert(joutput[1] == "6", "wrong value")
+	assert(joutput["coco"] == "6", "wrong key")
 
 	lines = []string{"1", "2", "."}
 	joutput = juiceFunc("coco", lines)
-	assert(joutput[0] == "coco", "wrong key")
-	assert(joutput[1] == "-1", "wrong value")
+	assert(joutput["coco"] == "-1", "wrong key")
 }

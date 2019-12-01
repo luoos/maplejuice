@@ -27,7 +27,7 @@ func Maple(lines []string) map[string]string {
 	return res
 }
 
-func Juice(key string, lines []string) []string {
+func Juice(key string, lines []string) map[string]string {
 	// rtype: []string{key, result}
 	s := 0
 	for _, l := range lines {
@@ -38,5 +38,7 @@ func Juice(key string, lines []string) []string {
 		}
 		s = s + n
 	}
-	return []string{key, strconv.Itoa(s)}
+	res := make(map[string]string)
+	res[key] = strconv.Itoa(s)
+	return res
 }
