@@ -26,3 +26,17 @@ func Maple(lines []string) map[string]string {
 	}
 	return res
 }
+
+func Juice(key string, lines []string) []string {
+	// rtype: []string{key, result}
+	s := 0
+	for _, l := range lines {
+		n, err := strconv.Atoi(l)
+		if err != nil {
+			s = -1
+			break
+		}
+		s = s + n
+	}
+	return []string{key, strconv.Itoa(s)}
+}

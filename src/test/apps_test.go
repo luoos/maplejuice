@@ -15,11 +15,14 @@ import (
 // 	assert(output["Maple"] == "1", "wrong3")
 // }
 
-func TestLoadMaple(t *testing.T) {
+func TestWordCount(t *testing.T) {
+	// Maple
 	lines := []string{"hello world! Maple Juice Juice"}
-	exe_path := "/tmp/maple.so"
-	p, _ := plugin.Open(exe_path)
-	// 3. load func from exec
+	exe_path := "/tmp/wordcount.so"
+	p, err := plugin.Open(exe_path)
+	if err != nil {
+		t.Fatal(err)
+	}
 	f, err := p.Lookup("Maple")
 	if err != nil {
 		t.Fatal(err)
@@ -31,4 +34,20 @@ func TestLoadMaple(t *testing.T) {
 	assert(output["world"] == "1", "wrong2")
 	assert(output["Juice"] == "2", "wrong3")
 	assert(output["Maple"] == "1", "wrong3")
+
+	// Juice
+	juiceF, err := p.Lookup("Juice")
+	if err != nil {
+		t.Fatal(err)
+	}
+	juiceFunc := juiceF.(func(string, []string) []string)
+	lines = []string{"1", "2", "3"}
+	joutput := juiceFunc("coco", lines)
+	assert(joutput[0] == "coco", "wrong key")
+	assert(joutput[1] == "6", "wrong value")
+
+	lines = []string{"1", "2", "."}
+	joutput = juiceFunc("coco", lines)
+	assert(joutput[0] == "coco", "wrong key")
+	assert(joutput[1] == "-1", "wrong value")
 }
