@@ -83,12 +83,6 @@ func (mj *MapleJuiceService) ForwardMapleJuiceRequest(args *MapleJuiceTaskArgs, 
 	return err
 }
 
-func (mj *MapleJuiceService) ReceiveMapleJuiceResponse(msg string, result *RPCResultType) error {
-	SLOG.Println(msg)
-	*result = RPC_DUMMY
-	return nil
-}
-
 /*****
  * Master:
  * 1. handle Maple
@@ -183,7 +177,6 @@ func (mj *MapleJuiceService) dispatchMapleJuiceTask(args *MapleJuiceTaskArgs) {
 		msg = "[Juice Task] Finished!"
 	}
 	ReplyTaskResultToDcli(msg, args.ClientAddr)
-	SLOG.Print("[DispatchMapleJuiceTask] Success!")
 }
 
 func ReplyTaskResultToDcli(message, clientAddress string) {
@@ -194,14 +187,7 @@ func ReplyTaskResultToDcli(message, clientAddress string) {
 	}
 	fmt.Fprintf(conn, message+"\n")
 	conn.Close()
-
-	// client, err := rpc.Dial("tcp", clientAddress)
-	// if err != nil {
-	// 	SLOG.Fatal("[ReplyTaskResultToDcli] fail", err)
-	// }
-	// defer client.Close()
-	// var result RPCResultType
-	// client.Call(MapleJuiceServiceName+clientAddress+".ReceiveMapleJuiceResponse", message, &result)
+	SLOG.Print(message)
 }
 
 // TODO: test this

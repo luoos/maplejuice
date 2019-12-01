@@ -330,6 +330,7 @@ func CallMapleTask(maple_exe string, num_maples int, prefix, src_dir string) {
 
 func CallJuiceTask(juice_exe string, num_juices int, prefix string, destFilename string, deleteInput bool) {
 	client, address := dialLocalNode()
+	ip := strings.Split(address, ":")[0]
 	defer client.Close()
 	args := &node.MapleJuiceTaskArgs{
 		TaskType:    node.JuiceTask,
@@ -337,7 +338,7 @@ func CallJuiceTask(juice_exe string, num_juices int, prefix string, destFilename
 		NumWorkers:  num_juices,
 		InputPath:   prefix,
 		OutputPath:  destFilename,
-		ClientAddr:  address,
+		ClientAddr:  ip + ":" + DcliReceiverPort,
 		DeleteInput: deleteInput,
 	}
 	var result node.RPCResultType
@@ -346,6 +347,7 @@ func CallJuiceTask(juice_exe string, num_juices int, prefix string, destFilename
 		fmt.Println("Fail, check SLOG output")
 		fmt.Println(err)
 	}
+	// open a tcp listener
 	waitResponse()
 }
 
