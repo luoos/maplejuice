@@ -68,6 +68,7 @@ func (node *Node) RegisterFileService(address string) error {
 func (node *Node) StartRPCService() {
 	node.RegisterFileService(node.IP + ":" + node.RPC_Port)
 	node.RegisterRPCMapleJuiceService()
+	// go node.StartTCPService()
 	listener, err := net.Listen("tcp", "0.0.0.0:"+node.RPC_Port)
 	if err != nil {
 		SLOG.Fatal("ListenTCP error:", err)
@@ -131,6 +132,7 @@ func (fileService *FileService) individualPutFileRequest(sdfsName, localName str
 	args := &StoreFileArgs{masterId, sdfsName, ts, data, appending}
 	c := make(chan int, DUPLICATE_CNT)
 	for _, addr := range targetAddresses {
+		// TCPAddr := strings.Split(addr, ":")[0] + ":" + TCP_FILE_PORT
 		PutFile(addr, args, c)
 	}
 	for i := 0; i < WRITE_QUORUM && i < len(targetAddresses); i++ {
@@ -319,6 +321,7 @@ func ListFileInSDFSDir(address, dir string) []string {
 	}
 	return result
 }
+
 func PutFile(address string, args *StoreFileArgs, c chan int) {
 	client, err := rpc.Dial("tcp", address)
 	if err != nil {
@@ -331,9 +334,36 @@ func PutFile(address string, args *StoreFileArgs, c chan int) {
 	if send_err != nil {
 		SLOG.Println("send_err:", send_err)
 	}
-	SLOG.Printf("[PutFile] destination: %s, filename: %s", address, args.SdfsName)
+	// SLOG.Printf("[PutFile] destination: %s, filename: %s", address, args.SdfsName)
 	c <- 1
 }
+
+// func PutFile(address string, args *StoreFileArgs, c chan int) {
+// 	conn, err := net.Dial("tcp", address)
+// 	if err != nil {
+// 		SLOG.Printf("[PutFile] Dial failed, address: %s", address)
+// 		return
+// 	}
+// 	defer conn.Close()
+// 	conn.Write([]byte("PUT\n"))
+// 	conn.Write([]byte(fmt.Sprintf("%d\n", args.MasterNodeId)))
+// 	conn.Write([]byte(args.SdfsName + "\n"))
+// 	conn.Write([]byte(fmt.Sprintf("%d\n", args.Ts)))
+// 	conn.Write([]byte(fmt.Sprintf("%t\n", args.Appending)))
+// 	for i := 0; i < len(args.Content); i += TCPBufferSize {
+// 		end := i + TCPBufferSize
+// 		if i+TCPBufferSize > len(args.Content) {
+// 			end = len(args.Content)
+// 		}
+// 		sendBuffer := args.Content[i:end]
+// 		conn.Write(sendBuffer)
+// 		if end >= len(args.Content) {
+// 			break
+// 		}
+// 	}
+// 	// SLOG.Printf("[PutFile] destination: %s, filename: %s", address, args.SdfsName)
+// 	c <- 1
+// }
 
 func CheckFile(sdfsfilename, address string) string {
 	client, err := rpc.Dial("tcp", address)

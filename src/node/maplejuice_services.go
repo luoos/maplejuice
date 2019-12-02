@@ -21,7 +21,7 @@ import (
 // MapleJuiceServiceName ...
 const MapleJuiceServiceName = "MapleJuiceService"
 const JuicePartitionMethod = "range"
-const DcliReceiverPort = "8012"
+const DcliReceiverPort = "8013"
 
 type MapleJuiceTaskType int8
 
@@ -156,6 +156,7 @@ func (mj *MapleJuiceService) dispatchMapleJuiceTask(args *MapleJuiceTaskArgs) {
 		case workerID := <-waitChan:
 			completeTaskCount--
 			SLOG.Printf("[DispatchMapleJuiceTask] work done! workerID: %d, Files: %+q ... %d/%d remaining", workerID, worker_and_files[workerID], completeTaskCount, args.NumWorkers)
+			delete(worker_and_files, workerID)
 		case failureWorkerID := <-mj.SelfNode.FailureNodeChan:
 			SLOG.Printf("[DispatchMapleJuiceTask] work from workerid: %d has failed, finding a new worker!", failureWorkerID)
 			mj.reDispatchMapleJuiceTask(MapleTask, failureWorkerID, worker_and_files, waitChan, args)
@@ -201,9 +202,6 @@ func (mj *MapleJuiceService) reDispatchMapleJuiceTask(taskType MapleJuiceTaskTyp
 	}
 	if newWorkerId == -1 {
 		SLOG.Fatal("unexpected no worker available situation")
-		// TODO: consider same node receive two maple tasks, what should we do?
-		// 1. we can make two jobs concurrent, but we can't use same dir to store imtermedia files.
-		// 2. we can make two jobs sequential
 	}
 	worker_and_files[newWorkerId] = worker_and_files[failureWorkerID]
 	delete(worker_and_files, failureWorkerID)
