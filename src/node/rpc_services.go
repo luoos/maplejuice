@@ -87,6 +87,9 @@ func (node *Node) StartRPCService() {
 
 /* Callee begin */
 func (fileService *FileService) PutFileRequest(args *PutFileArgs, result *RPCResultType) error {
+	return fileService.node.PutFileRequest(args, result)
+}
+func (node *Node) PutFileRequest(args *PutFileArgs, result *RPCResultType) error {
 	fstat, err := os.Stat(args.LocalName)
 	if err != nil {
 		SLOG.Print(err)
@@ -101,7 +104,7 @@ func (fileService *FileService) PutFileRequest(args *PutFileArgs, result *RPCRes
 		for _, file := range files {
 			localFilename := filepath.Join(args.LocalName, file.Name())
 			sdfsFileName := filepath.Join(args.SdfsName, file.Name()) // Now we need to store a dir in SDFS
-			err := fileService.individualPutFileRequest(sdfsFileName, localFilename, true, args.Appending, result)
+			err := node.IndividualPutFileRequest(sdfsFileName, localFilename, true, args.Appending, result)
 			if err != nil {
 				SLOG.Printf("err individual put")
 				return err
@@ -109,20 +112,22 @@ func (fileService *FileService) PutFileRequest(args *PutFileArgs, result *RPCRes
 		}
 		return nil
 	} else {
-		return fileService.individualPutFileRequest(args.SdfsName, args.LocalName, args.ForceUpdate, args.Appending, result)
+		return node.IndividualPutFileRequest(args.SdfsName, args.LocalName, args.ForceUpdate, args.Appending, result)
 	}
 }
 
-func (fileService *FileService) individualPutFileRequest(sdfsName, localName string, forceUpdate, appending bool, result *RPCResultType) error {
-	_, ts := fileService.node.GetAddressOfLatestTS(sdfsName)
-	if !forceUpdate && ((GetMillisecond() - ts) < MIN_UPDATE_INTERVAL) {
-		*result = RPC_PROMPT
-		return nil
+func (node *Node) IndividualPutFileRequest(sdfsName, localName string, forceUpdate, appending bool, result *RPCResultType) error {
+	if !forceUpdate {
+		_, ts := node.GetAddressOfLatestTS(sdfsName)
+		if (GetMillisecond() - ts) < MIN_UPDATE_INTERVAL {
+			*result = RPC_PROMPT
+			return nil
+		}
 	}
-	targetAddresses := fileService.node.GetResponsibleAddresses(sdfsName)
-	masterId := fileService.node.GetMasterID(sdfsName)
+	targetAddresses := node.GetResponsibleAddresses(sdfsName)
+	masterId := node.GetMasterID(sdfsName)
 
-	ts = GetMillisecond()
+	ts := GetMillisecond()
 	data, err := ioutil.ReadFile(localName)
 	if err != nil {
 		SLOG.Println(err)
@@ -151,9 +156,12 @@ func (fileService *FileService) individualPutFileRequest(sdfsName, localName str
 
 // Executed in coordinator
 func (fileService *FileService) GetFileRequest(args []string, result *RPCResultType) error {
+	return fileService.node.GetFileRequest(args, result)
+}
+func (node *Node) GetFileRequest(args []string, result *RPCResultType) error {
 	sdfsName := args[0]
 	localPath := args[1]
-	file_addr, _ := fileService.node.GetAddressOfLatestTS(sdfsName)
+	file_addr, _ := node.GetAddressOfLatestTS(sdfsName)
 	var data []byte
 	err := GetFile(file_addr, sdfsName, &data)
 	if err != nil {

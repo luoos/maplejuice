@@ -73,12 +73,11 @@ func (node *Node) StartMapleJuiceTask(des *TaskDescription) error {
 	} else {
 		node.HandleJuiceTask(local_input_path, local_output_path, f)
 	}
-	client, address := dialLocalNode()
-	defer client.Close()
-	var reply RPCResultType
 
 	// 5. append files to SDFS
-	err = client.Call(FileServiceName+address+".PutFileRequest", PutFileArgs{local_output_path, des.OutputPath, true, true}, &reply)
+	args := &PutFileArgs{local_output_path, des.OutputPath, true, true}
+	var result RPCResultType
+	err = node.PutFileRequest(args, &result)
 	if err != nil {
 		log.Printf("call PutFileRequest return err")
 		return err

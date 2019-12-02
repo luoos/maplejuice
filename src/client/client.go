@@ -352,7 +352,10 @@ func CallJuiceTask(juice_exe string, num_juices int, prefix string, destFilename
 }
 
 func waitResponse() {
-	ln, _ := net.Listen("tcp", "0.0.0.0:"+DcliReceiverPort)
+	ln, err := net.Listen("tcp", "0.0.0.0:"+DcliReceiverPort)
+	if err != nil {
+		fmt.Print(err)
+	}
 	conn, err := ln.Accept()
 	if err != nil {
 		fmt.Print(err)

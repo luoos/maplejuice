@@ -17,7 +17,7 @@ import (
 
 func TestWordCount(t *testing.T) {
 	// Maple
-	lines := []string{"hello world! Maple Juice Juice"}
+	lines := []string{"hello!world! Maple Juice Juice"}
 	exe_path := "/tmp/wordcount.so"
 	p, err := plugin.Open(exe_path)
 	if err != nil {
