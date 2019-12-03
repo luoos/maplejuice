@@ -20,6 +20,7 @@ type FileInfo struct {
 type FileList struct {
 	ID      int
 	FileMap map[string]*FileInfo // Key: sdfsfilename, value: fileinfo
+	// TODO: add lock for append
 }
 
 func CreateFileInfo(hashID int,

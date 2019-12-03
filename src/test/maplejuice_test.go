@@ -58,7 +58,8 @@ func TestAssignFiles(t *testing.T) {
 // }
 
 func TestMapleJuiceTask(t *testing.T) {
-	worker := node.CreateNode("0.0.0.0", "11102", "21202")
+	t.Skip("add files in /tmp for this test")
+	worker := node.CreateNode("0.0.0.0", "11102", "21102")
 	exe_path := "/tmp/wordcount.so"
 	p, _ := plugin.Open(exe_path)
 
@@ -115,4 +116,63 @@ func TestMapleJuiceTask(t *testing.T) {
 	assert(string(data) == "Juice 2\nMaple 2\nhello 1\nworld 1\n", "wrong res")
 	os.RemoveAll(input_dir)
 	os.RemoveAll(output_path)
+}
+
+func TestMapleJuiceURLPercentTask(t *testing.T) {
+	t.Skip("add files in /tmp for this test")
+	worker := node.CreateNode("0.0.0.0", "11103", "21103")
+	exe_path := "/tmp/urlcount.so"
+	p, _ := plugin.Open(exe_path)
+
+	// Maple
+	f, err := p.Lookup("Maple")
+	if err != nil {
+		t.Fatal(err)
+	}
+	input_dir := "/tmp/sample_logs"
+	output_path := "/tmp/phase1mapleRes"
+	os.RemoveAll(output_path)
+	os.MkdirAll(output_path, 0777)
+	worker.HandleMapleTask(input_dir, output_path, f)
+
+	// Juice
+	f, err = p.Lookup("Juice")
+	if err != nil {
+		t.Fatal(err)
+	}
+	input_dir = output_path
+	output_path = "/tmp/phase1juiceRes"
+	worker.HandleJuiceTask(input_dir, output_path, f)
+	if _, err := os.Stat(output_path); os.IsNotExist(err) {
+		t.Fatal("wrong1")
+	}
+	os.RemoveAll(input_dir)
+
+	exe_path = "/tmp/urlpercent.so"
+	p, _ = plugin.Open(exe_path)
+
+	// Maple 2
+	f, err = p.Lookup("Maple")
+	if err != nil {
+		t.Fatal(err)
+	}
+	input_dir = "/tmp/phase1juiceRes"
+	output_path = "/tmp/pahse2mapleRes"
+	os.RemoveAll(output_path)
+	os.MkdirAll(output_path, 0777)
+	worker.HandleMapleTask(input_dir, output_path, f)
+
+	os.RemoveAll(input_dir)
+	// Juice 2
+	f, err = p.Lookup("Juice")
+	if err != nil {
+		t.Fatal(err)
+	}
+	input_dir = output_path
+	output_path = "/tmp/phase2juiceRes"
+	worker.HandleJuiceTask(input_dir, output_path, f)
+	if _, err := os.Stat(output_path); os.IsNotExist(err) {
+		t.Fatal("wrong1")
+	}
+	os.RemoveAll(input_dir)
 }

@@ -111,7 +111,10 @@ func (node *Node) HandleMapleTask(input_dir, output_dir string, f plugin.Symbol)
 		var lines []string
 		for i := 0; ; i++ {
 			line, err := reader.ReadString('\n')
-			lines = append(lines, line)
+			line = strings.Trim(line, " \n")
+			if line != "" { // discard empty lines
+				lines = append(lines, line)
+			}
 			if i == 9 || err == io.EOF {
 				kvpair := mapleFunc(lines)
 				WriteMaplePairToLocal(output_dir, kvpair)
@@ -129,6 +132,8 @@ func (node *Node) HandleMapleTask(input_dir, output_dir string, f plugin.Symbol)
 func WriteMaplePairToLocal(dir string, kvpair map[string]string) {
 	// TODO: check special character in key for valid filename
 	for k, v := range kvpair {
+		k = SpecialCharToNormal(k)
+
 		output_path := filepath.Join(dir, k)
 		f, err := os.OpenFile(output_path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0777)
 		if err != nil {
@@ -142,6 +147,14 @@ func WriteMaplePairToLocal(dir string, kvpair map[string]string) {
 		}
 		f.Close()
 	}
+}
+
+func SpecialCharToNormal(s string) string {
+	return strings.ReplaceAll(s, "/", "|")
+}
+
+func NormalCharToSpecial(s string) string {
+	return strings.ReplaceAll(s, "|", "/")
 }
 
 func (node *Node) HandleJuiceTask(input_dir, output_file string, f plugin.Symbol) {
@@ -158,7 +171,7 @@ func (node *Node) HandleJuiceTask(input_dir, output_file string, f plugin.Symbol
 	}
 	for _, file := range files {
 		fd, err := os.Open(file)
-		key := filepath.Base(file)
+		key := NormalCharToSpecial(filepath.Base(file))
 		if err != nil {
 			SLOG.Println(err)
 		}
