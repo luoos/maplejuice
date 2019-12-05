@@ -283,8 +283,7 @@ func (fileService *FileService) CheckFileExists(sdfsfilename string, hostname *s
 }
 
 func (fileService *FileService) ServeLocalFile(sdfsfilename string, result *[]byte) error {
-	fileinfo := fileService.node.FileList.GetFileInfo(sdfsfilename)
-	data, err := ioutil.ReadFile(fileinfo.Localpath)
+	data, err := fileService.node.FileList.ServeFile(sdfsfilename)
 	*result = data
 	return err
 }

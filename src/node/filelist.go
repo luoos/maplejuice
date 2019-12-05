@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	. "slogger"
+	"sync"
 )
 
 const FILE_LIST_FILE = "/tmp/file.list"
@@ -15,31 +16,25 @@ type FileInfo struct {
 	Localpath    string
 	Timestamp    int
 	MasterNodeID int
+	FileLock     *sync.Mutex
 }
 
 type FileList struct {
-	ID      int
-	FileMap map[string]*FileInfo // Key: sdfsfilename, value: fileinfo
-	// TODO: add lock for append
-}
-
-func CreateFileInfo(hashID int,
-	sdfsfilename string,
-	localpath string,
-	timestamp int,
-	masterNodeID int) *FileInfo {
-	new_fileinfo := &FileInfo{
-		HashID:       hashID,
-		Sdfsfilename: sdfsfilename,
-		Localpath:    localpath,
-		Timestamp:    timestamp,
-		MasterNodeID: masterNodeID,
-	}
-	return new_fileinfo
+	ID       int
+	FileMap  map[string]*FileInfo // Key: sdfsfilename, value: fileinfo
+	ListLock *sync.Mutex
 }
 
 func CreateFileList(selfID int) *FileList {
-	return &FileList{ID: selfID, FileMap: make(map[string]*FileInfo)}
+	return &FileList{ID: selfID, FileMap: make(map[string]*FileInfo), ListLock: &sync.Mutex{}}
+}
+
+func (fl *FileList) ServeFile(sdfsfilename string) ([]byte, error) {
+	fileinfo := fl.GetFileInfo(sdfsfilename)
+	fileinfo.FileLock.Lock()
+	defer fileinfo.FileLock.Unlock()
+	data, err := ioutil.ReadFile(fileinfo.Localpath)
+	return data, err
 }
 
 // PutFileInfoObject is used For testing
@@ -68,12 +63,22 @@ func (fl *FileList) PutFileInfoBase(
 	abs_path string,
 	timestamp int,
 	masterNodeID int) {
-	fl.FileMap[sdfsfilename] = &FileInfo{
-		HashID:       hashId,
-		Sdfsfilename: sdfsfilename,
-		Localpath:    abs_path,
-		Timestamp:    timestamp,
-		MasterNodeID: masterNodeID,
+	if _, exist := fl.FileMap[sdfsfilename]; exist {
+		fl.FileMap[sdfsfilename].HashID = hashId
+		fl.FileMap[sdfsfilename].Localpath = abs_path
+		fl.FileMap[sdfsfilename].Timestamp = timestamp
+		fl.FileMap[sdfsfilename].MasterNodeID = masterNodeID
+	} else {
+		if _, exist := fl.FileMap[sdfsfilename]; !exist {
+			fl.FileMap[sdfsfilename] = &FileInfo{
+				HashID:       hashId,
+				Sdfsfilename: sdfsfilename,
+				Localpath:    abs_path,
+				Timestamp:    timestamp,
+				MasterNodeID: masterNodeID,
+				FileLock:     &sync.Mutex{},
+			}
+		}
 	}
 }
 
@@ -94,7 +99,6 @@ func (fl *FileList) AppendFile(
 	timestamp int,
 	masterNodeID int,
 	data []byte) error {
-
 	hashId := getHashID(sdfsName)
 	return fl.StoreFileBase(hashId, sdfsName, root_dir, timestamp, masterNodeID, data, true)
 }
@@ -116,6 +120,14 @@ func (fl *FileList) StoreFileBase(
 		SLOG.Printf("Fail to create dir: %s", dir)
 		return err
 	}
+	if _, exist := fl.FileMap[sdfsName]; !exist {
+		fl.ListLock.Lock()
+		fl.PutFileInfoBase(hashId, sdfsName, abs_path, timestamp, masterNodeID)
+		fl.ListLock.Unlock()
+	}
+	fl.FileMap[sdfsName].FileLock.Lock()
+	defer fl.FileMap[sdfsName].FileLock.Unlock()
+	fl.PutFileInfoBase(hashId, sdfsName, abs_path, timestamp, masterNodeID)
 	if appending {
 		f, err := os.OpenFile(abs_path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0777)
 		if err != nil {
@@ -135,7 +147,6 @@ func (fl *FileList) StoreFileBase(
 			return err
 		}
 	}
-	fl.PutFileInfoBase(hashId, sdfsName, abs_path, timestamp, masterNodeID)
 	return nil
 }
 
@@ -144,6 +155,9 @@ func (fl *FileList) DeleteFileInfo(sdfsfilename string) bool {
 		SLOG.Printf("File not found %s", sdfsfilename)
 		return false
 	}
+	fl.ListLock.Lock()
+	defer fl.ListLock.Unlock()
+
 	delete(fl.FileMap, sdfsfilename)
 	return true
 }
@@ -186,6 +200,8 @@ func (fl *FileList) GetTimeStamp(sdfsfilename string) int {
 
 func (fl *FileList) GetFilesInRange(startID, endID int) []string {
 	res := []string{}
+	fl.ListLock.Lock()
+	defer fl.ListLock.Unlock()
 	for _, fi := range fl.FileMap {
 		if IsInCircleRange(fi.HashID, startID+1, endID) {
 			res = append(res, fi.Sdfsfilename)
@@ -197,12 +213,14 @@ func (fl *FileList) GetFilesInRange(startID, endID int) []string {
 func (fl *FileList) DeleteFileInfosOutOfRange(start, end int) []string {
 	res := []string{}
 	toDelete := []string{}
+	fl.ListLock.Lock()
 	for _, fi := range fl.FileMap {
 		if !IsInCircleRange(fi.HashID, start+1, end) {
 			res = append(res, fi.Localpath)
 			toDelete = append(toDelete, fi.Sdfsfilename)
 		}
 	}
+	fl.ListLock.Unlock()
 	for _, n := range toDelete {
 		fl.DeleteFileInfo(n)
 	}
@@ -210,6 +228,8 @@ func (fl *FileList) DeleteFileInfosOutOfRange(start, end int) []string {
 }
 
 func (fl *FileList) UpdateMasterID(new_master_id int, needUpdate func(fileInfo *FileInfo) bool) {
+	fl.ListLock.Lock()
+	defer fl.ListLock.Unlock()
 	for _, fileInfo := range fl.FileMap {
 		if needUpdate(fileInfo) {
 			fileInfo.MasterNodeID = new_master_id
@@ -219,6 +239,8 @@ func (fl *FileList) UpdateMasterID(new_master_id int, needUpdate func(fileInfo *
 
 func (fl *FileList) GetOwnedFileInfos(masterId int) []FileInfo {
 	res := make([]FileInfo, 0)
+	fl.ListLock.Lock()
+	defer fl.ListLock.Unlock()
 	for _, fileInfo := range fl.FileMap {
 		if fileInfo.MasterNodeID == masterId {
 			res = append(res, *fileInfo)
@@ -229,6 +251,8 @@ func (fl *FileList) GetOwnedFileInfos(masterId int) []FileInfo {
 
 func (fl *FileList) ListFileInDir(dir string) []string {
 	res := []string{}
+	fl.ListLock.Lock()
+	defer fl.ListLock.Unlock()
 	for sdfsfilename, _ := range fl.FileMap {
 		if filepath.Dir(sdfsfilename) == dir {
 			res = append(res, sdfsfilename)
