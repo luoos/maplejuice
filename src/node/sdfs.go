@@ -145,7 +145,7 @@ func (node *Node) SendFileIfNecessary(info FileInfo, targetRPCAddr []string) {
 
 	data, err := ioutil.ReadFile(info.Localpath)
 	if err != nil {
-		SLOG.Printf("[Node %d] Fail to read file: %s", node.Id, info.Localpath)
+		SLOG.Printf("[Node %d] Fail to read file: %s, this should is deleted temp files", node.Id, info.Localpath)
 		return
 	}
 	args := StoreFileArgs{info.HashID, info.MasterNodeID, info.Sdfsfilename, info.Timestamp, data, false}

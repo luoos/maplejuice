@@ -148,6 +148,8 @@ func (mj *MapleJuiceService) dispatchMapleJuiceTask(args *MapleJuiceTaskArgs) {
 			workerAddress := workerNode.Ip + ":" + workerNode.RPC_Port
 			if args.TaskType == MapleTask {
 				SLOG.Printf("[dispatchMapleJuiceTask] telling workderID: %d to process files: %+q", workerID, filesList)
+			} else {
+				SLOG.Printf("[dispatchMapleJuiceTask] telling workderID: %d to process files", workerID)
 			}
 			go CallMapleJuiceRequest(taskId, workerID, workerAddress, filesList, args, waitChan)
 		} else {
@@ -162,7 +164,11 @@ func (mj *MapleJuiceService) dispatchMapleJuiceTask(args *MapleJuiceTaskArgs) {
 		select {
 		case workerID := <-waitChan:
 			completeTaskCount--
-			SLOG.Printf("[DispatchMapleJuiceTask] work done! workerID: %d, Files: %+q ... %d/%d remaining", workerID, worker_and_files[workerID], completeTaskCount, args.NumWorkers)
+			if args.TaskType == MapleTask {
+				SLOG.Printf("[DispatchMapleJuiceTask] work done! workerID: %d, Files: %+q ... %d/%d remaining", workerID, worker_and_files[workerID], completeTaskCount, args.NumWorkers)
+			} else {
+				SLOG.Printf("[DispatchMapleJuiceTask] work done! workerID: %d, ... %d/%d remaining", workerID, completeTaskCount, args.NumWorkers)
+			}
 			delete(worker_and_files, workerID)
 		case failureWorkerID := <-mj.SelfNode.FailureNodeChan:
 			SLOG.Printf("[DispatchMapleJuiceTask] work from workerid: %d has failed, finding a new worker!", failureWorkerID)
