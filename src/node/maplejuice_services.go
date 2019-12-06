@@ -134,8 +134,9 @@ func (mj *MapleJuiceService) dispatchMapleJuiceTask(args *MapleJuiceTaskArgs) {
 		partitionMethod = JuicePartitionMethod
 	}
 	worker_and_files := mj.SelfNode.PartitionFiles(files, args.NumWorkers, partitionMethod)
-	SLOG.Printf("[dispatchMapleJuiceTask] worker and files: %+v", worker_and_files)
-
+	if args.TaskType == MapleTask {
+		SLOG.Printf("[dispatchMapleJuiceTask] worker and files: %+v", worker_and_files)
+	}
 	// 4.
 	waitChan := make(chan int, args.NumWorkers)
 	workerTaskID := make(map[int]int)
@@ -145,7 +146,9 @@ func (mj *MapleJuiceService) dispatchMapleJuiceTask(args *MapleJuiceTaskArgs) {
 		if len(filesList) > 0 {
 			workerNode := mj.SelfNode.MbList.GetNode(workerID)
 			workerAddress := workerNode.Ip + ":" + workerNode.RPC_Port
-			SLOG.Printf("[dispatchMapleJuiceTask] telling workderID: %d to process files: %+q", workerID, filesList)
+			if args.TaskType == MapleTask {
+				SLOG.Printf("[dispatchMapleJuiceTask] telling workderID: %d to process files: %+q", workerID, filesList)
+			}
 			go CallMapleJuiceRequest(taskId, workerID, workerAddress, filesList, args, waitChan)
 		} else {
 			waitChan <- workerID
@@ -171,6 +174,8 @@ func (mj *MapleJuiceService) dispatchMapleJuiceTask(args *MapleJuiceTaskArgs) {
 	}
 
 	// 6.
+
+	SLOG.Printf("[DispatchMapleJuiceTask] tell every to merge temp files")
 	mj.SelfNode.MergeDirRequest(args.OutputPath)
 
 	// 7.
