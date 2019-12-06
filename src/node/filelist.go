@@ -292,6 +292,7 @@ func (fl *FileList) MergeDirectoryWithSurfix(surffix string) error {
 		}
 	}
 	fl.ListLock.Unlock()
+	SLOG.Print("[MergeDirectoryWithSurfix] Merging")
 	for _, fInfo := range targetFileInfos {
 		sdfsName := fInfo.Sdfsfilename
 		// Read from file, append to new dir
@@ -311,6 +312,7 @@ func (fl *FileList) MergeDirectoryWithSurfix(surffix string) error {
 		sdfsDir := filepath.Dir(fInfo.Sdfsfilename)
 		targetDirSet[sdfsDir] = true
 	}
+	SLOG.Print("[MergeDirectoryWithSurfix] Deleting")
 	for dir, _ := range targetDirSet {
 		fl.DeleteSDFSDir(dir)
 	}

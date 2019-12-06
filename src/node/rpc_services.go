@@ -358,7 +358,7 @@ func MergeSDFSDir(address, surffix string) error {
 		return err
 	}
 	defer client.Close()
-	var result []string
+	var result RPCResultType
 	send_err := client.Call(FileServiceName+address+".MergeLocalDir", surffix, &result)
 	if send_err != nil {
 		SLOG.Println("send_err:", send_err)
