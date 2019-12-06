@@ -174,3 +174,26 @@ func TestDeleteDir(t *testing.T) {
 	info := fl.GetFileInfo("test_dd/testFilename2")
 	assert(info == nil, "info should not exist")
 }
+
+func TestMergeDir(t *testing.T) {
+	fl := node.CreateFileList(1)
+	fl.StoreFile("output___taskid1___someprefix/testFilename1", "/tmp/test_merge_dir", 1, 2, []byte("hello world1"))
+	fl.StoreFile("output___taskid2___someprefix/testFilename2", "/tmp/test_merge_dir", 1, 2, []byte("hello world2"))
+	fl.StoreFile("output___taskid3___someprefix/testFilename3", "/tmp/test_merge_dir", 1, 2, []byte("hello world3"))
+	fl.StoreFile("output___taskid1___someprefix/testFilename2", "/tmp/test_merge_dir", 1, 2, []byte("hello world2"))
+	fl.StoreFile("output___taskid2___someprefix/testFilename3", "/tmp/test_merge_dir", 1, 2, []byte("hello world3"))
+	fl.MergeDirectoryWithSurfix("someprefix")
+	data1, _ := fl.ServeFile("someprefix/testFilename1")
+	data2, _ := fl.ServeFile("someprefix/testFilename2")
+	data3, _ := fl.ServeFile("someprefix/testFilename3")
+	assert(string(data1) == "hello world1", "wrong1")
+	assert(string(data2) == "hello world2hello world2", "wrong2")
+	assert(string(data3) == "hello world3hello world3", "wrong3")
+	_, err := os.Stat("/tmp/test_merge_dir/output___taskid1___someprefix")
+	assert(os.IsNotExist(err), "dir should not exist")
+	_, err = os.Stat("/tmp/test_merge_dir/output___taskid2___someprefix")
+	assert(os.IsNotExist(err), "dir should not exist")
+	_, err = os.Stat("/tmp/test_merge_dir/output___taskid3___someprefix")
+	assert(os.IsNotExist(err), "dir should not exist")
+	os.RemoveAll("/tmp/test_merge_dir")
+}

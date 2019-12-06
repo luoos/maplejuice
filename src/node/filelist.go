@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	. "slogger"
+	"strings"
 	"sync"
 )
 
@@ -275,9 +276,50 @@ func (fl *FileList) DeleteSDFSDir(dirName string) {
 
 	// delete all Fileinfo under this dir
 	for _, sdfsfilename := range files {
-		fl.DeleteFileAndInfo(sdfsfilename)
+		fl.DeleteFileInfo(sdfsfilename)
 	}
 
 	// delete this dir
 	_ = os.RemoveAll(abs_dir_path)
+}
+
+func (fl *FileList) MergeDirectoryWithSurfix(surffix string) {
+	fl.ListLock.Lock()
+	targetFileInfos := []*FileInfo{}
+	for sdfsName, fInfo := range fl.FileMap {
+		if isTargetFile(sdfsName, surffix) {
+			targetFileInfos = append(targetFileInfos, fInfo)
+		}
+	}
+	fl.ListLock.Unlock()
+	for _, fInfo := range targetFileInfos {
+		sdfsName := fInfo.Sdfsfilename
+		// Read from file, append to new dir
+		data, err := fl.ServeFile(sdfsName)
+		if err != nil {
+			SLOG.Fatal("[MergeDirectoryWithSurfix] err ", err)
+		}
+		basename := filepath.Base(sdfsName)
+		newsdfsName := filepath.Join(surffix, basename)
+		path_split := strings.Split(fInfo.Localpath, "/")
+		root_dir := "/" + filepath.Join(path_split[1], path_split[2]) //  [1]/[2] could be apps/files for production and tmp/test_merge_dir for test
+		fl.AppendFile(newsdfsName, root_dir, fInfo.Timestamp, fInfo.MasterNodeID, data)
+	}
+	targetDirSet := make(map[string]bool)
+	for _, fInfo := range targetFileInfos {
+		sdfsDir := filepath.Dir(fInfo.Sdfsfilename)
+		targetDirSet[sdfsDir] = true
+	}
+	for dir, _ := range targetDirSet {
+		fl.DeleteSDFSDir(dir)
+	}
+}
+
+func isTargetFile(sdfsName, surffix string) bool {
+	dir := filepath.Dir(sdfsName)
+	split := strings.Split(dir, "___")
+	if len(split) < 3 {
+		return false
+	}
+	return split[2] == surffix
 }
