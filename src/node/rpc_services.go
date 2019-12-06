@@ -23,7 +23,7 @@ import (
 
 const FileServiceName = "SimpleFileService"
 const RPC_DEFAULT_PORT = "8011"
-const READ_QUORUM = 2
+const READ_QUORUM = 4
 const WRITE_QUORUM = 3
 const MIN_UPDATE_INTERVAL = 60 * 1000
 

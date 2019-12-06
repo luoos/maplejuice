@@ -104,7 +104,7 @@ func (node *Node) GetAddressOfLatestTS(sdfsfilename string) (string, int) {
 				max_timestamp = timestamp
 				max_address = address
 			}
-		case <-time.After(2 * time.Second):
+		case <-time.After(1 * time.Second):
 			continue
 		}
 
