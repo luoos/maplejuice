@@ -15,7 +15,6 @@ import (
 	"net/rpc"
 	. "slogger"
 	"strconv"
-	"strings"
 )
 
 // MapleJuiceServiceName ...
@@ -139,15 +138,19 @@ func (mj *MapleJuiceService) dispatchMapleJuiceTask(args *MapleJuiceTaskArgs) {
 
 	// 4.
 	waitChan := make(chan int, args.NumWorkers)
+	workerTaskID := make(map[int]int)
+	taskId := 1
 	for workerID, filesList := range worker_and_files {
+		workerTaskID[workerID] = taskId
 		if len(filesList) > 0 {
 			workerNode := mj.SelfNode.MbList.GetNode(workerID)
 			workerAddress := workerNode.Ip + ":" + workerNode.RPC_Port
 			SLOG.Printf("[dispatchMapleJuiceTask] telling workderID: %d to process files: %+q", workerID, filesList)
-			go CallMapleJuiceRequest(workerID, workerAddress, filesList, args, waitChan)
+			go CallMapleJuiceRequest(taskId, workerID, workerAddress, filesList, args, waitChan)
 		} else {
 			waitChan <- workerID
 		}
+		taskId++
 	}
 
 	// 5.
@@ -160,7 +163,10 @@ func (mj *MapleJuiceService) dispatchMapleJuiceTask(args *MapleJuiceTaskArgs) {
 			delete(worker_and_files, workerID)
 		case failureWorkerID := <-mj.SelfNode.FailureNodeChan:
 			SLOG.Printf("[DispatchMapleJuiceTask] work from workerid: %d has failed, finding a new worker!", failureWorkerID)
-			mj.reDispatchMapleJuiceTask(MapleTask, failureWorkerID, worker_and_files, waitChan, args)
+			intermediate_dir_name := FormatTempDirName("output", strconv.Itoa(workerTaskID[failureWorkerID]), args.OutputPath)
+			SLOG.Printf("[DispatchMapleJuiceTask] deleting all intermediate files written by taskID: %d, the dir name is: %d", workerTaskID[failureWorkerID], intermediate_dir_name)
+			mj.SelfNode.DeleteSDFSDirRequest(intermediate_dir_name)
+			mj.reDispatchMapleJuiceTask(MapleTask, failureWorkerID, worker_and_files, workerTaskID, waitChan, args)
 		}
 	}
 
@@ -196,7 +202,7 @@ func ReplyTaskResultToDcli(message, clientAddress string) {
 }
 
 // TODO: test this
-func (mj *MapleJuiceService) reDispatchMapleJuiceTask(taskType MapleJuiceTaskType, failureWorkerID int, worker_and_files map[int][]string, waitChan chan int, args *MapleJuiceTaskArgs) {
+func (mj *MapleJuiceService) reDispatchMapleJuiceTask(taskType MapleJuiceTaskType, failureWorkerID int, worker_and_files map[int][]string, workerTaskID map[int]int, waitChan chan int, args *MapleJuiceTaskArgs) {
 	newWorkerId := -1
 	for nodeId, _ := range mj.SelfNode.MbList.Member_map {
 		if _, exists := worker_and_files[nodeId]; !exists {
@@ -208,17 +214,20 @@ func (mj *MapleJuiceService) reDispatchMapleJuiceTask(taskType MapleJuiceTaskTyp
 		SLOG.Fatal("unexpected no worker available situation")
 	}
 	worker_and_files[newWorkerId] = worker_and_files[failureWorkerID]
+	workerTaskID[newWorkerId] = workerTaskID[failureWorkerID]
 	delete(worker_and_files, failureWorkerID)
+	delete(workerTaskID, failureWorkerID)
 	newWorkerNode := mj.SelfNode.MbList.GetNode(newWorkerId)
 	newWorkerAddress := newWorkerNode.Ip + ":" + newWorkerNode.RPC_Port
-	go CallMapleJuiceRequest(newWorkerId, newWorkerAddress, worker_and_files[newWorkerId], args, waitChan)
+	SLOG.Printf("[reDispatchMapleJuiceTask] telling new workderID: %d to process files: %+q", newWorkerId, worker_and_files[newWorkerId])
+	go CallMapleJuiceRequest(workerTaskID[newWorkerId], newWorkerId, newWorkerAddress, worker_and_files[newWorkerId], args, waitChan)
 }
 
-func CallMapleJuiceRequest(workerID int, workerAddress string, files []string, args *MapleJuiceTaskArgs, waitChan chan int) {
-	taskID := strconv.Itoa(getHashID(strings.Join(files[:], ",")))
+func CallMapleJuiceRequest(taskID, workerID int, workerAddress string, files []string, args *MapleJuiceTaskArgs, waitChan chan int) {
+	// taskID = strconv.Itoa(getHashID(strings.Join(files[:], ",")))
 	taskDescription := &TaskDescription{
 		TaskType:   args.TaskType,
-		TaskID:     taskID,
+		TaskID:     strconv.Itoa(taskID),
 		ExeFile:    args.Exe,
 		InputFiles: files,
 		OutputPath: args.OutputPath,

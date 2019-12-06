@@ -24,6 +24,10 @@ type TaskDescription struct {
 	MasterAddresses []string // includes backup master
 }
 
+func FormatTempDirName(ioType, taskID, surffix string) string {
+	return ioType + "___" + taskID + "___" + surffix
+}
+
 func (node *Node) StartMapleJuiceTask(des *TaskDescription) error {
 	// 1. Retrieve files and exe into a local tmp dir
 	// 1.1 Recreate dir: task_id+prefix as dir name
