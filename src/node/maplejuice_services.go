@@ -111,8 +111,9 @@ func (mj *MapleJuiceService) dispatchMapleJuiceTask(args *MapleJuiceTaskArgs) {
 	 * 3. partition files to reducers range or hash (similar to assign file)
 	 * 4. goroutine each call one worker to start juice task
 	 * 5. wait for ack using success channel and fail channel
-	 * 6. delete input if neccessary
-	 * 7. send success message to client
+	 * 6. merge received files
+	 * 7. delete input if neccessary
+	 * 8. send success message to client
 	 *****/
 	// handle failure using a channel from failure detector
 	liveNodeCount := len(mj.SelfNode.MbList.Member_map)
@@ -164,6 +165,9 @@ func (mj *MapleJuiceService) dispatchMapleJuiceTask(args *MapleJuiceTaskArgs) {
 	}
 
 	// 6.
+	mj.SelfNode.MergeDirRequest(args.OutputPath)
+
+	// 7.
 	if args.DeleteInput {
 		if args.TaskType == JuiceTask {
 			mj.SelfNode.DeleteSDFSDirRequest(args.InputPath)
@@ -172,7 +176,7 @@ func (mj *MapleJuiceService) dispatchMapleJuiceTask(args *MapleJuiceTaskArgs) {
 		}
 	}
 
-	// 7.
+	// 8.
 	msg := "[Maple Task] Finished!"
 	if args.TaskType == JuiceTask {
 		msg = "[Juice Task] Finished!"

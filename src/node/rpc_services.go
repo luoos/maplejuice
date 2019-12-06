@@ -198,6 +198,22 @@ func (node *Node) GetFileRequest(args []string, result *RPCResultType) error {
 	return nil
 }
 
+func (fileService *FileService) MergeDirRequest(surffix string, res *RPCResultType) error {
+	*res = RPC_DUMMY
+	return fileService.node.MergeDirRequest(surffix)
+}
+
+func (node *Node) MergeDirRequest(surffix string) error {
+	for _, memNode := range node.MbList.Member_map {
+		address := memNode.Ip + ":" + memNode.RPC_Port
+		err := MergeSDFSDir(address, surffix)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (fileService *FileService) ListFileInDirRequest(sdfsDir string, res *[]string) error {
 	*res = fileService.node.ListFileInDirRequest(sdfsDir)
 	return nil
@@ -315,6 +331,11 @@ func (fileService *FileService) DeleteLocalFile(sdfsName string, result *RPCResu
 	return nil
 }
 
+func (fileService *FileService) MergeLocalDir(surffix string, res *RPCResultType) error {
+	*res = RPC_DUMMY
+	return fileService.node.FileList.MergeDirectoryWithSurfix(surffix)
+}
+
 func (fileService *FileService) ListFileInLocalDir(dir string, result *[]string) error {
 	*result = fileService.node.FileList.ListFileInDir(dir)
 	return nil
@@ -329,6 +350,21 @@ func (fileService *FileService) DeleteSDFSDir(dir string, result *RPCResultType)
 /* Callee end */
 
 /* Caller begin */
+
+func MergeSDFSDir(address, surffix string) error {
+	client, err := rpc.Dial("tcp", address)
+	if err != nil {
+		SLOG.Printf("[MergeSDFSDir] Dial failed, address: %s", address)
+		return err
+	}
+	defer client.Close()
+	var result []string
+	send_err := client.Call(FileServiceName+address+".MergeLocalDir", surffix, &result)
+	if send_err != nil {
+		SLOG.Println("send_err:", send_err)
+	}
+	return send_err
+}
 
 func ListFileInSDFSDir(address, dir string) []string {
 	client, err := rpc.Dial("tcp", address)

@@ -83,7 +83,7 @@ func (fl *FileList) PutFileInfoBase(
 	}
 }
 
-func (fl *FileList) StoreFile(
+func (fl *FileList) StoreFile( // Not used
 	sdfsName string,
 	root_dir string,
 	timestamp int,
@@ -105,7 +105,7 @@ func (fl *FileList) AppendFile( // Not used
 }
 
 // This should only be used in test
-func (fl *FileList) StoreFileBase( // Not used
+func (fl *FileList) StoreFileBase(
 	hashId int,
 	sdfsName string,
 	root_dir string,
@@ -283,7 +283,7 @@ func (fl *FileList) DeleteSDFSDir(dirName string) {
 	_ = os.RemoveAll(abs_dir_path)
 }
 
-func (fl *FileList) MergeDirectoryWithSurfix(surffix string) {
+func (fl *FileList) MergeDirectoryWithSurfix(surffix string) error {
 	fl.ListLock.Lock()
 	targetFileInfos := []*FileInfo{}
 	for sdfsName, fInfo := range fl.FileMap {
@@ -297,7 +297,8 @@ func (fl *FileList) MergeDirectoryWithSurfix(surffix string) {
 		// Read from file, append to new dir
 		data, err := fl.ServeFile(sdfsName)
 		if err != nil {
-			SLOG.Fatal("[MergeDirectoryWithSurfix] err ", err)
+			SLOG.Print("[MergeDirectoryWithSurfix] err ", err)
+			return err
 		}
 		basename := filepath.Base(sdfsName)
 		newsdfsName := filepath.Join(surffix, basename)
@@ -313,6 +314,7 @@ func (fl *FileList) MergeDirectoryWithSurfix(surffix string) {
 	for dir, _ := range targetDirSet {
 		fl.DeleteSDFSDir(dir)
 	}
+	return nil
 }
 
 func isTargetFile(sdfsName, surffix string) bool {
