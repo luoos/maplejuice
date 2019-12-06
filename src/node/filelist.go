@@ -259,7 +259,7 @@ func (fl *FileList) ListFileInDir(dir string) []string {
 			res = append(res, sdfsfilename)
 		}
 	}
-	SLOG.Printf("[ListFileInDir] Found these files: %+q", res)
+	// SLOG.Printf("[ListFileInDir] Found these files: %+q", res)
 	return res
 }
 

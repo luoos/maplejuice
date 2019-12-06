@@ -130,7 +130,7 @@ func (mj *MapleJuiceService) dispatchMapleJuiceTask(args *MapleJuiceTaskArgs) {
 	}
 
 	// 3.
-	partitionMethod := "hash"
+	partitionMethod := "range"
 	if args.TaskType == JuiceTask {
 		partitionMethod = JuicePartitionMethod
 	}

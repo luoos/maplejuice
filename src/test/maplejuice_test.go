@@ -105,11 +105,12 @@ func TestMapleJuiceTask(t *testing.T) {
 	}
 	input_dir = output_path
 	output_path = "/tmp/juiceResult"
+	os.MkdirAll(output_path, 0777)
 	worker.HandleJuiceTask(input_dir, output_path, f)
 	if _, err := os.Stat(output_path); os.IsNotExist(err) {
 		t.Fatal("wrong1")
 	}
-	data, err := ioutil.ReadFile(output_path)
+	data, err := ioutil.ReadFile(output_path + "/output")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -142,8 +143,10 @@ func TestMapleJuiceURLPercentTask(t *testing.T) {
 	}
 	input_dir = output_path
 	output_path = "/tmp/phase1juiceRes"
+	os.RemoveAll(output_path)
+	os.MkdirAll(output_path, 0777)
 	worker.HandleJuiceTask(input_dir, output_path, f)
-	if _, err := os.Stat(output_path); os.IsNotExist(err) {
+	if _, err := os.Stat(output_path + "/output"); os.IsNotExist(err) {
 		t.Fatal("wrong1")
 	}
 	os.RemoveAll(input_dir)
@@ -170,6 +173,8 @@ func TestMapleJuiceURLPercentTask(t *testing.T) {
 	}
 	input_dir = output_path
 	output_path = "/tmp/phase2juiceRes"
+	os.RemoveAll(output_path)
+	os.MkdirAll(output_path, 0777)
 	worker.HandleJuiceTask(input_dir, output_path, f)
 	if _, err := os.Stat(output_path); os.IsNotExist(err) {
 		t.Fatal("wrong1")

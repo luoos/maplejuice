@@ -31,15 +31,15 @@ func (node *Node) StartMapleJuiceTask(des *TaskDescription) error {
 	local_input_path := filepath.Join("/tmp", input_sub_path)
 	output_sub_path := "output___" + des.TaskID + "___" + des.OutputPath
 	local_output_path := filepath.Join("/tmp", output_sub_path)
-	if des.TaskType == JuiceTask {
-		local_output_path = filepath.Join("/tmp", des.OutputPath)
-	}
+	// if des.TaskType == JuiceTask {
+	// 	local_output_path = filepath.Join("/tmp", des.OutputPath)
+	// }
 	os.RemoveAll(local_input_path)
 	os.MkdirAll(local_input_path, 0777)
-	if des.TaskType == MapleTask {
-		os.RemoveAll(local_output_path)
-		os.MkdirAll(local_output_path, 0777)
-	}
+	// if des.TaskType == MapleTask {
+	os.RemoveAll(local_output_path)
+	os.MkdirAll(local_output_path, 0777)
+	// }
 	// 1.2 Retrieve files from SDFS and store files into above dir
 	err := node.GetFilesFromSDFS(des.InputFiles, local_input_path)
 	if err != nil {
@@ -203,7 +203,7 @@ func (node *Node) HandleJuiceTask(input_dir, output_file string, f plugin.Symbol
 
 func WriteJuicePairToLocal(outputfile string, kvpair map[string]string) {
 	for k, v := range kvpair {
-		f, err := os.OpenFile(outputfile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0777)
+		f, err := os.OpenFile(filepath.Join(outputfile, "output"), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0777)
 		if err != nil {
 			SLOG.Printf("Fail to open file: %s", outputfile)
 			return
