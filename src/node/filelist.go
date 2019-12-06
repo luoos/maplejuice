@@ -18,6 +18,7 @@ type FileInfo struct {
 	Timestamp    int
 	MasterNodeID int
 	FileLock     *sync.Mutex
+	Tmp          bool
 }
 
 type FileList struct {
@@ -91,7 +92,18 @@ func (fl *FileList) StoreFile(
 	data []byte) error {
 
 	hashId := getHashID(sdfsName)
-	return fl.StoreFileBase(hashId, sdfsName, root_dir, timestamp, masterNodeID, data, false)
+	return fl.StoreFileBase(hashId, sdfsName, root_dir, timestamp, masterNodeID, data, false, false)
+}
+
+func (fl *FileList) StoreTmpFile(
+	sdfsName string,
+	root_dir string,
+	timestamp int,
+	masterNodeID int,
+	data []byte) error {
+	toHash := strings.Split(sdfsName, "___")[0] // like: prefix_key____123, the 123 the maple worker id
+	hashId := getHashID(toHash)
+	return fl.StoreFileBase(hashId, sdfsName, root_dir, timestamp, masterNodeID, data, false, true)
 }
 
 func (fl *FileList) AppendFile(
@@ -101,7 +113,7 @@ func (fl *FileList) AppendFile(
 	masterNodeID int,
 	data []byte) error {
 	hashId := getHashID(sdfsName)
-	return fl.StoreFileBase(hashId, sdfsName, root_dir, timestamp, masterNodeID, data, true)
+	return fl.StoreFileBase(hashId, sdfsName, root_dir, timestamp, masterNodeID, data, true, false)
 }
 
 // This should only be used in test
@@ -112,8 +124,12 @@ func (fl *FileList) StoreFileBase(
 	timestamp int,
 	masterNodeID int,
 	data []byte,
-	appending bool) error {
+	appending bool,
+	tmp bool) error {
 
+	if tmp {
+		root_dir = root_dir + "/tmp"
+	}
 	abs_path := filepath.Join(root_dir, sdfsName)
 	dir, _ := filepath.Split(abs_path)
 	err := os.MkdirAll(dir, 0777)

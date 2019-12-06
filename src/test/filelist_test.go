@@ -197,3 +197,18 @@ func TestMergeDir(t *testing.T) {
 	assert(os.IsNotExist(err), "dir should not exist")
 	os.RemoveAll("/tmp/test_merge_dir")
 }
+
+func TestStoreTmpFile(t *testing.T) {
+	fl := node.CreateFileList(1)
+	fl.StoreTmpFile("prefix_key___123", "/tmp/test_tmp", 1, 2, []byte("hello world1"))
+	fl.StoreTmpFile("prefix_keyy___234", "/tmp/test_tmp", 1, 2, []byte("hello world1"))
+	info1 := fl.GetFileInfo("prefix_key___123")
+	info2 := fl.GetFileInfo("prefix_keyy___234")
+	assert(info1.HashID == getHashID("prefix_key"), "hash id should be the same")
+	assert(info2.HashID == getHashID("prefix_keyy"), "hash id should be the same")
+	_, err := os.Stat("/tmp/test_tmp/tmp/prefix_keyy___234")
+	assert(err == nil, "file should exist")
+	_, err = os.Stat("/tmp/test_tmp/tmp/prefix_key___123")
+	assert(err == nil, "file should exist")
+	os.RemoveAll("/tmp/test_tmp")
+}
