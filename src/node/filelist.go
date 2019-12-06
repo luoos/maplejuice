@@ -251,7 +251,7 @@ func (fl *FileList) UpdateMasterID(new_master_id int, needUpdate func(fileInfo *
 	fl.ListLock.Lock()
 	defer fl.ListLock.Unlock()
 	for _, fileInfo := range fl.FileMap {
-		if needUpdate(fileInfo) {
+		if !fileInfo.Tmp && needUpdate(fileInfo) {
 			fileInfo.MasterNodeID = new_master_id
 		}
 	}

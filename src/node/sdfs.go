@@ -131,6 +131,9 @@ func (node *Node) DuplicateReplica() {
 	ownedFileInfos := node.FileList.GetOwnedFileInfos(node.Id)
 	targetsRPCAddr := node.MbList.GetRPCAddressesForNextKNodes(node.Id, DUPLICATE_CNT-1)
 	for _, info := range ownedFileInfos {
+		if info.Tmp {
+			continue
+		}
 		node.SendFileIfNecessary(info, targetsRPCAddr)
 	}
 }
@@ -147,7 +150,7 @@ func (node *Node) SendFileIfNecessary(info FileInfo, targetRPCAddr []string) {
 		SLOG.Printf("[Node %d] Fail to read file: %s", node.Id, info.Localpath)
 		return
 	}
-	args := StoreFileArgs{info.MasterNodeID, info.Sdfsfilename, info.Timestamp, data, false}
+	args := StoreFileArgs{info.MasterNodeID, info.Sdfsfilename, info.Timestamp, data, false, false}
 	dummy_chan := make(chan int, L)
 	for i := 0; i < L; i++ {
 		select {

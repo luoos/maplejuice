@@ -265,7 +265,7 @@ func CallPutFileRequest(src, dest string, forceUpdate bool) node.RPCResultType {
 	client, address := dialLocalNode()
 	defer client.Close()
 	var reply node.RPCResultType
-	err := client.Call(node.FileServiceName+address+".PutFileRequest", node.PutFileArgs{src, dest, forceUpdate, false}, &reply)
+	err := client.Call(node.FileServiceName+address+".PutFileRequest", node.PutFileArgs{src, dest, forceUpdate, false, false}, &reply)
 	if err != nil {
 		log.Printf("call PutFileRequest return err")
 		log.Fatal(err)

@@ -18,6 +18,7 @@ import (
 	"os"
 	"path/filepath"
 	. "slogger"
+	"strings"
 	"time"
 )
 
@@ -39,6 +40,7 @@ type PutFileArgs struct {
 	SdfsName    string
 	ForceUpdate bool
 	Appending   bool
+	Tmp         bool
 }
 
 type StoreFileArgs struct {
@@ -47,6 +49,7 @@ type StoreFileArgs struct {
 	Ts           int
 	Content      []byte
 	Appending    bool
+	Tmp          bool
 }
 
 const (
@@ -98,13 +101,18 @@ func (node *Node) PutFileRequest(args *PutFileArgs, result *RPCResultType) error
 	if fstat.IsDir() {
 		files, err := ioutil.ReadDir(args.LocalName)
 		if err != nil {
-			SLOG.Printf("err ReadDir: ", args.LocalName)
+			SLOG.Printf("err ReadDir: %s", args.LocalName)
 			return err
 		}
 		for _, file := range files {
 			localFilename := filepath.Join(args.LocalName, file.Name())
-			sdfsFileName := filepath.Join(args.SdfsName, file.Name()) // Now we need to store a dir in SDFS
-			err := node.IndividualPutFileRequest(sdfsFileName, localFilename, true, args.Appending, result)
+			var sdfsFileName string
+			if args.Tmp {
+				sdfsFileName = file.Name()
+			} else {
+				sdfsFileName = filepath.Join(args.SdfsName, file.Name()) // Now we need to store a dir in SDFS
+			}
+			err := node.IndividualPutFileRequest(sdfsFileName, localFilename, true, args.Appending, args.Tmp, result)
 			if err != nil {
 				SLOG.Printf("err individual put")
 				return err
@@ -112,11 +120,11 @@ func (node *Node) PutFileRequest(args *PutFileArgs, result *RPCResultType) error
 		}
 		return nil
 	} else {
-		return node.IndividualPutFileRequest(args.SdfsName, args.LocalName, args.ForceUpdate, args.Appending, result)
+		return node.IndividualPutFileRequest(args.SdfsName, args.LocalName, args.ForceUpdate, args.Appending, args.Tmp, result)
 	}
 }
 
-func (node *Node) IndividualPutFileRequest(sdfsName, localName string, forceUpdate, appending bool, result *RPCResultType) error {
+func (node *Node) IndividualPutFileRequest(sdfsName, localName string, forceUpdate, appending, tmp bool, result *RPCResultType) error {
 	if !forceUpdate {
 		_, ts := node.GetAddressOfLatestTS(sdfsName)
 		if (GetMillisecond() - ts) < MIN_UPDATE_INTERVAL {
@@ -124,8 +132,17 @@ func (node *Node) IndividualPutFileRequest(sdfsName, localName string, forceUpda
 			return nil
 		}
 	}
-	targetAddresses := node.GetResponsibleAddresses(sdfsName)
-	masterId := node.GetMasterID(sdfsName)
+	toHash := sdfsName
+	if tmp {
+		// if it's tmp file, we need to truncate the tail, which is a metadata
+		splitted := strings.Split(sdfsName, "___")
+		if len(splitted) != 2 {
+			SLOG.Printf("[Error] unexpected tmp filename: %s", sdfsName)
+		}
+		toHash = splitted[0]
+	}
+	targetAddresses := node.GetResponsibleAddresses(toHash)
+	masterId := node.GetMasterID(toHash)
 
 	ts := GetMillisecond()
 	data, err := ioutil.ReadFile(localName)
@@ -134,7 +151,7 @@ func (node *Node) IndividualPutFileRequest(sdfsName, localName string, forceUpda
 		*result = RPC_FAIL
 		return err
 	}
-	args := &StoreFileArgs{masterId, sdfsName, ts, data, appending}
+	args := &StoreFileArgs{masterId, sdfsName, ts, data, appending, tmp}
 	c := make(chan int, DUPLICATE_CNT)
 	for _, addr := range targetAddresses {
 		// TCPAddr := strings.Split(addr, ":")[0] + ":" + TCP_FILE_PORT
@@ -259,7 +276,9 @@ func (fileService *FileService) GetTimeStamp(sdfsFileName string, timestamp *int
 
 func (fileService *FileService) StoreFileToLocal(args *StoreFileArgs, result *RPCResultType) error {
 	var err error
-	if args.Appending {
+	if args.Tmp {
+		err = fileService.node.FileList.StoreTmpFile(args.SdfsName, fileService.node.Root_dir, args.Ts, args.MasterNodeId, args.Content)
+	} else if args.Appending {
 		err = fileService.node.FileList.AppendFile(args.SdfsName, fileService.node.Root_dir, args.Ts, args.MasterNodeId, args.Content)
 	} else {
 		err = fileService.node.FileList.StoreFile(args.SdfsName, fileService.node.Root_dir, args.Ts, args.MasterNodeId, args.Content)

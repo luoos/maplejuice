@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"plugin"
 	. "slogger"
+	"strconv"
 	"strings"
 )
 
@@ -75,7 +76,7 @@ func (node *Node) StartMapleJuiceTask(des *TaskDescription) error {
 	}
 
 	// 5. append files to SDFS
-	args := &PutFileArgs{local_output_path, des.OutputPath, true, true}
+	args := &PutFileArgs{local_output_path, des.OutputPath, true, true, true}
 	var result RPCResultType
 	err = node.PutFileRequest(args, &result)
 	if err != nil {
@@ -117,7 +118,7 @@ func (node *Node) HandleMapleTask(input_dir, output_dir string, f plugin.Symbol)
 			}
 			if i == 9 || err == io.EOF {
 				kvpair := mapleFunc(lines)
-				WriteMaplePairToLocal(output_dir, kvpair)
+				node.WriteMaplePairToLocal(output_dir, kvpair)
 				i = 0
 				lines = make([]string, 0)
 			}
@@ -129,10 +130,10 @@ func (node *Node) HandleMapleTask(input_dir, output_dir string, f plugin.Symbol)
 	}
 }
 
-func WriteMaplePairToLocal(dir string, kvpair map[string]string) {
+func (node *Node) WriteMaplePairToLocal(dir string, kvpair map[string]string) {
 	// TODO: check special character in key for valid filename
 	for k, v := range kvpair {
-		k = SpecialCharToNormal(k)
+		k = SpecialCharToNormal(k) + "___" + strconv.Itoa(node.Id)
 
 		output_path := filepath.Join(dir, k)
 		f, err := os.OpenFile(output_path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0777)
