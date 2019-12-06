@@ -123,11 +123,11 @@ func TestUpdateMasterId(t *testing.T) {
 
 func TestDeleteFileInfosOutOfRange(t *testing.T) {
 	fl := node.CreateFileList(1)
-	fl.PutFileInfoBase(1, "testFilename1", FILES_ROOT_DIR, 1, 2)
-	fl.PutFileInfoBase(2, "testFilename2", FILES_ROOT_DIR+"/1", 4, 3)
-	fl.PutFileInfoBase(3, "testFilename3", FILES_ROOT_DIR+"/2", 6, 40)
-	fl.PutFileInfoBase(4, "testFilename4", FILES_ROOT_DIR+"/3", 10, 40)
-	fl.PutFileInfoBase(5, "testFilename5", FILES_ROOT_DIR+"/4", 20, 128)
+	fl.PutFileInfoBase(1, "testFilename1", FILES_ROOT_DIR, 1, 2, false)
+	fl.PutFileInfoBase(2, "testFilename2", FILES_ROOT_DIR+"/1", 4, 3, false)
+	fl.PutFileInfoBase(3, "testFilename3", FILES_ROOT_DIR+"/2", 6, 40, false)
+	fl.PutFileInfoBase(4, "testFilename4", FILES_ROOT_DIR+"/3", 10, 40, false)
+	fl.PutFileInfoBase(5, "testFilename5", FILES_ROOT_DIR+"/4", 20, 128, false)
 	toDelete := fl.DeleteFileInfosOutOfRange(2, 4)
 	assert(len(toDelete) == 3, "wrong len")
 	assert(len(fl.FileMap) == 2, "wrong size")
@@ -137,11 +137,11 @@ func TestDeleteFileInfosOutOfRange(t *testing.T) {
 
 func TestGetOwnedFileInfos(t *testing.T) {
 	fl := node.CreateFileList(1)
-	fl.PutFileInfoBase(1, "testFilename1", FILES_ROOT_DIR, 1, 2)
-	fl.PutFileInfoBase(2, "testFilename2", FILES_ROOT_DIR, 4, 3)
-	fl.PutFileInfoBase(3, "testFilename3", FILES_ROOT_DIR, 6, 39)
-	fl.PutFileInfoBase(4, "testFilename4", FILES_ROOT_DIR, 10, 40)
-	fl.PutFileInfoBase(5, "testFilename5", FILES_ROOT_DIR, 20, 128)
+	fl.PutFileInfoBase(1, "testFilename1", FILES_ROOT_DIR, 1, 2, false)
+	fl.PutFileInfoBase(2, "testFilename2", FILES_ROOT_DIR, 4, 3, false)
+	fl.PutFileInfoBase(3, "testFilename3", FILES_ROOT_DIR, 6, 39, false)
+	fl.PutFileInfoBase(4, "testFilename4", FILES_ROOT_DIR, 10, 40, false)
+	fl.PutFileInfoBase(5, "testFilename5", FILES_ROOT_DIR, 20, 128, false)
 	res := fl.GetOwnedFileInfos(40)
 	assert(len(res) == 1, "wrong len")
 	assert(res[0].HashID == 4, "wrong id")
@@ -211,4 +211,18 @@ func TestStoreTmpFile(t *testing.T) {
 	_, err = os.Stat("/tmp/test_tmp/tmp/prefix_key___123")
 	assert(err == nil, "file should exist")
 	os.RemoveAll("/tmp/test_tmp")
+}
+
+func TestMergeTmpFiles(t *testing.T) {
+	fl := node.CreateFileList(1)
+	fl.StoreFile("prefix_key___5", "/tmp/test_tmp", 1, 2, []byte("hello world1"))
+	fl.StoreTmpFile("prefix_key___123", "/tmp/test_tmp", 1, 2, []byte("hello"))
+	fl.StoreTmpFile("prefix_key___234", "/tmp/test_tmp", 1, 2, []byte("hello"))
+	fl.MergeTmpFiles("/tmp/test_tmp/tmp", "/tmp/test_tmp", 100)
+	info := fl.GetFileInfo("prefix_key")
+	assert(info != nil, "info should exist")
+	data, _ := fl.ServeFile(info.Sdfsfilename)
+	assert(string(data) == "hellohello", string(data))
+	err := os.RemoveAll("/tmp/test_tmp")
+	assert(err == nil, "fail to remove")
 }

@@ -56,7 +56,7 @@ func (fl *FileList) PutFileInfo( // TODO: looks like it's not used??
 		SLOG.Printf("%s already exist, updating all metainfo", sdfsName)
 	}
 	hashid := getHashID(sdfsName)
-	fl.PutFileInfoBase(hashid, sdfsName, path, timestamp, masterNodeID)
+	fl.PutFileInfoBase(hashid, sdfsName, path, timestamp, masterNodeID, false)
 }
 
 func (fl *FileList) PutFileInfoBase(
@@ -64,12 +64,14 @@ func (fl *FileList) PutFileInfoBase(
 	sdfsfilename string,
 	abs_path string,
 	timestamp int,
-	masterNodeID int) {
+	masterNodeID int,
+	tmp bool) {
 	if _, exist := fl.FileMap[sdfsfilename]; exist {
 		fl.FileMap[sdfsfilename].HashID = hashId
 		fl.FileMap[sdfsfilename].Localpath = abs_path
 		fl.FileMap[sdfsfilename].Timestamp = timestamp
 		fl.FileMap[sdfsfilename].MasterNodeID = masterNodeID
+		fl.FileMap[sdfsfilename].Tmp = tmp
 	} else {
 		if _, exist := fl.FileMap[sdfsfilename]; !exist {
 			fl.FileMap[sdfsfilename] = &FileInfo{
@@ -79,6 +81,7 @@ func (fl *FileList) PutFileInfoBase(
 				Timestamp:    timestamp,
 				MasterNodeID: masterNodeID,
 				FileLock:     &sync.Mutex{},
+				Tmp:          tmp,
 			}
 		}
 	}
@@ -139,12 +142,12 @@ func (fl *FileList) StoreFileBase(
 	}
 	if _, exist := fl.FileMap[sdfsName]; !exist {
 		fl.ListLock.Lock()
-		fl.PutFileInfoBase(hashId, sdfsName, abs_path, timestamp, masterNodeID)
+		fl.PutFileInfoBase(hashId, sdfsName, abs_path, timestamp, masterNodeID, tmp)
 		fl.ListLock.Unlock()
 	}
 	fl.FileMap[sdfsName].FileLock.Lock()
 	defer fl.FileMap[sdfsName].FileLock.Unlock()
-	fl.PutFileInfoBase(hashId, sdfsName, abs_path, timestamp, masterNodeID)
+	fl.PutFileInfoBase(hashId, sdfsName, abs_path, timestamp, masterNodeID, tmp)
 	if appending {
 		f, err := os.OpenFile(abs_path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0777)
 		if err != nil {
@@ -297,6 +300,22 @@ func (fl *FileList) DeleteSDFSDir(dirName string) {
 
 	// delete this dir
 	_ = os.RemoveAll(abs_dir_path)
+}
+
+func (fl *FileList) MergeTmpFiles(tmpDir, desDir string, ts int) {
+	for sdfsName, info := range fl.FileMap {
+		if !info.Tmp {
+			continue
+		}
+		targetName := strings.Split(sdfsName, "___")[0]
+		data, _ := fl.ServeFile(sdfsName)
+		fl.AppendFile(targetName, desDir, ts, info.MasterNodeID, data)
+		fl.DeleteFileAndInfo(sdfsName)
+	}
+	err := os.RemoveAll(tmpDir)
+	if err != nil {
+		SLOG.Println(err)
+	}
 }
 
 func (fl *FileList) MergeDirectoryWithSurfix(surffix string) {
