@@ -147,7 +147,7 @@ func (node *Node) SendFileIfNecessary(info FileInfo, targetRPCAddr []string) {
 		SLOG.Printf("[Node %d] Fail to read file: %s", node.Id, info.Localpath)
 		return
 	}
-	args := StoreFileArgs{info.MasterNodeID, info.Sdfsfilename, info.Timestamp, data, false}
+	args := StoreFileArgs{info.HashID, info.MasterNodeID, info.Sdfsfilename, info.Timestamp, data, false}
 	dummy_chan := make(chan int, L)
 	for i := 0; i < L; i++ {
 		select {

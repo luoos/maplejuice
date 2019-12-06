@@ -39,9 +39,11 @@ type PutFileArgs struct {
 	SdfsName    string
 	ForceUpdate bool
 	Appending   bool
+	SurffixName string
 }
 
 type StoreFileArgs struct {
+	HashId       int
 	MasterNodeId int
 	SdfsName     string
 	Ts           int
@@ -104,7 +106,11 @@ func (node *Node) PutFileRequest(args *PutFileArgs, result *RPCResultType) error
 		for _, file := range files {
 			localFilename := filepath.Join(args.LocalName, file.Name())
 			sdfsFileName := filepath.Join(args.SdfsName, file.Name()) // Now we need to store a dir in SDFS
-			err := node.IndividualPutFileRequest(sdfsFileName, localFilename, true, args.Appending, result)
+			surffixName := ""
+			if args.SurffixName != "" {
+				surffixName = filepath.Join(args.SurffixName, file.Name())
+			}
+			err := node.IndividualPutFileRequest(sdfsFileName, localFilename, surffixName, true, args.Appending, result)
 			if err != nil {
 				SLOG.Printf("err individual put")
 				return err
@@ -112,11 +118,11 @@ func (node *Node) PutFileRequest(args *PutFileArgs, result *RPCResultType) error
 		}
 		return nil
 	} else {
-		return node.IndividualPutFileRequest(args.SdfsName, args.LocalName, args.ForceUpdate, args.Appending, result)
+		return node.IndividualPutFileRequest(args.SdfsName, args.LocalName, args.SurffixName, args.ForceUpdate, args.Appending, result)
 	}
 }
 
-func (node *Node) IndividualPutFileRequest(sdfsName, localName string, forceUpdate, appending bool, result *RPCResultType) error {
+func (node *Node) IndividualPutFileRequest(sdfsName, localName, surffixName string, forceUpdate, appending bool, result *RPCResultType) error {
 	if !forceUpdate {
 		_, ts := node.GetAddressOfLatestTS(sdfsName)
 		if (GetMillisecond() - ts) < MIN_UPDATE_INTERVAL {
@@ -124,8 +130,16 @@ func (node *Node) IndividualPutFileRequest(sdfsName, localName string, forceUpda
 			return nil
 		}
 	}
-	targetAddresses := node.GetResponsibleAddresses(sdfsName)
-	masterId := node.GetMasterID(sdfsName)
+	var targetAddresses []string
+	var masterId int
+	// use surffix name to get responsible address and masterID:
+	if surffixName == "" {
+		targetAddresses = node.GetResponsibleAddresses(sdfsName)
+		masterId = node.GetMasterID(sdfsName)
+	} else {
+		targetAddresses = node.GetResponsibleAddresses(surffixName)
+		masterId = node.GetMasterID(surffixName)
+	}
 
 	ts := GetMillisecond()
 	data, err := ioutil.ReadFile(localName)
@@ -134,7 +148,13 @@ func (node *Node) IndividualPutFileRequest(sdfsName, localName string, forceUpda
 		*result = RPC_FAIL
 		return err
 	}
-	args := &StoreFileArgs{masterId, sdfsName, ts, data, appending}
+	var hashId int
+	if surffixName == "" {
+		hashId = getHashID(sdfsName)
+	} else {
+		hashId = getHashID(surffixName)
+	}
+	args := &StoreFileArgs{hashId, masterId, sdfsName, ts, data, appending}
 	c := make(chan int, DUPLICATE_CNT)
 	for _, addr := range targetAddresses {
 		// TCPAddr := strings.Split(addr, ":")[0] + ":" + TCP_FILE_PORT
@@ -259,11 +279,7 @@ func (fileService *FileService) GetTimeStamp(sdfsFileName string, timestamp *int
 
 func (fileService *FileService) StoreFileToLocal(args *StoreFileArgs, result *RPCResultType) error {
 	var err error
-	if args.Appending {
-		err = fileService.node.FileList.AppendFile(args.SdfsName, fileService.node.Root_dir, args.Ts, args.MasterNodeId, args.Content)
-	} else {
-		err = fileService.node.FileList.StoreFile(args.SdfsName, fileService.node.Root_dir, args.Ts, args.MasterNodeId, args.Content)
-	}
+	err = fileService.node.FileList.StoreFileBase(args.HashId, args.SdfsName, fileService.node.Root_dir, args.Ts, args.MasterNodeId, args.Content, args.Appending)
 
 	if err != nil {
 		SLOG.Println(err)

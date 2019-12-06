@@ -75,7 +75,13 @@ func (node *Node) StartMapleJuiceTask(des *TaskDescription) error {
 	}
 
 	// 5. append files to SDFS
-	args := &PutFileArgs{local_output_path, des.OutputPath, true, true}
+	args := &PutFileArgs{
+		LocalName:   local_output_path,
+		SdfsName:    output_sub_path,
+		ForceUpdate: true,
+		Appending:   true,
+		SurffixName: des.OutputPath,
+	}
 	var result RPCResultType
 	err = node.PutFileRequest(args, &result)
 	if err != nil {

@@ -39,7 +39,7 @@ func TestRegisterFileService(t *testing.T) {
 	defer deleteDummyFile(filename)
 	var reply node.RPCResultType
 	client, _ := rpc.Dial("tcp", "0.0.0.0:9300")
-	err := client.Call(node.FileServiceName+"0.0.0.0:9300"+".PutFileRequest", node.PutFileArgs{filename, "dest", false, false}, &reply)
+	err := client.Call(node.FileServiceName+"0.0.0.0:9300"+".PutFileRequest", node.PutFileArgs{filename, "dest", false, false, ""}, &reply)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -78,7 +78,7 @@ func TestPutAndGetFileRPC(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 	sdfsfilename := "testFilename"
 	content := []byte("this is my file content")
-	args := node.StoreFileArgs{master.Id, sdfsfilename, 1, content, false}
+	args := node.StoreFileArgs{getHashID(sdfsfilename), master.Id, sdfsfilename, 1, content, false}
 	node.PutFile("0.0.0.0:9321", &args, make(chan int, 4))
 	var data []byte
 	node.GetFile("0.0.0.0:9321", sdfsfilename, &data)
@@ -107,7 +107,7 @@ func TestGetFileFromClient(t *testing.T) {
 	coorFsAddress := "0.0.0.0:19510"
 	sdfsfilename := "testFilename"
 	content := []byte("this is my file content")
-	args := node.StoreFileArgs{coordinator.Id, sdfsfilename, 1, content, false}
+	args := node.StoreFileArgs{getHashID(sdfsfilename), coordinator.Id, sdfsfilename, 1, content, false}
 	node.PutFile(coorFsAddress, &args, make(chan int, 4))
 	client := getDcliClient(coorFsAddress)
 	var res node.RPCResultType
@@ -134,7 +134,7 @@ func TestPutFileFromClient(t *testing.T) {
 	dest := "destfile"
 	client := getDcliClient(coorFsAddress)
 	var reply node.RPCResultType
-	client.Call(node.FileServiceName+coorFsAddress+".PutFileRequest", node.PutFileArgs{src, dest, false, false}, &reply)
+	client.Call(node.FileServiceName+coorFsAddress+".PutFileRequest", node.PutFileArgs{src, dest, false, false, ""}, &reply)
 	data, _ := ioutil.ReadFile(coordinator.Root_dir + "/" + dest)
 	assert(string(data) == content, "wrong")
 }

@@ -94,7 +94,7 @@ func (fl *FileList) StoreFile(
 	return fl.StoreFileBase(hashId, sdfsName, root_dir, timestamp, masterNodeID, data, false)
 }
 
-func (fl *FileList) AppendFile(
+func (fl *FileList) AppendFile( // Not used
 	sdfsName string,
 	root_dir string,
 	timestamp int,
@@ -105,7 +105,7 @@ func (fl *FileList) AppendFile(
 }
 
 // This should only be used in test
-func (fl *FileList) StoreFileBase(
+func (fl *FileList) StoreFileBase( // Not used
 	hashId int,
 	sdfsName string,
 	root_dir string,
@@ -303,7 +303,7 @@ func (fl *FileList) MergeDirectoryWithSurfix(surffix string) {
 		newsdfsName := filepath.Join(surffix, basename)
 		path_split := strings.Split(fInfo.Localpath, "/")
 		root_dir := "/" + filepath.Join(path_split[1], path_split[2]) //  [1]/[2] could be apps/files for production and tmp/test_merge_dir for test
-		fl.AppendFile(newsdfsName, root_dir, fInfo.Timestamp, fInfo.MasterNodeID, data)
+		fl.StoreFileBase(fInfo.HashID, newsdfsName, root_dir, fInfo.Timestamp, fInfo.MasterNodeID, data, true)
 	}
 	targetDirSet := make(map[string]bool)
 	for _, fInfo := range targetFileInfos {
