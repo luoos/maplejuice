@@ -131,6 +131,7 @@ func (node *Node) DuplicateReplica() {
 	ownedFileInfos := node.FileList.GetOwnedFileInfos(node.Id)
 	targetsRPCAddr := node.MbList.GetRPCAddressesForNextKNodes(node.Id, DUPLICATE_CNT-1)
 	for _, info := range ownedFileInfos {
+		targetsRPCAddr = node.MbList.GetRPCAddressesForNextKNodes(node.Id, DUPLICATE_CNT-1)
 		node.SendFileIfNecessary(info, targetsRPCAddr)
 	}
 }
@@ -156,7 +157,7 @@ func (node *Node) SendFileIfNecessary(info FileInfo, targetRPCAddr []string) {
 				go PutFile(p.Address, &args, dummy_chan)
 			}
 		case <-time.After(1 * time.Second):
-			SLOG.Printf("[Node %d] Timeout when trying to get timestamp", node.Id)
+			SLOG.Printf("[Node %d] Timeout when trying to get timestamp some more nodes might died", node.Id)
 		}
 	}
 }
