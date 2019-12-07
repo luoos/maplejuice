@@ -83,7 +83,7 @@ func (node *Node) StartMapleJuiceTask(des *TaskDescription) error {
 		LocalName:   local_output_path,
 		SdfsName:    output_sub_path,
 		ForceUpdate: true,
-		Appending:   true,
+		Appending:   false, // in our set up, append may not be needed
 		SurffixName: des.OutputPath,
 	}
 	var result RPCResultType

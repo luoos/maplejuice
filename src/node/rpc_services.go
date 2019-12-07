@@ -160,16 +160,16 @@ func (node *Node) IndividualPutFileRequest(sdfsName, localName, surffixName stri
 		// TCPAddr := strings.Split(addr, ":")[0] + ":" + TCP_FILE_PORT
 		PutFile(addr, args, c)
 	}
-	for i := 0; i < WRITE_QUORUM && i < len(targetAddresses); i++ {
-		select {
-		case <-c:
-			continue
-		case <-time.After(10 * time.Second):
-			SLOG.Printf("[WTF] waiting too long when putting file: %s", localName)
-			*result = RPC_FAIL
-			return err
-		}
-	}
+	// for i := 0; i < WRITE_QUORUM && i < len(targetAddresses); i++ {
+	// 	select {
+	// 	case <-c:
+	// 		continue
+	// 	case <-time.After(10 * time.Second):
+	// 		SLOG.Printf("[WTF] waiting too long when putting file: %s", localName)
+	// 		*result = RPC_FAIL
+	// 		return err
+	// 	}
+	// }
 	*result = RPC_SUCCESS
 	return err
 }
@@ -246,7 +246,7 @@ func (node *Node) DeleteSDFSDirRequest(sdfsdir string) error {
 		err := DeleteSDFSDir(address, sdfsdir)
 		if err != nil {
 			SLOG.Println("[DeleteSDFSDirRequest] err: ", err)
-			return err
+			// return err
 		}
 	}
 	return nil

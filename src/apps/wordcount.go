@@ -1,16 +1,15 @@
 package main
 
 import (
-	"regexp"
 	"strconv"
 	"strings"
 )
 
 func Maple(lines []string) map[string]string {
 	kvMap := make(map[string]int)
-	reg, _ := regexp.Compile("[^a-zA-Z0-9]+")
+	// reg, _ := regexp.Compile("[^a-zA-Z0-9]+")
 	for _, line := range lines {
-		line = reg.ReplaceAllString(line, " ")
+		// line = reg.ReplaceAllString(line, " ")
 		words := strings.Fields(line)
 		for _, w := range words {
 			if val, exist := kvMap[w]; exist {
