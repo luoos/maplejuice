@@ -128,6 +128,7 @@ func (node *Node) DeleteRedundantFile() {
 }
 
 func (node *Node) DuplicateReplica() {
+	SLOG.Print("Duplicating Replica")
 	ownedFileInfos := node.FileList.GetOwnedFileInfos(node.Id)
 	targetsRPCAddr := node.MbList.GetRPCAddressesForNextKNodes(node.Id, DUPLICATE_CNT-1)
 	for _, info := range ownedFileInfos {

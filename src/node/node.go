@@ -380,7 +380,6 @@ func (node *Node) LostNode(id int, lose_heartbeat bool) {
 			return fileInfo.MasterNodeID == id
 		})
 		if node.OnGoingTask == MapleTask {
-			SLOG.Print("Duplicating Replica")
 			go node.DuplicateReplica()
 		}
 	}
