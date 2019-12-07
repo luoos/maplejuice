@@ -118,7 +118,9 @@ func (mj *MapleJuiceService) dispatchMapleJuiceTask(args *MapleJuiceTaskArgs) {
 	liveNodeCount := len(mj.SelfNode.MbList.Member_map)
 	mj.SelfNode.FailureNodeChan = make(chan int, liveNodeCount)
 
-	// 1. TBD
+	// 1.
+	// tell everyone to set state
+	mj.SelfNode.SetMJState(args.TaskType)
 
 	// 2.
 	files := mj.SelfNode.ListFileInDirRequest(args.InputPath)

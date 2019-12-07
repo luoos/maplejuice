@@ -219,6 +219,33 @@ func (fileService *FileService) ListFileInDirRequest(sdfsDir string, res *[]stri
 	return nil
 }
 
+func (node *Node) SetMJState(taskType MapleJuiceTaskType) {
+	for _, memNode := range node.MbList.Member_map {
+		address := memNode.Ip + ":" + memNode.RPC_Port
+		err := SingleSetMJState(address, taskType)
+		if err != nil {
+			SLOG.Println("[SetMJState]  err ", err)
+		}
+	}
+}
+
+func SingleSetState(address string, taskType MapleJuiceTaskType) error {
+	client, err := rpc.Dial("tcp", address)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+	var result RPCResultType
+	err = client.Call(FileServiceName+address+".SetWorkerState", taskType, &result)
+	return err
+}
+
+func (fileService *FileService) SetWorkerState(taskType MapleJuiceTaskType, res *RPCResultType) error {
+	fileService.node.OnGoingTask = taskType
+	*res = RPC_DUMMY
+	return nil
+}
+
 func (node *Node) ListFileInDirRequest(sdfsDir string) []string {
 	fileSet := make(map[string]bool)
 	for _, memNode := range node.MbList.Member_map {
