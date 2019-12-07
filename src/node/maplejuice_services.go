@@ -161,7 +161,7 @@ func (mj *MapleJuiceService) dispatchMapleJuiceTask(args *MapleJuiceTaskArgs) {
 			delete(worker_and_files, workerID)
 		case failureWorkerID := <-mj.SelfNode.FailureNodeChan:
 			SLOG.Printf("[DispatchMapleJuiceTask] work from workerid: %d has failed, finding a new worker!", failureWorkerID)
-			mj.reDispatchMapleJuiceTask(MapleTask, failureWorkerID, worker_and_files, waitChan, args)
+			mj.reDispatchMapleJuiceTask(args.TaskType, failureWorkerID, worker_and_files, waitChan, args)
 		}
 	}
 
