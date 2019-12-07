@@ -135,6 +135,7 @@ func (node *Node) DuplicateReplica() {
 		targetsRPCAddr = node.MbList.GetRPCAddressesForNextKNodes(node.Id, DUPLICATE_CNT-1)
 		node.SendFileIfNecessary(info, targetsRPCAddr)
 	}
+	SLOG.Print("Duplicate Done")
 }
 
 func (node *Node) SendFileIfNecessary(info FileInfo, targetRPCAddr []string) {
@@ -146,7 +147,7 @@ func (node *Node) SendFileIfNecessary(info FileInfo, targetRPCAddr []string) {
 
 	data, err := ioutil.ReadFile(info.Localpath)
 	if err != nil {
-		SLOG.Printf("[Node %d] Fail to read file: %s, this should is deleted temp files", node.Id, info.Localpath)
+		// SLOG.Printf("[Node %d] Fail to read file: %s, this should is deleted temp files", node.Id, info.Localpath)
 		return
 	}
 	args := StoreFileArgs{info.HashID, info.MasterNodeID, info.Sdfsfilename, info.Timestamp, data, false}
@@ -158,7 +159,7 @@ func (node *Node) SendFileIfNecessary(info FileInfo, targetRPCAddr []string) {
 				go PutFile(p.Address, &args, dummy_chan)
 			}
 		case <-time.After(1 * time.Second):
-			SLOG.Printf("[Node %d] Timeout when trying to get timestamp some more nodes might died", node.Id)
+			// SLOG.Printf("[Node %d] Timeout when trying to get timestamp some more nodes might died", node.Id)
 		}
 	}
 }
