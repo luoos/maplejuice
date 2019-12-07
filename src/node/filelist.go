@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	. "slogger"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -176,9 +177,8 @@ func (fl *FileList) DeleteFileInfo(sdfsfilename string) bool {
 		return false
 	}
 	fl.ListLock.Lock()
-	defer fl.ListLock.Unlock()
-
 	delete(fl.FileMap, sdfsfilename)
+	fl.ListLock.Unlock()
 	return true
 }
 
@@ -357,4 +357,26 @@ func isTargetFile(sdfsName, surffix string) bool {
 		return false
 	}
 	return split[2] == surffix
+}
+
+func (fl *FileList) DeleteTmpFilesFromFailedWorker(workerId int) {
+	toDelete := make([]string, 0)
+	fl.ListLock.Lock()
+	for sdfsName, info := range fl.FileMap {
+		if !info.Tmp {
+			continue
+		}
+		srcId, err := strconv.Atoi(strings.Split(sdfsName, "___")[1])
+		if err != nil {
+			SLOG.Printf("Failed to get src Id from sdfsName: %s", sdfsName)
+			continue
+		}
+		if srcId == workerId {
+			toDelete = append(toDelete, sdfsName)
+		}
+	}
+	fl.ListLock.Unlock()
+	for _, name := range toDelete {
+		fl.DeleteFileAndInfo(name)
+	}
 }

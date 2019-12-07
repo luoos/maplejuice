@@ -378,6 +378,7 @@ func (node *Node) LostNode(id int, lose_heartbeat bool) {
 		node.FileList.UpdateMasterID(next_node_id, func(fileInfo *FileInfo) bool {
 			return fileInfo.MasterNodeID == id
 		})
+		node.FileList.DeleteTmpFilesFromFailedWorker(id)
 		go node.DuplicateReplica()
 	}
 	if lose_heartbeat {

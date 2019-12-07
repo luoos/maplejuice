@@ -21,7 +21,7 @@ type TaskDescription struct {
 	TaskID          string
 	ExeFile         string
 	InputFiles      []string
-	OutputPath      string
+	OutputPath      string   // prefix for maple
 	MasterAddresses []string // includes backup master
 }
 
@@ -70,7 +70,7 @@ func (node *Node) StartMapleJuiceTask(des *TaskDescription) error {
 
 	// 4. process each file and store tmp result to local dir
 	if des.TaskType == MapleTask {
-		node.HandleMapleTask(local_input_path, local_output_path, f)
+		node.HandleMapleTask(local_input_path, "/tmp", des.OutputPath, f)
 	} else {
 		node.HandleJuiceTask(local_input_path, local_output_path, f)
 	}
@@ -91,7 +91,7 @@ func (node *Node) StartMapleJuiceTask(des *TaskDescription) error {
 	return nil
 }
 
-func (node *Node) HandleMapleTask(input_dir, output_dir string, f plugin.Symbol) {
+func (node *Node) HandleMapleTask(input_dir, output_dir, prefix string, f plugin.Symbol) {
 	mapleFunc := f.(func([]string) map[string]string)
 	var files []string
 	err := filepath.Walk(input_dir, func(path string, info os.FileInfo, err error) error {
@@ -118,7 +118,7 @@ func (node *Node) HandleMapleTask(input_dir, output_dir string, f plugin.Symbol)
 			}
 			if i == 9 || err == io.EOF {
 				kvpair := mapleFunc(lines)
-				node.WriteMaplePairToLocal(output_dir, kvpair)
+				node.WriteMaplePairToLocal(output_dir, prefix, kvpair)
 				i = 0
 				lines = make([]string, 0)
 			}
@@ -130,10 +130,10 @@ func (node *Node) HandleMapleTask(input_dir, output_dir string, f plugin.Symbol)
 	}
 }
 
-func (node *Node) WriteMaplePairToLocal(dir string, kvpair map[string]string) {
+func (node *Node) WriteMaplePairToLocal(dir, prefix string, kvpair map[string]string) {
 	// TODO: check special character in key for valid filename
 	for k, v := range kvpair {
-		k = SpecialCharToNormal(k) + "___" + strconv.Itoa(node.Id)
+		k = prefix + "__" + SpecialCharToNormal(k) + "___" + strconv.Itoa(node.Id)
 
 		output_path := filepath.Join(dir, k)
 		f, err := os.OpenFile(output_path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0777)

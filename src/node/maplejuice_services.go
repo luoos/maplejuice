@@ -172,6 +172,10 @@ func (mj *MapleJuiceService) dispatchMapleJuiceTask(args *MapleJuiceTaskArgs) {
 		}
 	}
 
+	// Ask receiver to merge
+	allRPCAddress := mj.SelfNode.MbList.GetAllRPCAddresses()
+	CallNodesMergeTmpFiles(allRPCAddress)
+
 	// 7.
 	msg := "[Maple Task] Finished!"
 	if args.TaskType == JuiceTask {
@@ -234,6 +238,34 @@ func CallMapleJuiceRequest(workerID int, workerAddress string, files []string, a
 	waitChan <- workerID
 }
 
+func CallNodesMergeTmpFiles(receiverAddress []string) {
+	ts := GetMillisecond()
+	c := make(chan int, len(receiverAddress))
+	for _, address := range receiverAddress {
+		go CallSingleNodeMergeTmpFiles(address, ts, c)
+	}
+	ack_cnt := 0
+	for ack_cnt < len(receiverAddress) {
+		<-c
+		ack_cnt++
+	}
+}
+
+func CallSingleNodeMergeTmpFiles(address string, ts int, c chan int) {
+	client, err := rpc.Dial("tcp", address)
+	if err != nil {
+		SLOG.Printf("[CallNodeMergeTmpFiles] Dial failed, address: %s", address)
+		return
+	}
+	defer client.Close()
+	var reply RPCResultType
+	err = client.Call(MapleJuiceServiceName+address+".MergeTmpFiles", ts, &reply)
+	if err != nil {
+		SLOG.Printf("[CallNodeMergeTmpFiles] call err, address: %s", address)
+	}
+	c <- 1
+}
+
 func (node *Node) PartitionFiles(files []string, numWorkers int, partitionMethod string) map[int][]string {
 	workerMap := make(map[int][]string)
 	if partitionMethod == "hash" {
@@ -278,9 +310,21 @@ func (node *Node) PartitionFiles(files []string, numWorkers int, partitionMethod
 }
 
 /*****
- * Worker:
+ * Worker
  *****/
 func (mj *MapleJuiceService) StartMapleJuiceTask(des *TaskDescription, result *RPCResultType) error {
 	*result = RPC_DUMMY
 	return mj.SelfNode.StartMapleJuiceTask(des)
+}
+
+func (mj *MapleJuiceService) MergeTmpFiles(ts int, result *RPCResultType) error {
+	n := mj.SelfNode
+	n.FileList.MergeTmpFiles(n.Root_dir+"/tmp", n.Root_dir, ts)
+	prevNodeId := n.MbList.GetNode(n.Id).prev.Id
+	n.FileList.UpdateMasterID(n.Id, func(fileInfo *FileInfo) bool {
+		return IsInCircleRange(fileInfo.HashID, prevNodeId+1, n.Id)
+	})
+	go n.DuplicateReplica()
+	*result = RPC_SUCCESS
+	return nil
 }

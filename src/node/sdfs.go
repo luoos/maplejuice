@@ -28,8 +28,12 @@ func (node *Node) SetFileDir(dir string) {
 }
 
 func IsInCircleRange(id, start, end int) bool {
-	return (start < end && start <= id && id <= end) ||
-		(start > end && (start <= id || id <= end))
+	if start < end {
+		return start <= id && id <= end
+	} else if start > end {
+		return start <= id || id <= end
+	}
+	return true // start == end, has only one node
 }
 
 func (node *Node) GetMasterID(sdfsfilename string) int {
