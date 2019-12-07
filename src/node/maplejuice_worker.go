@@ -70,7 +70,7 @@ func (node *Node) StartMapleJuiceTask(des *TaskDescription) error {
 
 	// 4. process each file and store tmp result to local dir
 	if des.TaskType == MapleTask {
-		node.HandleMapleTask(local_input_path, "/tmp", des.OutputPath, f)
+		node.HandleMapleTask(local_input_path, local_output_path, des.OutputPath, f)
 	} else {
 		node.HandleJuiceTask(local_input_path, local_output_path, f)
 	}
