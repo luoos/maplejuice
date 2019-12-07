@@ -230,7 +230,11 @@ func (mj *MapleJuiceService) reDispatchMapleJuiceTask(taskType MapleJuiceTaskTyp
 	delete(workerTaskID, failureWorkerID)
 	newWorkerNode := mj.SelfNode.MbList.GetNode(newWorkerId)
 	newWorkerAddress := newWorkerNode.Ip + ":" + newWorkerNode.RPC_Port
-	SLOG.Printf("[reDispatchMapleJuiceTask] telling new workderID: %d to process files: %+q", newWorkerId, worker_and_files[newWorkerId])
+	if taskType == MapleTask {
+		SLOG.Printf("[reDispatchMapleJuiceTask] telling new workderID: %d to process files: %+q", newWorkerId, worker_and_files[newWorkerId])
+	} else {
+		SLOG.Printf("[reDispatchMapleJuiceTask] telling new workderID: %d to process files", newWorkerId)
+	}
 	go CallMapleJuiceRequest(workerTaskID[newWorkerId], newWorkerId, newWorkerAddress, worker_and_files[newWorkerId], args, waitChan)
 }
 
