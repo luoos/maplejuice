@@ -28,6 +28,7 @@ type Node struct {
 	active             bool
 	DisableMonitorHB   bool // Disalbe monitor heartbeat, for test
 	FailureNodeChan    chan int
+	OnGoingTask        MapleJuiceTaskType
 }
 
 type Packet struct {
@@ -378,7 +379,10 @@ func (node *Node) LostNode(id int, lose_heartbeat bool) {
 		node.FileList.UpdateMasterID(next_node_id, func(fileInfo *FileInfo) bool {
 			return fileInfo.MasterNodeID == id
 		})
-		// go node.DuplicateReplica()
+		if node.OnGoingTask == MapleTask {
+			SLOG.Print("Duplicating Replica")
+			go node.DuplicateReplica()
+		}
 	}
 	if lose_heartbeat {
 		for _, item := range node.MbList.GetPrevKNodes(node.Id, NUM_MONITORS) {

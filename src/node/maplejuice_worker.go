@@ -29,6 +29,7 @@ func FormatTempDirName(ioType, taskID, surffix string) string {
 }
 
 func (node *Node) StartMapleJuiceTask(des *TaskDescription) error {
+	node.OnGoingTask = des.TaskType
 	// 1. Retrieve files and exe into a local tmp dir
 	// 1.1 Recreate dir: task_id+prefix as dir name
 	input_sub_path := "input___" + des.TaskID + "___" + des.OutputPath
