@@ -98,11 +98,12 @@ func (node *Node) GetAddressOfLatestTS(sdfsfilename string) (string, int) {
 			address := pair.Address
 			timestamp := pair.Ts
 			if timestamp == -1 {
-				SLOG.Print("FileNotExists in FileInfo")
+				// SLOG.Print("FileNotExists in FileInfo")
 			}
 			if timestamp > max_timestamp {
 				max_timestamp = timestamp
 				max_address = address
+				return max_address, max_timestamp
 			}
 		case <-time.After(1 * time.Second):
 			continue
