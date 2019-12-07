@@ -35,7 +35,7 @@ func (node *Node) StartMapleJuiceTask(des *TaskDescription) error {
 	output_sub_path := "output___" + des.TaskID + "___" + des.OutputPath
 	local_output_path := filepath.Join("/tmp", output_sub_path)
 	if des.TaskType == JuiceTask {
-		local_output_path = filepath.Join("/tmp", des.OutputPath+SPLIT+strconv.Itoa(node.Id))
+		local_output_path = filepath.Join("/tmp", des.OutputPath)
 	}
 	os.RemoveAll(local_input_path)
 	os.MkdirAll(local_input_path, 0777)
@@ -78,7 +78,13 @@ func (node *Node) StartMapleJuiceTask(des *TaskDescription) error {
 	}
 
 	// 5. append files to SDFS
-	args := &PutFileArgs{local_output_path, des.OutputPath, true, true, true}
+	var args *PutFileArgs
+	if des.TaskType == MapleTask {
+		args = &PutFileArgs{local_output_path, des.OutputPath, true, true, true}
+	} else {
+		args = &PutFileArgs{local_output_path, des.OutputPath + SPLIT + strconv.Itoa(node.Id), true, true, true}
+	}
+
 	var result RPCResultType
 	err = node.PutFileRequest(args, &result)
 	if err != nil {
