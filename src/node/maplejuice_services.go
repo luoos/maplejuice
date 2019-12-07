@@ -195,10 +195,11 @@ func (mj *MapleJuiceService) dispatchMapleJuiceTask(args *MapleJuiceTaskArgs) {
 		}
 	}
 
-	// tell everyone to duplicate for failured files
-	// if args.TaskType == MapleTask {
-	// 	mj.SelfNode.DuplicateReplicaRequest()
-	// }
+	// juice should duplicate after delete
+	if args.TaskType == JuiceTask && args.DeleteInput {
+		// if we didn't delete input, duplicate will cause too much net traffic
+		mj.SelfNode.DuplicateReplicaRequest()
+	}
 
 	// 8.
 	msg := "[Maple Task] Finished!"

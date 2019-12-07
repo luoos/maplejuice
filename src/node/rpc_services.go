@@ -541,7 +541,7 @@ func DeleteSDFSDir(address, dir string) error {
 func CallGetTimeStamp(address, sdfsFileName string, c chan Pair) {
 	client, err := rpc.Dial("tcp", address)
 	if err != nil {
-		SLOG.Printf("[CallGetTimeStamp] this will occur with fail during getfile, fail to dial %s", address)
+		// SLOG.Printf("[CallGetTimeStamp] this will occur with fail during getfile, fail to dial %s", address)
 		c <- Pair{address, -1}
 		return
 	}
