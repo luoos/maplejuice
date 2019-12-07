@@ -494,7 +494,8 @@ func CallGetTimeStamp(address, sdfsFileName string, c chan Pair) {
 	var timestamp int
 	err = client.Call(FileServiceName+address+".GetTimeStamp", sdfsFileName, &timestamp)
 	if err != nil {
-		SLOG.Fatal(err)
+		SLOG.Print("[CallGetTimeStamp] err:", err)
+		timestamp = -1
 	}
 	c <- Pair{address, timestamp}
 }
