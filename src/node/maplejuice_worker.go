@@ -45,6 +45,7 @@ func (node *Node) StartMapleJuiceTask(des *TaskDescription) error {
 	os.MkdirAll(local_output_path, 0777)
 	// }
 	// 1.2 Retrieve files from SDFS and store files into above dir
+	SLOG.Print("[StartMapleJuiceTask] Getting input files")
 	err := node.GetFilesFromSDFS(des.InputFiles, local_input_path)
 	if err != nil {
 		SLOG.Println("[GetFilesFromSDFS] files", err)
@@ -72,6 +73,7 @@ func (node *Node) StartMapleJuiceTask(des *TaskDescription) error {
 	}
 
 	// 4. process each file and store tmp result to local dir
+	SLOG.Print("[StartMapleJuiceTask] executing EXE")
 	if des.TaskType == MapleTask {
 		node.HandleMapleTask(local_input_path, local_output_path, f)
 	} else {
@@ -79,6 +81,7 @@ func (node *Node) StartMapleJuiceTask(des *TaskDescription) error {
 	}
 
 	// 5. append files to SDFS
+	SLOG.Print("[StartMapleJuiceTask] Appending Files")
 	args := &PutFileArgs{
 		LocalName:   local_output_path,
 		SdfsName:    output_sub_path,
@@ -94,6 +97,7 @@ func (node *Node) StartMapleJuiceTask(des *TaskDescription) error {
 	}
 
 	// 6. delete local dir
+	SLOG.Print("[StartMapleJuiceTask] Removing Local Dir")
 	os.RemoveAll(local_input_path)
 	os.RemoveAll(local_output_path)
 	os.RemoveAll(exe_path)
@@ -226,11 +230,20 @@ func (node *Node) GetFilesFromSDFS(sdfsfiles []string, dir string) error {
 		filename := filepath.Base(sdfsPath)
 		localPath := filepath.Join(dir, filename)
 		file_addr, _ := node.GetAddressOfLatestTS(sdfsPath)
+		if file_addr == "" {
+			SLOG.Print("[GetFilesFromSDFS] GetTS Failed")
+			return fmt.Errorf("GetTS Failed")
+		}
 		var data []byte
 		err := GetFile(file_addr, sdfsPath, &data)
 		if err != nil {
-			SLOG.Println(err)
-			return err
+			SLOG.Println("[GetFilesFromSDFS], err, retrying...", err)
+			file_addr, _ := node.GetAddressOfLatestTS(sdfsPath)
+			err = GetFile(file_addr, sdfsPath, &data)
+			if err != nil {
+				SLOG.Println("[GetFilesFromSDFS], fail to get File Twice", err)
+				return err
+			}
 		}
 		err = ioutil.WriteFile(localPath, data, 0777)
 		if err != nil {
