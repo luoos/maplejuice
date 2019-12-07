@@ -175,7 +175,7 @@ func (mj *MapleJuiceService) dispatchMapleJuiceTask(args *MapleJuiceTaskArgs) {
 			intermediate_dir_name := FormatTempDirName("output", strconv.Itoa(workerTaskID[failureWorkerID]), args.OutputPath)
 			SLOG.Printf("[DispatchMapleJuiceTask] deleting all intermediate files written by taskID: %d, the dir name is: %s", workerTaskID[failureWorkerID], intermediate_dir_name)
 			mj.SelfNode.DeleteSDFSDirRequest(intermediate_dir_name)
-			mj.reDispatchMapleJuiceTask(MapleTask, failureWorkerID, worker_and_files, workerTaskID, waitChan, args)
+			mj.reDispatchMapleJuiceTask(args.TaskType, failureWorkerID, worker_and_files, workerTaskID, waitChan, args)
 		}
 	}
 
