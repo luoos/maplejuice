@@ -25,6 +25,8 @@ type TaskDescription struct {
 	MasterAddresses []string // includes backup master
 }
 
+const SPLIT = "___"
+
 func (node *Node) StartMapleJuiceTask(des *TaskDescription) error {
 	// 1. Retrieve files and exe into a local tmp dir
 	// 1.1 Recreate dir: task_id+prefix as dir name
@@ -33,7 +35,7 @@ func (node *Node) StartMapleJuiceTask(des *TaskDescription) error {
 	output_sub_path := "output___" + des.TaskID + "___" + des.OutputPath
 	local_output_path := filepath.Join("/tmp", output_sub_path)
 	if des.TaskType == JuiceTask {
-		local_output_path = filepath.Join("/tmp", des.OutputPath)
+		local_output_path = filepath.Join("/tmp", des.OutputPath+SPLIT+strconv.Itoa(node.Id))
 	}
 	os.RemoveAll(local_input_path)
 	os.MkdirAll(local_input_path, 0777)

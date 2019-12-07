@@ -216,6 +216,23 @@ func (node *Node) ListFileInDirRequest(sdfsDir string) []string {
 	return res
 }
 
+func (node *Node) ListFilesWithPrefixRequest(prefix string) []string {
+	fileSet := make(map[string]bool)
+	for _, memNode := range node.MbList.Member_map {
+		address := memNode.Ip + ":" + memNode.RPC_Port
+		fileLists := ListFilesWithPrefixInNode(address, prefix)
+		for _, f := range fileLists {
+			fileSet[f] = true
+		}
+	}
+
+	res := []string{}
+	for sdfsName, _ := range fileSet {
+		res = append(res, sdfsName)
+	}
+	return res
+}
+
 func (fileService *FileService) DeleteSDFSDirRequest(sdfsdir string, result *RPCResultType) error {
 	*result = RPC_SUCCESS
 	return fileService.node.DeleteSDFSDirRequest(sdfsdir)
@@ -323,6 +340,11 @@ func (fileService *FileService) ListFileInLocalDir(dir string, result *[]string)
 	return nil
 }
 
+func (fileService *FileService) ListFilesWithPrefix(prefix string, result *[]string) error {
+	*result = fileService.node.FileList.ListFilesWithPrefix(prefix)
+	return nil
+}
+
 func (fileService *FileService) DeleteSDFSDir(dir string, result *RPCResultType) error {
 	fileService.node.FileList.DeleteSDFSDir(dir)
 	*result = RPC_SUCCESS
@@ -344,6 +366,21 @@ func ListFileInSDFSDir(address, dir string) []string {
 	send_err := client.Call(FileServiceName+address+".ListFileInLocalDir", dir, &result)
 	if send_err != nil {
 		SLOG.Println("send_err:", send_err)
+	}
+	return result
+}
+
+func ListFilesWithPrefixInNode(address, prefix string) []string {
+	client, err := rpc.Dial("tcp", address)
+	if err != nil {
+		SLOG.Printf("[ListFilesWithPrefix] Dial failed, address: %s", address)
+		return []string{}
+	}
+	defer client.Close()
+	var result []string
+	send_err := client.Call(FileServiceName+address+".ListFilesWithPrefix", prefix, &result)
+	if send_err != nil {
+		SLOG.Println("[ListFilesWithPrefix] send_err:", send_err)
 	}
 	return result
 }

@@ -121,10 +121,12 @@ func (mj *MapleJuiceService) dispatchMapleJuiceTask(args *MapleJuiceTaskArgs) {
 	// 1. TBD
 
 	// 2.
-	files := mj.SelfNode.ListFileInDirRequest(args.InputPath)
+	var files []string
 	if args.TaskType == MapleTask {
+		files = mj.SelfNode.ListFileInDirRequest(args.InputPath)
 		SLOG.Printf("[MAPLE] starting maple task with exe: %s, src_dir: %s", args.Exe, args.InputPath)
 	} else {
+		files = mj.SelfNode.ListFilesWithPrefixRequest(args.InputPath)
 		SLOG.Printf("[JUICE] starting juice task with exe: %s, src_prefix: %s", args.Exe, args.InputPath)
 	}
 

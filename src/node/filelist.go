@@ -282,6 +282,18 @@ func (fl *FileList) ListFileInDir(dir string) []string {
 	return res
 }
 
+func (fl *FileList) ListFilesWithPrefix(prefix string) []string {
+	res := []string{}
+	fl.ListLock.Lock()
+	for sdfsfilename, _ := range fl.FileMap {
+		if strings.HasPrefix(sdfsfilename, prefix) {
+			res = append(res, sdfsfilename)
+		}
+	}
+	fl.ListLock.Unlock()
+	return res
+}
+
 func (fl *FileList) DeleteSDFSDir(dirName string) {
 	// delete all files under this dir
 	files := fl.ListFileInDir(dirName)

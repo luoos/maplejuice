@@ -160,3 +160,26 @@ func TestRPCDeleteDir(t *testing.T) {
 	_, err = os.Stat("/tmp/test_delete_dirrpc/test_ddd")
 	assert(os.IsNotExist(err), "dir should not exist")
 }
+
+func TestRPCListFilesWithPrefix(t *testing.T) {
+	node1 := node.CreateNode("0.0.0.0", "9501", "19521")
+	node2 := node.CreateNode("0.0.0.0", "9502", "19522")
+	node3 := node.CreateNode("0.0.0.0", "9503", "19523")
+	node1.InitMemberList()
+	go node1.MonitorInputPacket()
+	go node2.MonitorInputPacket()
+	go node3.MonitorInputPacket()
+	go node1.StartRPCService()
+	go node2.StartRPCService()
+	go node3.StartRPCService()
+	time.Sleep(50 * time.Millisecond)
+	node2.Join(node1.IP + ":" + node1.Port)
+	node3.Join(node1.IP + ":" + node1.Port)
+	node1.FileList.StoreFile("prefixxx_testFilename1", "/tmp/test_delete_dirrpc", 1, 2, []byte("hello world"))
+	node2.FileList.StoreFile("prefixxx_testFilename2", "/tmp/test_delete_dirrpc", 1, 2, []byte("hello world"))
+	node2.FileList.StoreFile("prefixxx_testFilename1", "/tmp/test_delete_dirrpc", 1, 2, []byte("hello world"))
+	node3.FileList.StoreFile("prefixxx_testFilename3", "/tmp/test_delete_dirrpc", 1, 2, []byte("hello world"))
+	files := node1.ListFilesWithPrefixRequest("prefixxx")
+	assert(len(files) == 3, "wrong length")
+	os.RemoveAll("/tmp/test_delete_dirrpc")
+}
