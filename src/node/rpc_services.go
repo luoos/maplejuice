@@ -229,7 +229,7 @@ func (node *Node) SetMJState(taskType MapleJuiceTaskType) {
 	}
 }
 
-func SingleSetState(address string, taskType MapleJuiceTaskType) error {
+func SingleSetMJState(address string, taskType MapleJuiceTaskType) error {
 	client, err := rpc.Dial("tcp", address)
 	if err != nil {
 		return err
