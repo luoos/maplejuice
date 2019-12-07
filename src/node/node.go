@@ -378,7 +378,7 @@ func (node *Node) LostNode(id int, lose_heartbeat bool) {
 		node.FileList.UpdateMasterID(next_node_id, func(fileInfo *FileInfo) bool {
 			return fileInfo.MasterNodeID == id
 		})
-		go node.DuplicateReplica()
+		// go node.DuplicateReplica()
 	}
 	if lose_heartbeat {
 		for _, item := range node.MbList.GetPrevKNodes(node.Id, NUM_MONITORS) {

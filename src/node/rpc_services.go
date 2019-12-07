@@ -235,6 +235,33 @@ func (node *Node) ListFileInDirRequest(sdfsDir string) []string {
 	return res
 }
 
+func (node *Node) DuplicateReplicaRequest() {
+	for _, memNode := range node.MbList.Member_map {
+		address := memNode.Ip + ":" + memNode.RPC_Port
+		err := SendDuplicateReplicaRequest(address)
+		if err != nil {
+			SLOG.Printf("[DuplicateReplicaRequest], err: ", err)
+		}
+	}
+}
+
+func SendDuplicateReplicaRequest(address string) error {
+	client, err := rpc.Dial("tcp", address)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+	var result RPCResultType
+	err = client.Call(FileServiceName+address+".DuplicateReplica", "", &result)
+	return err
+}
+
+func (fileService *FileService) DuplicateReplica(dummy string, res *RPCResultType) error {
+	*res = RPC_DUMMY
+	go fileService.node.DuplicateReplica()
+	return nil
+}
+
 func (fileService *FileService) DeleteSDFSDirRequest(sdfsdir string, result *RPCResultType) error {
 	*result = RPC_SUCCESS
 	return fileService.node.DeleteSDFSDirRequest(sdfsdir)

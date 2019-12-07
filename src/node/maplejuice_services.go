@@ -193,6 +193,9 @@ func (mj *MapleJuiceService) dispatchMapleJuiceTask(args *MapleJuiceTaskArgs) {
 		}
 	}
 
+	// tell everyone to duplicate for failured files
+	mj.SelfNode.DuplicateReplicaRequest()
+
 	// 8.
 	msg := "[Maple Task] Finished!"
 	if args.TaskType == JuiceTask {
