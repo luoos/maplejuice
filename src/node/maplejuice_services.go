@@ -10,8 +10,6 @@ Includes:
 package node
 
 import (
-	"fmt"
-	"net"
 	"net/rpc"
 	. "slogger"
 	"strconv"
@@ -210,14 +208,14 @@ func (mj *MapleJuiceService) dispatchMapleJuiceTask(args *MapleJuiceTaskArgs) {
 }
 
 func ReplyTaskResultToDcli(message, clientAddress string) {
-	conn, err := net.Dial("tcp", clientAddress)
+	client, err := rpc.Dial("tcp", address)
 	if err != nil {
-		SLOG.Println(err)
-		return
+		return err
 	}
-	fmt.Fprintf(conn, message+"\n")
-	conn.Close()
-	SLOG.Print(message)
+	defer client.Close()
+	var result RPCResultType
+	err = client.Call(FileServiceName+address+".TaskResultRequest", message, &result)
+	return err
 }
 
 // TODO: test this

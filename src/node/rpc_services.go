@@ -198,6 +198,12 @@ func (node *Node) GetFileRequest(args []string, result *RPCResultType) error {
 	return nil
 }
 
+func (fileService *FileService) TaskResultRequest(msg string, res *RPCResultType) error {
+	*res = RPC_DUMMY
+	SLOG.Println(msg)
+	return nil
+}
+
 func (fileService *FileService) MergeDirRequest(surffix string, res *RPCResultType) error {
 	*res = RPC_DUMMY
 	return fileService.node.MergeDirRequest(surffix)
