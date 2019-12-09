@@ -46,7 +46,7 @@ func (fl *FileList) PutFileInfoObject(sdfsfilename string, fi *FileInfo) {
 	fl.FileMap[sdfsfilename] = fi
 }
 
-func (fl *FileList) PutFileInfo( // TODO: looks like it's not used??
+func (fl *FileList) PutFileInfo(
 	sdfsName string,
 	path string,
 	timestamp int,

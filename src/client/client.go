@@ -105,7 +105,7 @@ func parseCommand() {
 		num_juices, _ := strconv.Atoi(os.Args[3])
 		prefix := os.Args[4]
 		destFilename := os.Args[5]
-		deleteInput := (os.Args[6] == "1") // TODO: Should check if input is valid
+		deleteInput := (os.Args[6] == "1")
 		CallJuiceTask(juice_exe, num_juices, prefix, destFilename, deleteInput)
 	default:
 		fmt.Println(usage_prompt)

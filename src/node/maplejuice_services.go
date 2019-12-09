@@ -218,7 +218,6 @@ func ReplyTaskResultToDcli(message, clientAddress string) {
 	return err
 }
 
-// TODO: test this
 func (mj *MapleJuiceService) reDispatchMapleJuiceTask(taskType MapleJuiceTaskType, failureWorkerID int, worker_and_files map[int][]string, workerTaskID map[int]int, waitChan chan int, args *MapleJuiceTaskArgs) {
 	newWorkerId := -1
 	for nodeId, _ := range mj.SelfNode.MbList.Member_map {

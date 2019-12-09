@@ -140,7 +140,7 @@ func (node *Node) DuplicateReplica() {
 
 func (node *Node) SendFileIfNecessary(info FileInfo, targetRPCAddr []string) {
 	L := len(targetRPCAddr)
-	c := make(chan Pair, L) // TODO: rename Pair to TsPair
+	c := make(chan Pair, L)
 	for _, addr := range targetRPCAddr {
 		go CallGetTimeStamp(addr, info.Sdfsfilename, c)
 	}

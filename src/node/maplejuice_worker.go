@@ -144,7 +144,6 @@ func (node *Node) HandleMapleTask(input_dir, output_dir string, f plugin.Symbol)
 }
 
 func WriteMaplePairToLocal(dir string, kvpair map[string]string) {
-	// TODO: check special character in key for valid filename
 	for k, v := range kvpair {
 		k = SpecialCharToNormal(k)
 

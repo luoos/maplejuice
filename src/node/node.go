@@ -411,6 +411,6 @@ func (node *Node) JoinNode(packet Packet) {
 		}
 
 		node.DeleteRedundantFile()
-		go node.DuplicateReplica() // TODO: check condition
+		go node.DuplicateReplica()
 	}
 }

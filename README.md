@@ -1,3 +1,57 @@
+# MapleJuice - MP4
+Group members:
+1. Ruochen Shen   rs20
+2. Jun Luo        junluo2
+
+## Setup
+Notice we are using the branch "failMapleJuice"
+
+run:
+1. go to our VM and switch to root
+2. run `deploy_dcli` to deploy MP1
+3. run `deploy_dnode` to deploy MP2-4
+
+## Put input file and exe to SDFS
+go to project root dir in `/root/distributed_log_querier`
+compile our exe file:
+```go build -buildmode=plugin src/apps/wordcount.go```
+
+for application 3:
+
+```go build -buildmode=plugin src/apps/urlcount.go```
+```go build -buildmode=plugin src/apps/urlpercent.go```
+> each exe file have a maple function and a juice function
+
+## Put maple juice exe and input file to SDFS
+put exe file and input directory, here out input directory is "book/":
+```
+dcli put wordcount.so wordcount.so
+dcli put book book
+```
+
+## Run maple Juice task
+
+**Maple:**
+```
+dcli maple <maple_exe> <num_maples> <sdfs_intermediate_filename_prefix> <sdfs_src_directory>
+```
+
+**Juice:**
+```
+dcli juice <juice_exe> <num_juices> <sdfs_intermediate_filename_prefix> <sdfs_dest_filename> delete_input={0,1}
+```
+
+each task will not block, we can queue our task.
+To check if the task is done, please check the log at /apps/logs/node.log. or:
+```
+tail -f /apps/logs/node.log
+```
+
+## Get Result
+```
+dcli get <sdfs_dest_filename>/output <local_filename>
+```
+
 # Distributed File System - MP3
 
 Group members:
