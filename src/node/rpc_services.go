@@ -444,7 +444,7 @@ func ListFileInSDFSDir(address, dir string) []string {
 func PutFile(address string, args *StoreFileArgs, c chan int) {
 	client, err := rpc.Dial("tcp", address)
 	if err != nil {
-		SLOG.Printf("[PutFile] Dial failed, address: %s", address)
+		// SLOG.Printf("[PutFile] Dial failed, address: %s", address)
 		c <- 1
 		// when two node failed, some putfile may not be able to dial, so file is not send to them.
 		// but duplicate will fix this issue so we still send ack to channel and pretend it succeed

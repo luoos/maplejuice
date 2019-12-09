@@ -215,7 +215,7 @@ func WriteJuicePairToLocal(outputfile string, kvpair map[string]string) {
 			SLOG.Printf("Fail to open file: %s", outputfile)
 			return
 		}
-		_, err = f.WriteString(k + " " + v + "\n")
+		_, err = f.WriteString(k + "\t" + v + "\n")
 		if err != nil {
 			SLOG.Printf("Fail to append file: %s", outputfile)
 			return
