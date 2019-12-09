@@ -10,6 +10,8 @@ Includes:
 package node
 
 import (
+	"fmt"
+	"net"
 	"net/rpc"
 	. "slogger"
 	"strconv"
@@ -204,18 +206,31 @@ func (mj *MapleJuiceService) dispatchMapleJuiceTask(args *MapleJuiceTaskArgs) {
 	if args.TaskType == JuiceTask {
 		msg = "[Juice Task] Finished!"
 	}
+
 	ReplyTaskResultToDcli(msg, args.ClientAddr)
+
 }
 
-func ReplyTaskResultToDcli(message, clientAddress string) {
-	client, err := rpc.Dial("tcp", address)
+func ReplyTaskResultToDcli(message, clientAddress string) error {
+	client, err := rpc.Dial("tcp", clientAddress)
 	if err != nil {
 		return err
 	}
 	defer client.Close()
 	var result RPCResultType
-	err = client.Call(FileServiceName+address+".TaskResultRequest", message, &result)
-	return err
+	err = client.Call(FileServiceName+clientAddress+".TaskResultRequest", message, &result)
+	if err != nil {
+		return err
+	}
+	conn, err := net.Dial("tcp", clientAddress)
+	if err != nil {
+		SLOG.Println(err)
+		return err
+	}
+	fmt.Fprintf(conn, message+"\n")
+	conn.Close()
+	SLOG.Print(message)
+	return nil
 }
 
 func (mj *MapleJuiceService) reDispatchMapleJuiceTask(taskType MapleJuiceTaskType, failureWorkerID int, worker_and_files map[int][]string, workerTaskID map[int]int, waitChan chan int, args *MapleJuiceTaskArgs) {
