@@ -15,6 +15,7 @@ import (
 	"net/rpc"
 	. "slogger"
 	"strconv"
+	"strings"
 )
 
 // MapleJuiceServiceName ...
@@ -207,18 +208,23 @@ func (mj *MapleJuiceService) dispatchMapleJuiceTask(args *MapleJuiceTaskArgs) {
 		msg = "[Juice Task] Finished!"
 	}
 
-	ReplyTaskResultToDcli(msg, args.ClientAddr)
+	err := ReplyTaskResultToDcli(msg, args.ClientAddr)
+	if err != nil {
+		SLOG.Print("[ReplyTaskResultToDcli] err: ", err)
+	}
 
 }
 
 func ReplyTaskResultToDcli(message, clientAddress string) error {
-	client, err := rpc.Dial("tcp", clientAddress)
+	ip := strings.Split(clientAddress, ":")[0]
+	rpc_address := ip + RPC_DEFAULT_PORT
+	client, err := rpc.Dial("tcp", rpc_address)
 	if err != nil {
 		return err
 	}
 	defer client.Close()
 	var result RPCResultType
-	err = client.Call(FileServiceName+clientAddress+".TaskResultRequest", message, &result)
+	err = client.Call(FileServiceName+rpc_address+".TaskResultRequest", message, &result)
 	if err != nil {
 		return err
 	}
