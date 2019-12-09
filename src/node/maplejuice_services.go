@@ -15,7 +15,6 @@ import (
 	"net/rpc"
 	. "slogger"
 	"strconv"
-	"strings"
 )
 
 // MapleJuiceServiceName ...
@@ -38,7 +37,7 @@ type MapleJuiceTaskArgs struct {
 	NumWorkers  int
 	InputPath   string // sdfs_src_dir for maple, prefix for juice
 	OutputPath  string // prefix for maple, sdfs_dest_filename for juice
-	ClientAddr  string
+	ClientIp    string
 	DeleteInput bool
 }
 
@@ -208,16 +207,15 @@ func (mj *MapleJuiceService) dispatchMapleJuiceTask(args *MapleJuiceTaskArgs) {
 		msg = "[Juice Task] Finished!"
 	}
 
-	err := ReplyTaskResultToDcli(msg, args.ClientAddr)
+	err := ReplyTaskResultToDcli(msg, args.ClientIp)
 	if err != nil {
 		SLOG.Print("[ReplyTaskResultToDcli] err: ", err)
 	}
 
 }
 
-func ReplyTaskResultToDcli(message, clientAddress string) error {
-	ip := strings.Split(clientAddress, ":")[0]
-	rpc_address := ip + ":" + RPC_DEFAULT_PORT
+func ReplyTaskResultToDcli(message, clientIp string) error {
+	rpc_address := clientIp + ":" + RPC_DEFAULT_PORT
 	client, err := rpc.Dial("tcp", rpc_address)
 	if err != nil {
 		return err
@@ -228,7 +226,7 @@ func ReplyTaskResultToDcli(message, clientAddress string) error {
 	if err != nil {
 		return err
 	}
-	conn, err := net.Dial("tcp", clientAddress)
+	conn, err := net.Dial("tcp", clientIp+":"+DcliReceiverPort)
 	if err != nil {
 		SLOG.Println(err)
 		return err

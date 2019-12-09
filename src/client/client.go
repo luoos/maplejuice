@@ -316,8 +316,7 @@ func CallMapleTask(maple_exe string, num_maples int, prefix, src_dir string) {
 		NumWorkers: num_maples,
 		InputPath:  src_dir,
 		OutputPath: prefix,
-		ClientAddr: ip + ":" + node.RPC_DEFAULT_PORT,
-		// ClientAddr: ip + ":" + DcliReceiverPort,
+		ClientIp:   ip,
 	}
 	var result node.RPCResultType
 	err := client.Call(node.MapleJuiceServiceName+address+".ForwardMapleJuiceRequest", args, &result)
@@ -339,7 +338,7 @@ func CallJuiceTask(juice_exe string, num_juices int, prefix string, destFilename
 		NumWorkers:  num_juices,
 		InputPath:   prefix,
 		OutputPath:  destFilename,
-		ClientAddr:  ip + ":" + DcliReceiverPort,
+		ClientIp:    ip,
 		DeleteInput: deleteInput,
 	}
 	var result node.RPCResultType
