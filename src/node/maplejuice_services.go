@@ -217,7 +217,7 @@ func (mj *MapleJuiceService) dispatchMapleJuiceTask(args *MapleJuiceTaskArgs) {
 
 func ReplyTaskResultToDcli(message, clientAddress string) error {
 	ip := strings.Split(clientAddress, ":")[0]
-	rpc_address := ip + RPC_DEFAULT_PORT
+	rpc_address := ip + ":" + RPC_DEFAULT_PORT
 	client, err := rpc.Dial("tcp", rpc_address)
 	if err != nil {
 		return err
