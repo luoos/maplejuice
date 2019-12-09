@@ -1,3 +1,7 @@
+# MapleJuice - MP4
+
+Please checkout to the branch [failMapleJuice](https://gitlab-beta.engr.illinois.edu/rs20/distributed_log_querier/tree/failMapleJuice)
+
 # Distributed File System - MP3
 
 Group members:
